@@ -1,0 +1,285 @@
+'use client'
+
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useAuthStore } from '@/stores/auth'
+import { financeService } from '@/services/finance'
+import type {
+  CreateMonthlyFeeRequest,
+  CreateBulkMonthlyFeesRequest,
+  UpdateMonthlyFeeRequest,
+  PayMonthlyFeeRequest,
+  DeleteMonthlyFeeRequest,
+  CreatePaymentRequest,
+  DeletePaymentRequest,
+  CreateDebtRequest,
+  PayDebtRequest,
+  DeleteDebtRequest,
+  FeeStatus,
+  PaymentType,
+  ListFinancialStatementRequest,
+} from '@/types'
+import { toast } from 'sonner'
+
+// ---- Monthly Fees ----
+
+export function useMonthlyFees(page = 1, memberId?: string, status?: FeeStatus, referenceMonth?: string) {
+  const houseId = useAuthStore((s) => s.currentHouseId())
+
+  return useQuery({
+    queryKey: ['monthly-fees', houseId, page, memberId, status, referenceMonth],
+    queryFn: () =>
+      financeService.listMonthlyFees({
+        houseId: houseId!,
+        page,
+        limit: 20,
+        memberId,
+        status,
+        referenceMonth,
+      }),
+    enabled: !!houseId,
+  })
+}
+
+export function useCreateMonthlyFee() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (data: CreateMonthlyFeeRequest) =>
+      financeService.createMonthlyFee(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['monthly-fees'] })
+      toast.success('Mensalidade criada')
+    },
+    onError: () => {
+      toast.error('Erro ao criar mensalidade')
+    },
+  })
+}
+
+export function useCreateBulkMonthlyFees() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (data: CreateBulkMonthlyFeesRequest) =>
+      financeService.createBulkMonthlyFees(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['monthly-fees'] })
+      toast.success('Mensalidades criadas em lote')
+    },
+    onError: () => {
+      toast.error('Erro ao criar mensalidades em lote')
+    },
+  })
+}
+
+export function useUpdateMonthlyFee() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (data: UpdateMonthlyFeeRequest) =>
+      financeService.updateMonthlyFee(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['monthly-fees'] })
+      toast.success('Mensalidade atualizada')
+    },
+    onError: () => {
+      toast.error('Erro ao atualizar mensalidade')
+    },
+  })
+}
+
+export function usePayMonthlyFee() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (data: PayMonthlyFeeRequest) =>
+      financeService.payMonthlyFee(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['monthly-fees'] })
+      toast.success('Pagamento registrado')
+    },
+    onError: () => {
+      toast.error('Erro ao registrar pagamento')
+    },
+  })
+}
+
+export function useDeleteMonthlyFee() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (data: DeleteMonthlyFeeRequest) =>
+      financeService.deleteMonthlyFee(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['monthly-fees'] })
+      queryClient.invalidateQueries({ queryKey: ['financial-statement'] })
+      toast.success('Mensalidade excluída')
+    },
+    onError: () => {
+      toast.error('Erro ao excluir mensalidade')
+    },
+  })
+}
+
+// ---- Payments ----
+
+export function usePayments(page = 1, type?: PaymentType, category?: string) {
+  const houseId = useAuthStore((s) => s.currentHouseId())
+
+  return useQuery({
+    queryKey: ['payments', houseId, page, type, category],
+    queryFn: () =>
+      financeService.listPayments({
+        houseId: houseId!,
+        page,
+        limit: 20,
+        type,
+        category,
+      }),
+    enabled: !!houseId,
+  })
+}
+
+export function useCreatePayment() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (data: CreatePaymentRequest) =>
+      financeService.createPayment(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['payments'] })
+      toast.success('Pagamento criado')
+    },
+    onError: () => {
+      toast.error('Erro ao criar pagamento')
+    },
+  })
+}
+
+export function useDeletePayment() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (data: DeletePaymentRequest) =>
+      financeService.deletePayment(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['payments'] })
+      queryClient.invalidateQueries({ queryKey: ['financial-statement'] })
+      toast.success('Pagamento excluído')
+    },
+    onError: () => {
+      toast.error('Erro ao excluir pagamento')
+    },
+  })
+}
+
+// ---- Debts ----
+
+export function useDebts(page = 1, memberId?: string, status?: FeeStatus) {
+  const houseId = useAuthStore((s) => s.currentHouseId())
+
+  return useQuery({
+    queryKey: ['debts', houseId, page, memberId, status],
+    queryFn: () =>
+      financeService.listDebts({
+        houseId: houseId!,
+        page,
+        limit: 20,
+        memberId,
+        status,
+      }),
+    enabled: !!houseId,
+  })
+}
+
+export function useCreateDebt() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (data: CreateDebtRequest) =>
+      financeService.createDebt(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['debts'] })
+      toast.success('Débito criado')
+    },
+    onError: () => {
+      toast.error('Erro ao criar débito')
+    },
+  })
+}
+
+export function usePayDebt() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (data: PayDebtRequest) =>
+      financeService.payDebt(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['debts'] })
+      toast.success('Pagamento de débito registrado')
+    },
+    onError: () => {
+      toast.error('Erro ao registrar pagamento de débito')
+    },
+  })
+}
+
+export function useDeleteDebt() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (data: DeleteDebtRequest) =>
+      financeService.deleteDebt(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['debts'] })
+      queryClient.invalidateQueries({ queryKey: ['financial-statement'] })
+      toast.success('Dívida excluída')
+    },
+    onError: () => {
+      toast.error('Erro ao excluir dívida')
+    },
+  })
+}
+
+// ---- Financial Statement ----
+
+export function useFinancialStatement(
+  page = 1,
+  type?: 'income' | 'expense' | 'all',
+  source?: ListFinancialStatementRequest['source'],
+  startDate?: string,
+  endDate?: string,
+) {
+  const houseId = useAuthStore((s) => s.currentHouseId())
+
+  return useQuery({
+    queryKey: ['financial-statement', houseId, page, type, source, startDate, endDate],
+    queryFn: () =>
+      financeService.listFinancialStatement({
+        houseId: houseId!,
+        page,
+        limit: 30,
+        type,
+        source,
+        startDate,
+        endDate,
+      }),
+    enabled: !!houseId,
+  })
+}
+
+// ---- My Financial Summary ----
+
+export function useMyFinancialSummary(referenceMonth?: string) {
+  const houseId = useAuthStore((s) => s.currentHouseId())
+
+  return useQuery({
+    queryKey: ['my-financial-summary', houseId, referenceMonth],
+    queryFn: () =>
+      financeService.getMyFinancialSummary({
+        houseId: houseId!,
+        referenceMonth,
+      }),
+    enabled: !!houseId,
+  })
+}

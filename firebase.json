@@ -1,0 +1,15 @@
+{
+  "hosting": {
+    "public": "public",
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "rewrites": [
+      {
+        "source": "**",
+        "run": {
+          "serviceId": "sagrada-gestao-frontend",
+          "region": "southamerica-east1"
+        }
+      }
+    ]
+  }
+}
