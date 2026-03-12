@@ -1135,6 +1135,50 @@ export interface PublicHouse {
   photoUrl: string | null
   description: string | null
   memberCount: number
+  siteConfig?: {
+    siteEnabled: boolean
+    subdomain: string
+    template: 'classic' | 'modern' | 'minimal'
+    instagramUrl: string | null
+    facebookUrl: string | null
+    youtubeUrl: string | null
+    whatsappNumber: string | null
+    heroImageUrl: string | null
+    aboutText: string | null
+    giraScheduleText: string | null
+    primaryColor: string | null
+    secondaryColor: string | null
+    logoUrl: string | null
+    faviconUrl: string | null
+  }
+}
+
+export interface UpdateHouseSiteConfigRequest {
+  houseId: string
+  siteConfig: Partial<{
+    siteEnabled: boolean
+    subdomain: string
+    template: 'classic' | 'modern' | 'minimal'
+    instagramUrl: string
+    facebookUrl: string
+    youtubeUrl: string
+    whatsappNumber: string
+    heroImageUrl: string
+    aboutText: string
+    giraScheduleText: string
+    primaryColor: string
+    secondaryColor: string
+    logoUrl: string
+    faviconUrl: string
+  }>
+}
+
+export interface CheckSubdomainRequest {
+  subdomain: string
+}
+
+export interface CheckSubdomainResponse {
+  available: boolean
 }
 
 export interface GetPublicCampaignRequest {

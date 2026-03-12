@@ -27,6 +27,7 @@ export const ROUTES = {
   ADMIN_RAFFLE_DETAIL: (id: string) => `/admin/rifas/${id}`,
   ADMIN_STORE: '/admin/loja',
   ADMIN_CANTEEN: '/admin/cantina',
+  ADMIN_SITE: '/admin/site',
 
   // Member Dashboard
   MEMBER_HOME: '/membro',
