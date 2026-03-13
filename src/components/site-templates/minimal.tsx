@@ -1,7 +1,6 @@
 'use client'
 
 import Link from 'next/link'
-import Image from 'next/image'
 import {
   Instagram,
   Facebook,
@@ -9,21 +8,19 @@ import {
   MessageCircle,
   MapPin,
   Phone,
-  Calendar,
-  Clock,
 } from 'lucide-react'
 import { useSiteContext } from '@/components/site/site-provider'
 import { Separator } from '@/components/ui/separator'
 
 const NAV_ITEMS = [
   { label: 'Início', href: '/' },
-  { label: 'Campanhas', href: '/listas' },
+  { label: 'Listas', href: '/listas' },
   { label: 'Rifas', href: '/rifas' },
   { label: 'Loja', href: '/loja' },
 ]
 
 export function MinimalTemplate() {
-  const { house } = useSiteContext()
+  const { house, events } = useSiteContext()
   const config = house.siteConfig
   const primaryColor = config?.primaryColor || '#6366f1'
 
@@ -36,13 +33,14 @@ export function MinimalTemplate() {
       <header className="border-b border-gray-200">
         <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-4">
           <div className="flex items-center gap-3">
-            {config?.logoUrl && (
-              <Image
+            {config?.logoUrl && config.logoUrl.startsWith('http') && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
                 src={config.logoUrl}
                 alt={house.displayName}
-                width={32}
-                height={32}
-                className="rounded-full object-cover"
+                className="h-8 w-8 rounded-full object-cover"
+                referrerPolicy="no-referrer"
+                onError={(e) => { e.currentTarget.style.display = 'none' }}
               />
             )}
             <span className="font-semibold text-gray-900">
@@ -98,33 +96,37 @@ export function MinimalTemplate() {
           </>
         )}
 
-        {/* Gira Schedule */}
-        {(config?.giraScheduleText || house.daysOfGira.length > 0) && (
+        {/* Upcoming Events */}
+        {events.length > 0 && (
           <>
             <Separator className="mx-auto max-w-4xl" />
             <section className="py-16">
               <div className="mx-auto max-w-4xl px-4">
                 <h2 className="mb-6 text-xs font-semibold uppercase tracking-widest text-gray-400">
-                  Agenda de Giras
+                  Próximos Eventos
                 </h2>
-                {house.daysOfGira.length > 0 && (
-                  <ul className="mb-4 space-y-2">
-                    {house.daysOfGira.map((day) => (
-                      <li
-                        key={day}
-                        className="flex items-center gap-3 text-gray-700"
-                      >
-                        <Clock className="h-4 w-4 text-gray-400" />
-                        {day}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-                {config?.giraScheduleText && (
-                  <p className="whitespace-pre-line text-gray-500 leading-relaxed">
-                    {config.giraScheduleText}
-                  </p>
-                )}
+                <div className="space-y-4">
+                  {events.map((event) => (
+                    <div key={event.id} className="border-l-2 pl-4" style={{ borderColor: primaryColor }}>
+                      <p className="font-medium text-gray-800">{event.title}</p>
+                      <p className="text-sm text-gray-500">
+                        {new Date(event.startDate).toLocaleDateString('pt-BR', {
+                          weekday: 'long',
+                          day: 'numeric',
+                          month: 'long',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </p>
+                      {event.location && (
+                        <p className="text-sm text-gray-500">
+                          <MapPin className="mr-1 inline-block h-3.5 w-3.5" />
+                          {event.location}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
             </section>
           </>

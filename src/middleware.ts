@@ -4,7 +4,8 @@ const BASE_DOMAIN = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'localhost:3000'
 const APP_SUBDOMAIN = 'app'
 
 export function middleware(request: NextRequest) {
-  const host = request.headers.get('host') || ''
+  // Firebase Hosting proxies requests and sends the original host in x-fh-requested-host
+  const host = request.headers.get('x-fh-requested-host') || request.headers.get('x-forwarded-host') || request.headers.get('host') || ''
   const { pathname } = request.nextUrl
 
   // Remove port for comparison

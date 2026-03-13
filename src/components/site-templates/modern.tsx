@@ -1,7 +1,6 @@
 'use client'
 
 import Link from 'next/link'
-import Image from 'next/image'
 import {
   Instagram,
   Facebook,
@@ -9,8 +8,6 @@ import {
   MessageCircle,
   MapPin,
   Phone,
-  Calendar,
-  Clock,
   ArrowRight,
 } from 'lucide-react'
 import { useSiteContext } from '@/components/site/site-provider'
@@ -19,13 +16,13 @@ import { Card } from '@/components/ui/card'
 
 const NAV_ITEMS = [
   { label: 'Início', href: '/' },
-  { label: 'Campanhas', href: '/listas' },
+  { label: 'Listas', href: '/listas' },
   { label: 'Rifas', href: '/rifas' },
   { label: 'Loja', href: '/loja' },
 ]
 
 export function ModernTemplate() {
-  const { house } = useSiteContext()
+  const { house, events } = useSiteContext()
   const config = house.siteConfig
   const primaryColor = config?.primaryColor || '#6366f1'
   const secondaryColor = config?.secondaryColor || '#8b5cf6'
@@ -48,13 +45,14 @@ export function ModernTemplate() {
       >
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
           <div className="flex items-center gap-3">
-            {config?.logoUrl && (
-              <Image
+            {config?.logoUrl && config.logoUrl.startsWith('http') && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
                 src={config.logoUrl}
                 alt={house.displayName}
-                width={36}
-                height={36}
-                className="rounded-full object-cover ring-2 ring-white/30"
+                className="h-9 w-9 rounded-full object-cover ring-2 ring-white/30"
+                referrerPolicy="no-referrer"
+                onError={(e) => { e.currentTarget.style.display = 'none' }}
               />
             )}
             <span className="text-lg font-bold">{house.displayName}</span>
@@ -87,13 +85,13 @@ export function ModernTemplate() {
 
       {/* Hero */}
       <section className="relative flex min-h-[480px] items-center justify-center overflow-hidden">
-        {config?.heroImageUrl && (
-          <Image
+        {config?.heroImageUrl && config.heroImageUrl.startsWith('http') && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
             src={config.heroImageUrl}
             alt="Banner"
-            fill
-            className="object-cover"
-            priority
+            className="absolute inset-0 h-full w-full object-cover"
+            referrerPolicy="no-referrer"
           />
         )}
         <div
@@ -112,22 +110,13 @@ export function ModernTemplate() {
             </p>
           )}
           <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
-            <Link href="/listas">
+            <Link href="/loja">
               <Button
                 size="lg"
                 className="rounded-full bg-white font-semibold text-gray-900 hover:bg-gray-100"
               >
-                Ver Campanhas
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </Link>
-            <Link href="/loja">
-              <Button
-                size="lg"
-                variant="outline"
-                className="rounded-full border-white/50 font-semibold text-white hover:bg-white/10"
-              >
                 Visitar Loja
+                <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>
           </div>
@@ -152,41 +141,41 @@ export function ModernTemplate() {
         </section>
       )}
 
-      {/* Gira Schedule */}
-      {(config?.giraScheduleText || house.daysOfGira.length > 0) && (
-        <section className="bg-gray-50 py-20">
+      {/* Upcoming Events */}
+      {events.length > 0 && (
+        <section className="py-20">
           <div className="mx-auto max-w-4xl px-4">
             <h2
               className="mb-10 text-center text-3xl font-bold"
               style={{ color: primaryColor }}
             >
-              Agenda de Giras
+              Próximos Eventos
             </h2>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {house.daysOfGira.map((day) => (
-                <Card
-                  key={day}
-                  className="flex items-center gap-4 rounded-xl border-0 p-6 shadow-md"
-                >
-                  <div
-                    className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-white"
-                    style={{ background: gradient }}
-                  >
-                    <Calendar className="h-6 w-6" />
-                  </div>
-                  <span className="text-lg font-semibold text-gray-800">
-                    {day}
-                  </span>
+            <div className="grid gap-4 sm:grid-cols-2">
+              {events.map((event) => (
+                <Card key={event.id} className="rounded-xl border-0 p-6 shadow-md">
+                  <p className="text-lg font-semibold text-gray-800">{event.title}</p>
+                  <p className="mt-1 text-sm text-gray-500">
+                    {new Date(event.startDate).toLocaleDateString('pt-BR', {
+                      weekday: 'long',
+                      day: 'numeric',
+                      month: 'long',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </p>
+                  {event.location && (
+                    <p className="mt-1 text-sm text-gray-500">
+                      <MapPin className="mr-1 inline-block h-3.5 w-3.5" />
+                      {event.location}
+                    </p>
+                  )}
+                  {event.description && (
+                    <p className="mt-2 text-sm text-gray-600">{event.description}</p>
+                  )}
                 </Card>
               ))}
             </div>
-            {config?.giraScheduleText && (
-              <Card className="mt-6 rounded-xl border-0 p-6 shadow-md">
-                <p className="whitespace-pre-line text-gray-600 leading-relaxed">
-                  {config.giraScheduleText}
-                </p>
-              </Card>
-            )}
           </div>
         </section>
       )}

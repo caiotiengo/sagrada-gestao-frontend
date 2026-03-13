@@ -5,14 +5,14 @@ import Link from 'next/link'
 import {
   Plus, Megaphone, Eye, EyeOff, Copy, Ban, MoreVertical, ExternalLink,
   Search, Hammer, Gamepad2, Users, Pencil, Heart, Archive, Trash2,
-  CheckCircle, Loader2, DollarSign, ClipboardList, ChevronDown, Check,
+  CheckCircle, Loader2, DollarSign, ClipboardList, ChevronDown, Check, UserPlus,
 } from 'lucide-react'
 import { useCampaigns, useCreateCampaign, useUpdateCampaign, useDeleteCampaign } from '@/hooks/use-campaigns'
 import {
   useShoppingLists, useShoppingItems, useCreateShoppingList,
   useUpdateShoppingList, useDeleteShoppingList, useArchiveShoppingList,
   useCompleteShoppingList, useAddShoppingItem, useToggleShoppingItem,
-  useConfirmListPayment,
+  useConfirmListPayment, useAdminSignUpMember,
 } from '@/hooks/use-shopping'
 import { useAllMembers } from '@/hooks/use-members'
 import { useAuthStore } from '@/stores/auth'
@@ -48,6 +48,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from '@/components/ui/command'
 import { cn } from '@/lib/utils'
 
 // ========================================
@@ -544,6 +545,7 @@ function ShoppingTab({ type }: { type: ShoppingListType }) {
   const archiveList = useArchiveShoppingList()
   const completeList = useCompleteShoppingList()
   const confirmPayment = useConfirmListPayment()
+  const adminSignUp = useAdminSignUpMember()
   const { data: membersData } = useAllMembers()
 
   const lists = data?.data ?? []
@@ -696,6 +698,8 @@ function ShoppingTab({ type }: { type: ShoppingListType }) {
               archiveList={archiveList}
               completeList={completeList}
               confirmPayment={confirmPayment}
+              adminSignUp={adminSignUp}
+              members={members}
               refetch={refetch}
             />
           ))}
@@ -726,7 +730,7 @@ function ShoppingTab({ type }: { type: ShoppingListType }) {
 
 function ShoppingListCard({
   list, type, isExpanded, onToggleExpand, houseId, canManage,
-  updateList, deleteList, archiveList, completeList, confirmPayment, refetch,
+  updateList, deleteList, archiveList, completeList, confirmPayment, adminSignUp, members, refetch,
 }: {
   list: ShoppingListItem
   type: ShoppingListType
@@ -739,17 +743,19 @@ function ShoppingListCard({
   archiveList: ReturnType<typeof useArchiveShoppingList>
   completeList: ReturnType<typeof useCompleteShoppingList>
   confirmPayment: ReturnType<typeof useConfirmListPayment>
+  adminSignUp: ReturnType<typeof useAdminSignUpMember>
+  members: { id: string; fullName: string }[]
   refetch: () => void
 }) {
-  const { data: items, isLoading: itemsLoading } = useShoppingItems(isExpanded ? list.id : null)
-  const addItem = useAddShoppingItem()
-  const toggleItem = useToggleShoppingItem()
-
   const [newItemName, setNewItemName] = useState('')
   const [deleteAlertOpen, setDeleteAlertOpen] = useState(false)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [editTitle, setEditTitle] = useState(list.title)
   const [editDescription, setEditDescription] = useState(list.description ?? '')
+
+  const { data: items, isLoading: itemsLoading } = useShoppingItems(isExpanded || editDialogOpen ? list.id : null)
+  const addItem = useAddShoppingItem()
+  const toggleItem = useToggleShoppingItem()
 
   const shoppingItems: ShoppingItemType[] = items ?? []
 
@@ -911,6 +917,7 @@ function ShoppingListCard({
                     </Button>
                   </form>
                 )}
+
               </>
             )}
           </div>
@@ -926,6 +933,87 @@ function ShoppingListCard({
           <div className="space-y-4">
             <div className="space-y-2"><label className="text-sm font-medium">Título</label><Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} /></div>
             <div className="space-y-2"><label className="text-sm font-medium">Descrição</label><Input value={editDescription} onChange={(e) => setEditDescription(e.target.value)} /></div>
+            {type !== 'list' && !list.isCompleted && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Membros inscritos</label>
+                {itemsLoading ? (
+                  <div className="flex items-center justify-center py-3">
+                    <Loader2 className="size-4 animate-spin text-muted-foreground" />
+                  </div>
+                ) : (
+                  <>
+                    <Popover>
+                      <PopoverTrigger
+                        className="flex w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background hover:bg-accent hover:text-accent-foreground"
+                      >
+                        <span className="truncate text-muted-foreground">
+                          {(() => {
+                            const signedUpCount = members.filter((m) => shoppingItems.some((i) => i.memberId === m.id)).length
+                            if (signedUpCount === 0) return 'Selecionar membros...'
+                            if (signedUpCount === members.length) return 'Todos os membros selecionados'
+                            return `${signedUpCount} membro(s) inscrito(s)`
+                          })()}
+                        </span>
+                        <ChevronDown className="size-4 shrink-0 opacity-50" />
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[var(--anchor-width)] p-0" align="start">
+                        <Command>
+                          <CommandInput placeholder="Buscar membro..." />
+                          <CommandList>
+                            <CommandEmpty>Nenhum membro encontrado.</CommandEmpty>
+                            <CommandGroup>
+                              {/* Select all */}
+                              <CommandItem
+                                onSelect={() => {
+                                  if (!houseId) return
+                                  const notSignedUp = members.filter((m) => !shoppingItems.some((i) => i.memberId === m.id))
+                                  notSignedUp.forEach((m) => {
+                                    adminSignUp.mutate({ houseId, listId: list.id, memberId: m.id })
+                                  })
+                                }}
+                                disabled={members.every((m) => shoppingItems.some((i) => i.memberId === m.id)) || adminSignUp.isPending}
+                                data-checked={members.length > 0 && members.every((m) => shoppingItems.some((i) => i.memberId === m.id))}
+                                className="font-medium"
+                              >
+                                <Users className="size-4" />
+                                Selecionar todos
+                              </CommandItem>
+                              {members.map((m) => {
+                                const isSignedUp = shoppingItems.some((i) => i.memberId === m.id)
+                                return (
+                                  <CommandItem
+                                    key={m.id}
+                                    onSelect={() => {
+                                      if (isSignedUp || !houseId) return
+                                      adminSignUp.mutate({ houseId, listId: list.id, memberId: m.id })
+                                    }}
+                                    disabled={isSignedUp && adminSignUp.isPending}
+                                    data-checked={isSignedUp}
+                                  >
+                                    {m.fullName}
+                                  </CommandItem>
+                                )
+                              })}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                    {/* Tags of signed-up members */}
+                    {shoppingItems.filter((i) => i.memberName).length > 0 && (
+                      <div className="flex flex-wrap gap-1">
+                        {shoppingItems.filter((i) => i.memberName).map((i) => (
+                          <Badge key={i.id} variant="secondary" className="text-xs gap-1">
+                            <Check className="size-3" />
+                            {i.memberName}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
           </div>
           <DialogFooter>
             <DialogClose render={<Button variant="outline" />}>Cancelar</DialogClose>

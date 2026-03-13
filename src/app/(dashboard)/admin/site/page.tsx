@@ -61,7 +61,6 @@ export default function AdminSitePage() {
   const [logoUrl, setLogoUrl] = useState('')
   const [heroImageUrl, setHeroImageUrl] = useState('')
   const [aboutText, setAboutText] = useState('')
-  const [giraScheduleText, setGiraScheduleText] = useState('')
   const [instagramUrl, setInstagramUrl] = useState('')
   const [facebookUrl, setFacebookUrl] = useState('')
   const [youtubeUrl, setYoutubeUrl] = useState('')
@@ -106,7 +105,6 @@ export default function AdminSitePage() {
       setLogoUrl(c.logoUrl ?? '')
       setHeroImageUrl(c.heroImageUrl ?? '')
       setAboutText(c.aboutText ?? '')
-      setGiraScheduleText(c.giraScheduleText ?? '')
       setInstagramUrl(c.instagramUrl ?? '')
       setFacebookUrl(c.facebookUrl ?? '')
       setYoutubeUrl(c.youtubeUrl ?? '')
@@ -118,27 +116,39 @@ export default function AdminSitePage() {
   }, [houseData, initialized])
 
   const siteUrl = subdomain ? `https://${subdomain}.${SITE_DOMAIN}` : ''
+  const [publishingStatus, setPublishingStatus] = useState<'idle' | 'publishing' | 'done'>('idle')
 
   function handleSave() {
     if (!houseId) return
-    updateSiteConfig.mutate({
-      houseId,
-      siteConfig: {
-        siteEnabled,
-        subdomain,
-        template,
-        primaryColor,
-        secondaryColor,
-        logoUrl,
-        heroImageUrl,
-        aboutText,
-        giraScheduleText,
-        instagramUrl,
-        facebookUrl,
-        youtubeUrl,
-        whatsappNumber,
+    setPublishingStatus('publishing')
+    updateSiteConfig.mutate(
+      {
+        houseId,
+        siteConfig: {
+          siteEnabled,
+          subdomain,
+          template,
+          primaryColor,
+          secondaryColor,
+          logoUrl,
+          heroImageUrl,
+          aboutText,
+          instagramUrl,
+          facebookUrl,
+          youtubeUrl,
+          whatsappNumber,
+        },
       },
-    })
+      {
+        onSuccess: () => {
+          setTimeout(() => setPublishingStatus('done'), 3000)
+          setTimeout(() => setPublishingStatus('idle'), 10000)
+        },
+        onError: () => {
+          setPublishingStatus('idle')
+        },
+      },
+    )
   }
 
   if (isLoading || !initialized) {
@@ -409,24 +419,6 @@ export default function AdminSitePage() {
                   rows={6}
                 />
               </div>
-              <Separator />
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="giraScheduleText">Agenda de Giras</Label>
-                  <span className="text-xs text-muted-foreground">
-                    {giraScheduleText.length}/1000
-                  </span>
-                </div>
-                <Textarea
-                  id="giraScheduleText"
-                  value={giraScheduleText}
-                  onChange={(e) => {
-                    if (e.target.value.length <= 1000) setGiraScheduleText(e.target.value)
-                  }}
-                  placeholder="Descreva os dias e horários das giras..."
-                  rows={4}
-                />
-              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -500,6 +492,37 @@ export default function AdminSitePage() {
         </TabsContent>
       </Tabs>
 
+      {/* Publishing Status */}
+      {publishingStatus !== 'idle' && (
+        <div className={`flex items-center gap-3 rounded-lg border px-4 py-3 ${
+          publishingStatus === 'publishing'
+            ? 'border-blue-200 bg-blue-50 dark:border-blue-900 dark:bg-blue-950/30'
+            : 'border-green-200 bg-green-50 dark:border-green-900 dark:bg-green-950/30'
+        }`}>
+          {publishingStatus === 'publishing' ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+              <div className="text-sm">
+                <p className="font-medium text-blue-900 dark:text-blue-100">Publicando site...</p>
+                <p className="text-blue-700 dark:text-blue-300">
+                  O domínio está sendo configurado. Pode levar até 5 minutos para ficar disponível.
+                </p>
+              </div>
+            </>
+          ) : (
+            <>
+              <Check className="h-4 w-4 text-green-600" />
+              <div className="text-sm">
+                <p className="font-medium text-green-900 dark:text-green-100">Site salvo com sucesso!</p>
+                <p className="text-green-700 dark:text-green-300">
+                  Se é a primeira vez, o SSL pode levar alguns minutos para ficar pronto.
+                </p>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
       {/* Footer Actions */}
       <Separator />
       <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
@@ -513,12 +536,12 @@ export default function AdminSitePage() {
         </Button>
         <Button
           onClick={handleSave}
-          disabled={updateSiteConfig.isPending}
+          disabled={updateSiteConfig.isPending || publishingStatus === 'publishing'}
         >
-          {updateSiteConfig.isPending && (
+          {(updateSiteConfig.isPending || publishingStatus === 'publishing') && (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           )}
-          Salvar
+          {publishingStatus === 'publishing' ? 'Publicando...' : 'Salvar'}
         </Button>
       </div>
     </div>

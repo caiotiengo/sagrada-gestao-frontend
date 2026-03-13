@@ -283,3 +283,19 @@ export function useMyFinancialSummary(referenceMonth?: string) {
     enabled: !!houseId,
   })
 }
+
+// ---- Member Financial Summary (Admin view) ----
+
+export function useMemberFinancialSummary(memberId: string) {
+  const houseId = useAuthStore((s) => s.currentHouseId())
+
+  return useQuery({
+    queryKey: ['member-financial-summary', houseId, memberId],
+    queryFn: () =>
+      financeService.getMemberFinancialSummary({
+        houseId: houseId!,
+        memberId,
+      }),
+    enabled: !!houseId && !!memberId,
+  })
+}

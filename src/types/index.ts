@@ -436,12 +436,22 @@ export interface GetMyFinancialSummaryRequest {
   referenceMonth?: string
 }
 
+export interface ShoppingDebtItem {
+  id: string
+  listId: string
+  listTitle: string
+  listType: string
+  amount: number
+  createdAt: string
+}
+
 export interface MyFinancialSummary {
   pendingFees: MonthlyFeeItem[]
   currentMonthFee: MonthlyFeeItem | null
   debts: DebtItem[]
   storeTab: SaleItem[]
   quotas: QuotaItem[]
+  shoppingDebts: ShoppingDebtItem[]
   recentPayments: PaymentItem[]
   recentPurchases: SaleItem[]
   referenceMonth: string
@@ -453,6 +463,7 @@ export interface MyFinancialSummary {
     totalDebt: number
     storeTabTotal: number
     totalQuotasPending: number
+    totalShoppingPending: number
     totalOwed: number
     totalFeesPaid: number
     totalDebtsPaid: number
@@ -480,6 +491,7 @@ export interface CreateEventRequest {
   isRecurring?: boolean
   recurrenceRule?: string
   location?: string
+  isPublic?: boolean
 }
 
 export interface UpdateEventRequest {
@@ -493,6 +505,7 @@ export interface UpdateEventRequest {
   recurrenceRule?: string
   location?: string
   isActive?: boolean
+  isPublic?: boolean
 }
 
 export interface ListEventsRequest {
@@ -514,13 +527,52 @@ export interface EventItem {
   recurrenceRule: string | null
   location: string | null
   createdBy: string
+  isPublic: boolean
   isActive: boolean
   createdAt: string
+}
+
+export interface PublicEventItem {
+  id: string
+  title: string
+  description: string | null
+  startDate: string
+  endDate: string | null
+  isRecurring: boolean
+  location: string | null
 }
 
 export interface DeleteEventRequest {
   houseId: string
   eventId: string
+}
+
+// ---- Public Listings ----
+
+export interface PublicRaffleListItem {
+  id: string
+  title: string
+  slug: string
+  description: string | null
+  numberPrice: number
+  totalNumbers: number
+  soldNumbers: number
+  status: string
+  imageUrl: string | null
+  drawDate: string | null
+}
+
+export interface PublicCampaignListItem {
+  id: string
+  title: string
+  slug: string
+  description: string | null
+  goalAmount: number
+  currentAmount: number
+  status: string
+  imageUrl: string | null
+  startDate: string | null
+  endDate: string | null
 }
 
 // ---- Check-ins ----
@@ -1045,6 +1097,12 @@ export interface SignUpForListRequest {
   listId: string
 }
 
+export interface AdminSignUpMemberRequest {
+  houseId: string
+  listId: string
+  memberId: string
+}
+
 export interface ConfirmListPaymentRequest {
   houseId: string
   itemId: string
@@ -1235,6 +1293,7 @@ export interface PublicRaffle {
 export interface QuotaItem {
   id: string
   campaignId: string
+  campaignName?: string
   memberId: string
   userId: string
   memberName: string | null

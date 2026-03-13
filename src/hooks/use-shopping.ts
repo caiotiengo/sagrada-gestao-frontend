@@ -12,6 +12,7 @@ import type {
   ToggleShoppingItemRequest,
   CompleteShoppingListRequest,
   SignUpForListRequest,
+  AdminSignUpMemberRequest,
   ConfirmListPaymentRequest,
   ShoppingListType,
   ShoppingListStatus,
@@ -178,6 +179,23 @@ export function useSignUpForList() {
     },
     onError: () => {
       toast.error('Erro ao se inscrever')
+    },
+  })
+}
+
+export function useAdminSignUpMember() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (data: AdminSignUpMemberRequest) =>
+      shoppingService.adminSignUpMember(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['shopping-items'] })
+      queryClient.invalidateQueries({ queryKey: ['shopping-lists'] })
+      toast.success('Membro inscrito!')
+    },
+    onError: () => {
+      toast.error('Erro ao inscrever membro')
     },
   })
 }
