@@ -16,6 +16,7 @@ import {
   TrendingDown,
   Receipt,
   ListChecks,
+  Briefcase,
 } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth'
 import { useMyFinancialSummary } from '@/hooks/use-finance'
@@ -48,6 +49,7 @@ export default function MemberHomePage() {
     totalDebt: 0,
     storeTabTotal: 0,
     totalQuotasPending: 0,
+    totalShoppingPending: 0,
     totalOwed: 0,
     totalFeesPaid: 0,
     totalDebtsPaid: 0,
@@ -60,6 +62,7 @@ export default function MemberHomePage() {
   const debts = financialSummary?.debts ?? []
   const storeTab = financialSummary?.storeTab ?? []
   const quotas = (financialSummary?.quotas ?? []).filter((q) => q.status !== 'paid')
+  const shoppingDebts = financialSummary?.shoppingDebts ?? []
   const recentPayments = financialSummary?.recentPayments ?? []
 
   return (
@@ -139,6 +142,14 @@ export default function MemberHomePage() {
                   </span>
                 </div>
               )}
+              {totals.totalShoppingPending > 0 && (
+                <div className="flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1.5">
+                  <Briefcase className="size-3.5" />
+                  <span className="text-xs font-medium">
+                    Trabalhos/Jogos: {formatCurrency(totals.totalShoppingPending)}
+                  </span>
+                </div>
+              )}
               {totals.totalPaid > 0 && (
                 <div className="flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1.5">
                   <ArrowDownLeft className="size-3.5" />
@@ -201,7 +212,7 @@ export default function MemberHomePage() {
               </div>
             ))}
           </div>
-        ) : (pendingFees.length > 0 || debts.length > 0 || storeTab.length > 0 || quotas.length > 0 || recentPayments.length > 0) ? (
+        ) : (pendingFees.length > 0 || debts.length > 0 || storeTab.length > 0 || quotas.length > 0 || shoppingDebts.length > 0 || recentPayments.length > 0) ? (
           <Card>
             <CardContent className="divide-y p-0">
               {/* Mensalidades pendentes */}
@@ -281,13 +292,35 @@ export default function MemberHomePage() {
                     <ListChecks className="size-4" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium">Cota de lista</p>
+                    <p className="truncate text-sm font-medium">{quota.campaignName || 'Cota de lista'}</p>
                     <p className="text-xs text-muted-foreground">
                       {quota.status === 'partial' ? 'Parcial' : 'Pendente'} · Pago {formatCurrency(quota.paidAmount)} de {formatCurrency(quota.amount)}
                     </p>
                   </div>
                   <span className="shrink-0 text-sm font-semibold tabular-nums text-pink-600 dark:text-pink-400">
                     -{formatCurrency(quota.amount - quota.paidAmount)}
+                  </span>
+                </Link>
+              ))}
+
+              {/* Trabalhos/Jogos pendentes */}
+              {shoppingDebts.slice(0, 3).map((item) => (
+                <Link
+                  key={item.id}
+                  href={ROUTES.MEMBER_SHOPPING}
+                  className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/50"
+                >
+                  <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-indigo-600 dark:bg-indigo-950 dark:text-indigo-400">
+                    <Briefcase className="size-4" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium">{item.listTitle}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {item.listType === 'game' ? 'Jogo' : item.listType === 'job' ? 'Trabalho' : 'Lista'} · Pendente
+                    </p>
+                  </div>
+                  <span className="shrink-0 text-sm font-semibold tabular-nums text-indigo-600 dark:text-indigo-400">
+                    -{formatCurrency(item.amount)}
                   </span>
                 </Link>
               ))}

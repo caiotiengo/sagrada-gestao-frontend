@@ -71,6 +71,30 @@ export function usePublicStoreMembers(houseSlug: string) {
   })
 }
 
+export function usePublicEvents(houseSlug: string) {
+  return useQuery({
+    queryKey: ['events', 'public', houseSlug],
+    queryFn: () => publicService.publicListEvents({ houseSlug }),
+    enabled: !!houseSlug,
+  })
+}
+
+export function usePublicRaffles(houseSlug: string) {
+  return useQuery({
+    queryKey: ['raffles', 'public', houseSlug],
+    queryFn: () => publicService.publicListRaffles({ houseSlug }),
+    enabled: !!houseSlug,
+  })
+}
+
+export function usePublicCampaigns(houseSlug: string) {
+  return useQuery({
+    queryKey: ['campaigns', 'public', houseSlug],
+    queryFn: () => publicService.publicListCampaigns({ houseSlug }),
+    enabled: !!houseSlug,
+  })
+}
+
 export function usePublicStoreOrder() {
   return useMutation({
     mutationFn: (data: PublicStoreOrderRequest) =>

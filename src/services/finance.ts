@@ -70,4 +70,7 @@ export const financeService = {
 
   getMyFinancialSummary: (data: GetMyFinancialSummaryRequest) =>
     callFunction<GetMyFinancialSummaryRequest, MyFinancialSummary>('getMyFinancialSummary', data),
+
+  getMemberFinancialSummary: (data: GetMyFinancialSummaryRequest & { memberId: string }) =>
+    callFunction<GetMyFinancialSummaryRequest & { memberId: string }, MyFinancialSummary>('getMemberFinancialSummary', data),
 }

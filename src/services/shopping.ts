@@ -12,6 +12,7 @@ import type {
   ToggleShoppingItemRequest,
   CompleteShoppingListRequest,
   SignUpForListRequest,
+  AdminSignUpMemberRequest,
   ConfirmListPaymentRequest,
   PaginatedResponse,
 } from '@/types'
@@ -46,6 +47,9 @@ export const shoppingService = {
 
   signUpForList: (data: SignUpForListRequest) =>
     callFunction<SignUpForListRequest, { itemId: string; memberName: string; listId: string }>('signUpForList', data),
+
+  adminSignUpMember: (data: AdminSignUpMemberRequest) =>
+    callFunction<AdminSignUpMemberRequest, { itemId: string; memberName: string; listId: string }>('adminSignUpMember', data),
 
   confirmListPayment: (data: ConfirmListPaymentRequest) =>
     callFunction<ConfirmListPaymentRequest, ShoppingItem>('confirmListPayment', data),

@@ -11,11 +11,18 @@ import {
   ShieldCheck,
   UserCog,
   AlertTriangle,
+  AlertCircle,
+  TrendingDown,
+  ListChecks,
+  Store,
+  ShoppingCart,
+  Briefcase,
 } from 'lucide-react'
 import { useMember } from '@/hooks/use-members'
+import { useMemberFinancialSummary } from '@/hooks/use-finance'
 import { useAuthStore } from '@/stores/auth'
 import { ROUTES, ROLE_LABELS } from '@/constants'
-import { formatCPF, formatPhone, formatDate, getInitials } from '@/utils'
+import { formatCPF, formatPhone, formatDate, formatCurrency, getInitials } from '@/utils'
 import { LoadingState } from '@/components/feedback/loading-state'
 import { ErrorState } from '@/components/feedback/error-state'
 import { Button } from '@/components/ui/button'
@@ -45,6 +52,7 @@ export default function MemberDetailPage() {
   const memberId = params.id as string
   const houseId = useAuthStore((s) => s.currentHouseId())
   const { data: member, isLoading, isError, refetch } = useMember(memberId)
+  const { data: financialSummary, isLoading: isLoadingFinancial } = useMemberFinancialSummary(memberId)
 
   const isCaixa = member?.extraPermissions.includes('canManageCashier') ?? false
 
@@ -128,6 +136,113 @@ export default function MemberDetailPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Financial Overview */}
+      {!isLoadingFinancial && financialSummary && financialSummary.totals.totalOwed > 0 && (
+        <Card className="rounded-xl border-amber-200 shadow-sm dark:border-amber-800">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-amber-700 dark:text-amber-400">
+              <AlertCircle className="size-5" />
+              Pendências Financeiras
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-1">
+            <p className="text-2xl font-bold text-amber-700 dark:text-amber-400">
+              {formatCurrency(financialSummary.totals.totalOwed)}
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {financialSummary.totals.pendingFeesTotal > 0 && (
+                <Badge variant="outline" className="gap-1.5">
+                  <AlertCircle className="size-3" />
+                  Mensalidades: {formatCurrency(financialSummary.totals.pendingFeesTotal)}
+                </Badge>
+              )}
+              {financialSummary.totals.totalDebt > 0 && (
+                <Badge variant="outline" className="gap-1.5">
+                  <TrendingDown className="size-3" />
+                  Débitos: {formatCurrency(financialSummary.totals.totalDebt)}
+                </Badge>
+              )}
+              {financialSummary.totals.storeTabTotal > 0 && (
+                <Badge variant="outline" className="gap-1.5">
+                  <Store className="size-3" />
+                  Loja: {formatCurrency(financialSummary.totals.storeTabTotal)}
+                </Badge>
+              )}
+              {financialSummary.totals.totalQuotasPending > 0 && (
+                <Badge variant="outline" className="gap-1.5">
+                  <ListChecks className="size-3" />
+                  Cotas: {formatCurrency(financialSummary.totals.totalQuotasPending)}
+                </Badge>
+              )}
+              {financialSummary.totals.totalShoppingPending > 0 && (
+                <Badge variant="outline" className="gap-1.5">
+                  <Briefcase className="size-3" />
+                  Trabalhos/Jogos: {formatCurrency(financialSummary.totals.totalShoppingPending)}
+                </Badge>
+              )}
+            </div>
+
+            {/* Pending quotas detail */}
+            {financialSummary.quotas.filter((q) => q.status !== 'paid').length > 0 && (
+              <div className="mt-4 space-y-2">
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Cotas pendentes
+                </p>
+                {financialSummary.quotas
+                  .filter((q) => q.status !== 'paid')
+                  .map((quota) => (
+                    <div
+                      key={quota.id}
+                      className="flex items-center justify-between rounded-lg bg-muted/50 px-3 py-2"
+                    >
+                      <div className="flex items-center gap-2">
+                        <ListChecks className="size-4 text-pink-500" />
+                        <div>
+                          <p className="text-sm font-medium">{quota.campaignName || 'Lista'}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {quota.status === 'partial' ? 'Parcial' : 'Pendente'} · Pago {formatCurrency(quota.paidAmount)} de {formatCurrency(quota.amount)}
+                          </p>
+                        </div>
+                      </div>
+                      <span className="text-sm font-semibold text-pink-600 dark:text-pink-400">
+                        -{formatCurrency(quota.amount - quota.paidAmount)}
+                      </span>
+                    </div>
+                  ))}
+              </div>
+            )}
+
+            {/* Pending shopping debts detail */}
+            {(financialSummary.shoppingDebts ?? []).length > 0 && (
+              <div className="mt-4 space-y-2">
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Trabalhos / Jogos pendentes
+                </p>
+                {(financialSummary.shoppingDebts ?? []).map((item) => (
+                  <div
+                    key={item.id}
+                    className="flex items-center justify-between rounded-lg bg-muted/50 px-3 py-2"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Briefcase className="size-4 text-indigo-500" />
+                      <div>
+                        <p className="text-sm font-medium">{item.listTitle}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {item.listType === 'game' ? 'Jogo' : item.listType === 'job' ? 'Trabalho' : 'Lista'} · Pendente
+                        </p>
+                      </div>
+                    </div>
+                    <span className="text-sm font-semibold text-indigo-600 dark:text-indigo-400">
+                      -{formatCurrency(item.amount)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Contact Info */}
       <Card className="rounded-xl shadow-sm">

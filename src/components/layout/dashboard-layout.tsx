@@ -22,6 +22,7 @@ import {
   StickyNote,
   Store,
   UtensilsCrossed,
+  Globe,
 } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth'
 import { APP_NAME, ROLE_LABELS, ROUTES } from '@/constants'
@@ -74,6 +75,7 @@ const adminNavItems: NavEntry[] = [
       { label: 'Cantina', href: ROUTES.ADMIN_CANTEEN, icon: UtensilsCrossed },
     ],
   },
+  { label: 'Site', href: ROUTES.ADMIN_SITE, icon: Globe },
 ]
 
 const memberNavItems: NavEntry[] = [

@@ -8,10 +8,10 @@ import {
   CheckCircle2,
   Clock,
 } from 'lucide-react'
-import { useMonthlyFees, useDebts } from '@/hooks/use-finance'
+import { useMonthlyFees, useDebts, useMyFinancialSummary } from '@/hooks/use-finance'
 import { useAuthStore } from '@/stores/auth'
 import { FEE_STATUS_LABELS } from '@/constants'
-import type { MonthlyFeeItem, DebtItem, FeeStatus } from '@/types'
+import type { MonthlyFeeItem, DebtItem, ShoppingDebtItem, QuotaItem, SaleItem, FeeStatus } from '@/types'
 import { formatCurrency, formatDate } from '@/utils'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -72,8 +72,16 @@ export default function MemberFinancePage() {
     refetch: refetchDebts,
   } = useDebts(1, memberId)
 
+  const {
+    data: financialSummary,
+    isLoading: summaryLoading,
+  } = useMyFinancialSummary()
+
   const fees: MonthlyFeeItem[] = feesData?.data ?? []
   const debts: DebtItem[] = debtsData?.data ?? []
+  const shoppingDebts: ShoppingDebtItem[] = financialSummary?.shoppingDebts ?? []
+  const quotas: QuotaItem[] = (financialSummary?.quotas ?? []).filter((q) => q.status !== 'paid')
+  const storeTab: SaleItem[] = financialSummary?.storeTab ?? []
 
   const { totalPending, totalPaid } = useMemo(() => {
     let pending = 0
@@ -90,10 +98,19 @@ export default function MemberFinancePage() {
         pending += debt.remainingAmount
       }
     }
+    for (const sd of shoppingDebts) {
+      pending += sd.amount
+    }
+    for (const q of quotas) {
+      pending += q.amount - q.paidAmount
+    }
+    for (const s of storeTab) {
+      pending += s.totalPrice
+    }
     return { totalPending: pending, totalPaid: paid }
-  }, [fees, debts])
+  }, [fees, debts, shoppingDebts, quotas, storeTab])
 
-  const isLoading = feesLoading || debtsLoading
+  const isLoading = feesLoading || debtsLoading || summaryLoading
 
   if (isLoading) {
     return (
@@ -224,7 +241,7 @@ export default function MemberFinancePage() {
               message="Não foi possível carregar seus débitos."
               onRetry={() => refetchDebts()}
             />
-          ) : debts.length === 0 ? (
+          ) : debts.length === 0 && shoppingDebts.length === 0 && quotas.length === 0 && storeTab.length === 0 ? (
             <EmptyState
               icon={DollarSign}
               title="Nenhum débito"
@@ -232,6 +249,106 @@ export default function MemberFinancePage() {
             />
           ) : (
             <div className="space-y-2">
+              {/* Trabalhos / Jogos pendentes */}
+              {shoppingDebts.map((item) => (
+                <Card key={item.id} className="rounded-xl">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium">
+                            {item.listTitle}
+                          </span>
+                          <Badge
+                            variant="outline"
+                            className={statusBadgeClasses('pending')}
+                          >
+                            {statusIcon('pending')}
+                            <span className="ml-1">Pendente</span>
+                          </Badge>
+                          <Badge variant="secondary" className="text-xs">
+                            {item.listType === 'job' ? 'Trabalho' : item.listType === 'game' ? 'Jogo' : 'Lista'}
+                          </Badge>
+                        </div>
+                        <div className="mt-1 text-xs text-muted-foreground">
+                          {formatDate(item.createdAt)}
+                        </div>
+                      </div>
+                      <span className="shrink-0 text-sm font-semibold">
+                        {formatCurrency(item.amount)}
+                      </span>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+
+              {/* Cotas de campanhas pendentes */}
+              {quotas.map((q) => (
+                <Card key={q.id} className="rounded-xl">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium">
+                            {q.campaignName ?? 'Campanha'}
+                          </span>
+                          <Badge
+                            variant="outline"
+                            className={statusBadgeClasses(q.status === 'partial' ? 'pending' : q.status)}
+                          >
+                            {statusIcon(q.status === 'partial' ? 'pending' : q.status)}
+                            <span className="ml-1">
+                              {q.status === 'partial' ? 'Parcial' : 'Pendente'}
+                            </span>
+                          </Badge>
+                          <Badge variant="secondary" className="text-xs">Cota</Badge>
+                        </div>
+                        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                          <span>Total: {formatCurrency(q.amount)}</span>
+                          {q.paidAmount > 0 && <span>Pago: {formatCurrency(q.paidAmount)}</span>}
+                        </div>
+                      </div>
+                      <span className="shrink-0 text-sm font-semibold">
+                        {formatCurrency(q.amount - q.paidAmount)}
+                      </span>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+
+              {/* Cantina/Loja fiado */}
+              {storeTab.map((s) => (
+                <Card key={s.id} className="rounded-xl">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium">
+                            {s.itemName || 'Compra fiado'}
+                            {s.quantity > 1 && ` x${s.quantity}`}
+                          </span>
+                          <Badge
+                            variant="outline"
+                            className={statusBadgeClasses('pending')}
+                          >
+                            {statusIcon('pending')}
+                            <span className="ml-1">Pendente</span>
+                          </Badge>
+                          <Badge variant="secondary" className="text-xs">Cantina</Badge>
+                        </div>
+                        <div className="mt-1 text-xs text-muted-foreground">
+                          {formatDate(s.createdAt)}
+                        </div>
+                      </div>
+                      <span className="shrink-0 text-sm font-semibold">
+                        {formatCurrency(s.totalPrice)}
+                      </span>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+
+              {/* Débitos manuais */}
               {debts.map((debt) => (
                 <Card key={debt.id} className="rounded-xl">
                   <CardContent className="p-4">

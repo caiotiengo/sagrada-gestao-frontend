@@ -14,6 +14,9 @@ import type {
   PublicStoreOrderRequest,
   PublicStoreOrderResponse,
   PublicStoreMembersData,
+  PublicEventItem,
+  PublicRaffleListItem,
+  PublicCampaignListItem,
 } from '@/types'
 
 export const publicService = {
@@ -40,4 +43,13 @@ export const publicService = {
 
   publicListStoreMembers: (data: { houseSlug: string }) =>
     callFunction<{ houseSlug: string }, PublicStoreMembersData>('publicListStoreMembers', data),
+
+  publicListEvents: (data: { houseSlug: string }) =>
+    callFunction<{ houseSlug: string }, PublicEventItem[]>('publicListEvents', data),
+
+  publicListRaffles: (data: { houseSlug: string }) =>
+    callFunction<{ houseSlug: string }, PublicRaffleListItem[]>('publicListRaffles', data),
+
+  publicListCampaigns: (data: { houseSlug: string }) =>
+    callFunction<{ houseSlug: string }, PublicCampaignListItem[]>('publicListCampaigns', data),
 }

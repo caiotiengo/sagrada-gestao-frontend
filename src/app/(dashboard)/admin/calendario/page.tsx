@@ -10,8 +10,11 @@ import {
   ChevronLeft,
   ChevronRight,
   Search,
+  Pencil,
+  Globe,
+  Lock,
 } from 'lucide-react'
-import { useEvents, useCreateEvent, useDeleteEvent } from '@/hooks/use-calendar'
+import { useEvents, useCreateEvent, useUpdateEvent, useDeleteEvent } from '@/hooks/use-calendar'
 import { useAuthStore } from '@/stores/auth'
 import { formatDate } from '@/utils'
 import type { EventItem } from '@/types'
@@ -80,6 +83,7 @@ interface CreateEventForm {
   endDate: string
   location: string
   isRecurring: boolean
+  isPublic: boolean
 }
 
 const initialForm: CreateEventForm = {
@@ -89,6 +93,7 @@ const initialForm: CreateEventForm = {
   endDate: '',
   location: '',
   isRecurring: false,
+  isPublic: false,
 }
 
 export default function CalendarPage() {
@@ -105,7 +110,12 @@ export default function CalendarPage() {
   const { startAfter, startBefore } = getMonthRange(year, month)
   const { data, isLoading, isError, refetch } = useEvents(page, startAfter, startBefore)
   const createEvent = useCreateEvent()
+  const updateEvent = useUpdateEvent()
   const deleteEvent = useDeleteEvent()
+
+  const [editDialogOpen, setEditDialogOpen] = useState(false)
+  const [editingEvent, setEditingEvent] = useState<EventItem | null>(null)
+  const [editForm, setEditForm] = useState<CreateEventForm>(initialForm)
 
   const events = data?.data ?? []
   const totalPages = data?.pagination.totalPages ?? 1
@@ -163,6 +173,7 @@ export default function CalendarPage() {
         endDate: form.endDate || undefined,
         location: form.location.trim() || undefined,
         isRecurring: form.isRecurring,
+        isPublic: form.isPublic,
       },
       {
         onSuccess: () => {
@@ -171,6 +182,53 @@ export default function CalendarPage() {
         },
       },
     )
+  }
+
+  const openEditDialog = (event: EventItem) => {
+    setEditingEvent(event)
+    setEditForm({
+      title: event.title,
+      description: event.description || '',
+      startDate: event.startDate,
+      endDate: event.endDate || '',
+      location: event.location || '',
+      isRecurring: event.isRecurring,
+      isPublic: event.isPublic ?? false,
+    })
+    setEditDialogOpen(true)
+  }
+
+  const handleUpdateEvent = () => {
+    if (!houseId || !editingEvent || !editForm.title.trim() || !editForm.startDate) return
+    updateEvent.mutate(
+      {
+        houseId,
+        eventId: editingEvent.id,
+        title: editForm.title.trim(),
+        description: editForm.description.trim() || undefined,
+        startDate: editForm.startDate,
+        endDate: editForm.endDate || undefined,
+        location: editForm.location.trim() || undefined,
+        isRecurring: editForm.isRecurring,
+        isPublic: editForm.isPublic,
+      },
+      {
+        onSuccess: () => {
+          setEditDialogOpen(false)
+          setEditingEvent(null)
+          setEditForm(initialForm)
+        },
+      },
+    )
+  }
+
+  const handleTogglePublic = (event: EventItem) => {
+    if (!houseId) return
+    updateEvent.mutate({
+      houseId,
+      eventId: event.id,
+      isPublic: !(event.isPublic ?? false),
+    })
   }
 
   const handleDeleteEvent = (event: EventItem) => {
@@ -273,19 +331,35 @@ export default function CalendarPage() {
                 />
               </div>
 
-              <div className="flex items-center gap-2">
-                <input
-                  id="isRecurring"
-                  type="checkbox"
-                  checked={form.isRecurring}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, isRecurring: e.target.checked }))
-                  }
-                  className="size-4 rounded border-input"
-                />
-                <label htmlFor="isRecurring" className="text-sm font-medium">
-                  Evento recorrente
-                </label>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <input
+                    id="isRecurring"
+                    type="checkbox"
+                    checked={form.isRecurring}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, isRecurring: e.target.checked }))
+                    }
+                    className="size-4 rounded border-input"
+                  />
+                  <label htmlFor="isRecurring" className="text-sm font-medium">
+                    Recorrente
+                  </label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    id="isPublic"
+                    type="checkbox"
+                    checked={form.isPublic}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, isPublic: e.target.checked }))
+                    }
+                    className="size-4 rounded border-input"
+                  />
+                  <label htmlFor="isPublic" className="text-sm font-medium">
+                    Exibir no site
+                  </label>
+                </div>
               </div>
             </div>
 
@@ -365,6 +439,17 @@ export default function CalendarPage() {
                                 Recorrente
                               </Badge>
                             )}
+                            {event.isPublic ? (
+                              <Badge variant="default" className="gap-1">
+                                <Globe className="size-3" />
+                                Público
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="gap-1">
+                                <Lock className="size-3" />
+                                Privado
+                              </Badge>
+                            )}
                           </div>
 
                           {event.description && (
@@ -388,44 +473,69 @@ export default function CalendarPage() {
                           </div>
                         </div>
 
-                        <div className="flex shrink-0 gap-1">
-                          {canManage && <AlertDialog>
-                            <AlertDialogTrigger
-                              render={
-                                <Button
-                                  variant="ghost"
-                                  size="icon-sm"
-                                  aria-label="Remover evento"
-                                  className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-                                />
-                              }
+                        {canManage && (
+                          <div className="flex shrink-0 gap-1">
+                            {/* Editar */}
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
+                              aria-label="Editar evento"
+                              onClick={() => openEditDialog(event)}
                             >
-                              <Trash2 className="size-4" />
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>
-                                  Remover evento?
-                                </AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Tem certeza que deseja remover o evento &quot;{event.title}&quot;? Esta ação não pode ser desfeita.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() => handleDeleteEvent(event)}
-                                  disabled={deleteEvent.isPending}
-                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                >
-                                  {deleteEvent.isPending
-                                    ? 'Removendo...'
-                                    : 'Remover'}
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>}
-                        </div>
+                              <Pencil className="size-4" />
+                            </Button>
+
+                            {/* Toggle Público/Privado */}
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
+                              aria-label={event.isPublic ? 'Tornar privado' : 'Tornar público'}
+                              onClick={() => handleTogglePublic(event)}
+                              disabled={updateEvent.isPending}
+                              className={event.isPublic ? 'text-primary hover:text-primary' : 'text-muted-foreground'}
+                            >
+                              {event.isPublic ? <Globe className="size-4" /> : <Lock className="size-4" />}
+                            </Button>
+
+                            {/* Remover */}
+                            <AlertDialog>
+                              <AlertDialogTrigger
+                                render={
+                                  <Button
+                                    variant="ghost"
+                                    size="icon-sm"
+                                    aria-label="Remover evento"
+                                    className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                  />
+                                }
+                              >
+                                <Trash2 className="size-4" />
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>
+                                    Remover evento?
+                                  </AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Tem certeza que deseja remover o evento &quot;{event.title}&quot;? Esta ação não pode ser desfeita.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => handleDeleteEvent(event)}
+                                    disabled={deleteEvent.isPending}
+                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  >
+                                    {deleteEvent.isPending
+                                      ? 'Removendo...'
+                                      : 'Remover'}
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
+                        )}
                       </div>
                     </CardContent>
                   </Card>
@@ -445,6 +555,103 @@ export default function CalendarPage() {
           }}
         />
       )}
+
+      {/* Edit Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Evento</DialogTitle>
+            <DialogDescription>
+              Altere as informações do evento.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Título *</label>
+              <Input
+                placeholder="Nome do evento"
+                value={editForm.title}
+                onChange={(e) => setEditForm((f) => ({ ...f, title: e.target.value }))}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Descrição</label>
+              <Input
+                placeholder="Descrição do evento"
+                value={editForm.description}
+                onChange={(e) => setEditForm((f) => ({ ...f, description: e.target.value }))}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Data de Início *</label>
+                <DateTimeInput
+                  value={editForm.startDate}
+                  onValueChange={(v) => setEditForm((f) => ({ ...f, startDate: v }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Data de Fim</label>
+                <DateTimeInput
+                  value={editForm.endDate}
+                  onValueChange={(v) => setEditForm((f) => ({ ...f, endDate: v }))}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Local</label>
+              <Input
+                placeholder="Local do evento"
+                value={editForm.location}
+                onChange={(e) => setEditForm((f) => ({ ...f, location: e.target.value }))}
+              />
+            </div>
+
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <input
+                  id="editIsRecurring"
+                  type="checkbox"
+                  checked={editForm.isRecurring}
+                  onChange={(e) => setEditForm((f) => ({ ...f, isRecurring: e.target.checked }))}
+                  className="size-4 rounded border-input"
+                />
+                <label htmlFor="editIsRecurring" className="text-sm font-medium">
+                  Recorrente
+                </label>
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  id="editIsPublic"
+                  type="checkbox"
+                  checked={editForm.isPublic}
+                  onChange={(e) => setEditForm((f) => ({ ...f, isPublic: e.target.checked }))}
+                  className="size-4 rounded border-input"
+                />
+                <label htmlFor="editIsPublic" className="text-sm font-medium">
+                  Exibir no site
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <DialogClose render={<Button variant="outline" />}>
+              Cancelar
+            </DialogClose>
+            <Button
+              onClick={handleUpdateEvent}
+              disabled={updateEvent.isPending || !editForm.title.trim() || !editForm.startDate}
+            >
+              {updateEvent.isPending ? 'Salvando...' : 'Salvar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Pagination */}
       {!isLoading && totalPages > 1 && (

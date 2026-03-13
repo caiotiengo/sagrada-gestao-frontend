@@ -439,7 +439,7 @@ function MemberShoppingCard({
                       <p className="py-3 text-center text-sm text-muted-foreground">Nenhuma inscrição ainda.</p>
                     )}
 
-                    {!list.isCompleted && !alreadySignedUp && (
+                    {!list.isCompleted && !alreadySignedUp && list.assignedMemberIds.length !== 1 && (
                       <Button size="sm" className="mt-3 w-full gap-2" onClick={handleSignUp} disabled={signUp.isPending}>
                         {signUp.isPending ? <Loader2 className="size-4 animate-spin" /> : <UserPlus className="size-4" />}
                         {signUp.isPending ? 'Inscrevendo...' : type === 'job' ? 'Participar' : 'Inscrever-se'}
