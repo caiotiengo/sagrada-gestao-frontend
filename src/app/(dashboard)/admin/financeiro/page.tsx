@@ -14,6 +14,11 @@ import {
   ChevronRight,
   MoreVertical,
   Trash2,
+  Download,
+  Settings,
+  X,
+  UserPlus,
+  Repeat,
 } from 'lucide-react'
 import {
   useMonthlyFees,
@@ -28,8 +33,13 @@ import {
   useCreateDebt,
   usePayDebt,
   useDeleteDebt,
+  useFinancialStatement,
+  usePaymentTags,
+  useCreatePaymentTag,
+  useDeletePaymentTag,
+  useCreateRecurringMonthlyFee,
 } from '@/hooks/use-finance'
-import { useMembers } from '@/hooks/use-members'
+import { useMembers, useAllMembers } from '@/hooks/use-members'
 import { useAuthStore } from '@/stores/auth'
 import {
   FEE_STATUS_LABELS,
@@ -42,8 +52,10 @@ import type {
   FeeStatus,
   PaymentMethod,
   PaymentType,
+  PaymentTagType,
 } from '@/types'
 import { formatCurrency, formatDate } from '@/utils'
+import { downloadCSV } from '@/utils/export-csv'
 import { ErrorState } from '@/components/feedback/error-state'
 import { EmptyState } from '@/components/feedback/empty-state'
 import { ListSkeleton } from '@/components/feedback/list-skeleton'
@@ -214,6 +226,7 @@ function MensalidadesTab() {
   const [month, setMonth] = useState(now.getMonth())
   const [search, setSearch] = useState('')
   const [bulkDialogOpen, setBulkDialogOpen] = useState(false)
+  const [singleDialogOpen, setSingleDialogOpen] = useState(false)
   const [payDialogOpen, setPayDialogOpen] = useState(false)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [deleteAlertOpen, setDeleteAlertOpen] = useState(false)
@@ -230,12 +243,23 @@ function MensalidadesTab() {
   const [bulkAmount, setBulkAmount] = useState(0)
   const [bulkDueDate, setBulkDueDate] = useState('')
 
+  // Single/Recurring form state
+  const [singleMemberId, setSingleMemberId] = useState('')
+  const [singleMonth, setSingleMonth] = useState('')
+  const [singleAmount, setSingleAmount] = useState(0)
+  const [singleDueDay, setSingleDueDay] = useState(10)
+  const [singleRecurring, setSingleRecurring] = useState(false)
+  const [singleMonths, setSingleMonths] = useState(1)
+
   const referenceMonth = formatYearMonth(year, month)
   const { data, isLoading, isError, refetch } = useMonthlyFees(page, undefined, undefined, referenceMonth)
   const createBulk = useCreateBulkMonthlyFees()
+  const createRecurring = useCreateRecurringMonthlyFee()
   const payFee = usePayMonthlyFee()
   const updateFee = useUpdateMonthlyFee()
   const deleteFee = useDeleteMonthlyFee()
+  const { data: allMembersData } = useAllMembers()
+  const allMembers = allMembersData?.data ?? []
 
   const fees = data?.data ?? []
   const totalPages = data?.pagination?.totalPages ?? 1
@@ -357,6 +381,109 @@ function MensalidadesTab() {
         <p className="text-sm text-muted-foreground">
           Gerencie as mensalidades dos membros
         </p>
+        <div className="flex gap-2">
+        {canManage && <Dialog open={singleDialogOpen} onOpenChange={(open) => { setSingleDialogOpen(open); if (!open) { setSingleMemberId(''); setSingleMonth(''); setSingleAmount(0); setSingleDueDay(10); setSingleRecurring(false); setSingleMonths(1) } }}>
+          <DialogTrigger
+            render={
+              <Button size="sm" variant="outline" className="gap-1.5">
+                <UserPlus className="size-4" />
+                <span className="hidden sm:inline">Individual</span>
+              </Button>
+            }
+          />
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Nova Mensalidade Individual</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-2">
+              <div className="space-y-2">
+                <Label>Membro</Label>
+                <select
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  value={singleMemberId}
+                  onChange={(e) => setSingleMemberId(e.target.value)}
+                >
+                  <option value="">Selecione um membro</option>
+                  {allMembers.filter((m) => m.role !== 'admin').map((m) => (
+                    <option key={m.id} value={m.id}>{m.fullName}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label>Mês de referência</Label>
+                <Input
+                  type="month"
+                  value={singleMonth}
+                  onChange={(e) => setSingleMonth(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Valor (R$)</Label>
+                <CurrencyInput value={singleAmount} onValueChange={setSingleAmount} />
+              </div>
+              <div className="space-y-2">
+                <Label>Dia de vencimento</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  max={31}
+                  value={singleDueDay}
+                  onChange={(e) => setSingleDueDay(Number(e.target.value))}
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="recurring-toggle"
+                  checked={singleRecurring}
+                  onChange={(e) => setSingleRecurring(e.target.checked)}
+                  className="size-4 rounded border-input"
+                />
+                <Label htmlFor="recurring-toggle" className="flex items-center gap-1.5">
+                  <Repeat className="size-4" />
+                  Gerar para meses seguintes
+                </Label>
+              </div>
+              {singleRecurring && (
+                <div className="space-y-2">
+                  <Label>Quantidade de meses (1-12)</Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={12}
+                    value={singleMonths}
+                    onChange={(e) => setSingleMonths(Math.min(12, Math.max(1, Number(e.target.value))))}
+                  />
+                </div>
+              )}
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setSingleDialogOpen(false)}>Cancelar</Button>
+              <Button
+                disabled={createRecurring.isPending || !singleMemberId || !singleMonth || !singleAmount || !singleDueDay}
+                onClick={() => {
+                  if (!houseId) return
+                  createRecurring.mutate({
+                    houseId,
+                    memberId: singleMemberId,
+                    startMonth: singleMonth,
+                    amount: singleAmount,
+                    dueDay: singleDueDay,
+                    months: singleRecurring ? singleMonths : 1,
+                  }, {
+                    onSuccess: () => {
+                      setSingleDialogOpen(false)
+                      setSingleMemberId(''); setSingleMonth(''); setSingleAmount(0)
+                      setSingleDueDay(10); setSingleRecurring(false); setSingleMonths(1)
+                    },
+                  })
+                }}
+              >
+                {createRecurring.isPending ? 'Criando...' : 'Criar'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>}
         {canManage && <Dialog open={bulkDialogOpen} onOpenChange={setBulkDialogOpen}>
           <DialogTrigger
             render={
@@ -429,6 +556,7 @@ function MensalidadesTab() {
             </DialogFooter>
           </DialogContent>
         </Dialog>}
+        </div>
       </div>
 
       {/* Month Navigation */}
@@ -661,6 +789,10 @@ function PagamentosTab() {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [deleteAlertOpen, setDeleteAlertOpen] = useState(false)
   const [deletePaymentId, setDeletePaymentId] = useState<string | null>(null)
+  const [tagsDialogOpen, setTagsDialogOpen] = useState(false)
+  const [newTagName, setNewTagName] = useState('')
+  const [newTagType, setNewTagType] = useState<PaymentTagType>('both')
+  const [categoryFilter, setCategoryFilter] = useState('')
 
   // Create form state
   const [description, setDescription] = useState('')
@@ -669,9 +801,12 @@ function PagamentosTab() {
   const [category, setCategory] = useState('')
   const [method, setMethod] = useState<PaymentMethod>('pix')
 
-  const { data, isLoading, isError, refetch } = usePayments(page)
+  const { data, isLoading, isError, refetch } = usePayments(page, undefined, categoryFilter || undefined)
   const createPayment = useCreatePayment()
   const deletePayment = useDeletePayment()
+  const { data: tags } = usePaymentTags()
+  const createTag = useCreatePaymentTag()
+  const deleteTag = useDeletePaymentTag()
 
   const payments = data?.data ?? []
   const totalPages = data?.pagination?.totalPages ?? 1
@@ -796,10 +931,24 @@ function PagamentosTab() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="pay-category">Categoria</Label>
+                <Label>Categoria</Label>
+                <Select
+                  value={category}
+                  onValueChange={(v) => setCategory(v ?? '')}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione uma categoria" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(tags ?? [])
+                      .filter((t) => t.type === 'both' || t.type === type)
+                      .map((tag) => (
+                        <SelectItem key={tag.id} value={tag.name}>{tag.name}</SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
                 <Input
-                  id="pay-category"
-                  placeholder="Ex: Material, Evento, Doação"
+                  placeholder="Ou digite uma nova categoria"
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
                 />
@@ -854,6 +1003,94 @@ function PagamentosTab() {
         onNext={goToNextMonth}
         onToday={goToToday}
       />
+
+      {/* Filter by tag + manage tags */}
+      <div className="flex flex-wrap items-center gap-2">
+        <Select
+          value={categoryFilter || 'all'}
+          onValueChange={(v) => { setCategoryFilter(v === 'all' ? '' : v ?? ''); setPage(1) }}
+        >
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Filtrar por tag" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas categorias</SelectItem>
+            {(tags ?? []).map((tag) => (
+              <SelectItem key={tag.id} value={tag.name}>{tag.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        {canManage && (
+          <Dialog open={tagsDialogOpen} onOpenChange={setTagsDialogOpen}>
+            <DialogTrigger render={<Button variant="outline" size="sm" className="gap-1.5" />}>
+              <Settings className="size-4" />
+              Tags
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Gerenciar Tags</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Nome da tag"
+                    value={newTagName}
+                    onChange={(e) => setNewTagName(e.target.value)}
+                    className="flex-1"
+                  />
+                  <Select value={newTagType} onValueChange={(v) => setNewTagType(v as PaymentTagType)}>
+                    <SelectTrigger className="w-[120px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="both">Ambos</SelectItem>
+                      <SelectItem value="income">Receita</SelectItem>
+                      <SelectItem value="expense">Despesa</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    size="sm"
+                    disabled={!newTagName.trim() || !houseId || createTag.isPending}
+                    onClick={() => {
+                      if (!houseId) return
+                      createTag.mutate({ houseId, name: newTagName.trim(), type: newTagType }, {
+                        onSuccess: () => setNewTagName(''),
+                      })
+                    }}
+                  >
+                    <Plus className="size-4" />
+                  </Button>
+                </div>
+                <div className="max-h-60 space-y-1 overflow-y-auto">
+                  {(tags ?? []).map((tag) => (
+                    <div key={tag.id} className="flex items-center justify-between rounded-md px-2 py-1.5 hover:bg-muted">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm">{tag.name}</span>
+                        <Badge variant="outline" className="text-xs">
+                          {tag.type === 'both' ? 'Ambos' : tag.type === 'income' ? 'Receita' : 'Despesa'}
+                        </Badge>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="size-7"
+                        disabled={deleteTag.isPending}
+                        onClick={() => houseId && deleteTag.mutate({ houseId, tagId: tag.id })}
+                      >
+                        <X className="size-3.5" />
+                      </Button>
+                    </div>
+                  ))}
+                  {(tags ?? []).length === 0 && (
+                    <p className="py-4 text-center text-sm text-muted-foreground">Nenhuma tag criada</p>
+                  )}
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
+      </div>
 
       {/* Search */}
       <div className="relative">
@@ -1365,17 +1602,53 @@ function DividasTab() {
 
 export default function AdminFinancePage() {
   const [activeTab, setActiveTab] = useState<Tab>('mensalidades')
+  const now = new Date()
+  const [exportYear, setExportYear] = useState(now.getFullYear())
+  const [exportMonth, setExportMonth] = useState(now.getMonth())
+
+  const exportStartDate = `${exportYear}-${String(exportMonth + 1).padStart(2, '0')}-01`
+  const exportEndDate = `${exportYear}-${String(exportMonth + 1).padStart(2, '0')}-${new Date(exportYear, exportMonth + 1, 0).getDate()}`
+  const { data: exportData, isFetching: exportLoading } = useFinancialStatement(1, undefined, undefined, exportStartDate, exportEndDate)
+
+  const handleExportCSV = () => {
+    const entries = exportData?.data ?? []
+    if (entries.length === 0) return
+    const headers = ['Data', 'Descricao', 'Tipo', 'Valor', 'Fonte', 'Pessoa', 'Metodo Pagamento']
+    const rows = entries.map((e) => [
+      e.date ? formatDate(e.date) : '',
+      e.description,
+      e.type === 'income' ? 'Receita' : 'Despesa',
+      formatCurrency(e.amount),
+      e.sourceLabel,
+      e.personName ?? '',
+      e.paymentMethod ? PAYMENT_METHOD_LABELS[e.paymentMethod as PaymentMethod] ?? e.paymentMethod : '',
+    ])
+    const monthLabel = `${MONTH_NAMES[exportMonth]}_${exportYear}`
+    downloadCSV(`financeiro_${monthLabel}.csv`, headers, rows)
+  }
 
   return (
     <div className="mx-auto w-full max-w-5xl space-y-6 px-4 py-6 lg:px-8 lg:py-8">
       {/* Header */}
-      <div>
-        <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
-          Financeiro
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Gerencie mensalidades, pagamentos e dívidas da casa
-        </p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
+            Financeiro
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Gerencie mensalidades, pagamentos e dívidas da casa
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-2"
+          onClick={handleExportCSV}
+          disabled={exportLoading || !exportData?.data?.length}
+        >
+          <Download className="size-4" />
+          <span className="hidden sm:inline">Exportar CSV</span>
+        </Button>
       </div>
 
       {/* Tab Navigation */}

@@ -72,7 +72,7 @@ export default function CampaignDetailPage() {
 
   const [quotaPage, setQuotaPage] = useState(1)
   const [contribPage, setContribPage] = useState(1)
-  const [contribFilter, setContribFilter] = useState<'member' | 'external' | undefined>(undefined)
+  const [contribFilter, setContribFilter] = useState<'member' | 'external' | undefined>('external')
   const [assignDialogOpen, setAssignDialogOpen] = useState(false)
   const [payDialogOpen, setPayDialogOpen] = useState(false)
   const [selectedQuotaId, setSelectedQuotaId] = useState('')

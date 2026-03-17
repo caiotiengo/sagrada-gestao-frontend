@@ -397,7 +397,7 @@ export interface DebtItem {
 export interface ListFinancialStatementRequest {
   houseId: string
   type?: 'income' | 'expense' | 'all'
-  source?: 'monthly_fee' | 'payment' | 'store_sale' | 'campaign_quota' | 'external_contribution' | 'raffle' | 'all'
+  source?: 'monthly_fee' | 'payment' | 'store_sale' | 'campaign_quota' | 'external_contribution' | 'raffle' | 'shopping' | 'all'
   startDate?: string
   endDate?: string
   page?: number
@@ -427,6 +427,44 @@ export interface FinancialStatementResponse {
     totalTransactions: number
   }
   pagination: PaginationInfo
+}
+
+// ---- Finance: Payment Tags ----
+
+export type PaymentTagType = 'income' | 'expense' | 'both'
+
+export interface PaymentTag {
+  id: string
+  name: string
+  type: PaymentTagType
+}
+
+export interface CreatePaymentTagRequest {
+  houseId: string
+  name: string
+  type: PaymentTagType
+}
+
+export interface DeletePaymentTagRequest {
+  houseId: string
+  tagId: string
+}
+
+// ---- Finance: Recurring Monthly Fee ----
+
+export interface CreateRecurringMonthlyFeeRequest {
+  houseId: string
+  memberId: string
+  startMonth: string
+  amount: number
+  dueDay: number
+  months: number
+}
+
+export interface CreateRecurringMonthlyFeeResponse {
+  created: number
+  skipped: number
+  months: string[]
 }
 
 // ---- Finance: My Financial Summary ----

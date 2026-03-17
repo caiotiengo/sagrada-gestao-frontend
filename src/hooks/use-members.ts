@@ -6,11 +6,11 @@ import { membersService } from '@/services/members'
 import type { UpdateMemberPermissionsRequest, UserRole } from '@/types'
 import { toast } from 'sonner'
 
-export function useMembers(page = 1, search?: string, role?: UserRole) {
+export function useMembers(page = 1, search?: string, role?: UserRole, isActive?: boolean) {
   const houseId = useAuthStore((s) => s.currentHouseId())
 
   return useQuery({
-    queryKey: ['members', houseId, page, search, role],
+    queryKey: ['members', houseId, page, search, role, isActive],
     queryFn: () =>
       membersService.listMembers({
         houseId: houseId!,
@@ -18,6 +18,7 @@ export function useMembers(page = 1, search?: string, role?: UserRole) {
         limit: 20,
         search,
         role,
+        isActive,
       }),
     enabled: !!houseId,
   })
@@ -34,6 +35,12 @@ export function useAllMembers() {
         page: 1,
         limit: 100,
       }),
+    select: (data) => ({
+      ...data,
+      data: [...(data.data ?? [])].sort((a, b) =>
+        a.fullName.localeCompare(b.fullName, 'pt-BR'),
+      ),
+    }),
     enabled: !!houseId,
   })
 }

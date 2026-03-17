@@ -23,6 +23,11 @@ import type {
   GetMyFinancialSummaryRequest,
   MyFinancialSummary,
   PaginatedResponse,
+  PaymentTag,
+  CreatePaymentTagRequest,
+  DeletePaymentTagRequest,
+  CreateRecurringMonthlyFeeRequest,
+  CreateRecurringMonthlyFeeResponse,
 } from '@/types'
 
 export const financeService = {
@@ -73,4 +78,16 @@ export const financeService = {
 
   getMemberFinancialSummary: (data: GetMyFinancialSummaryRequest & { memberId: string }) =>
     callFunction<GetMyFinancialSummaryRequest & { memberId: string }, MyFinancialSummary>('getMemberFinancialSummary', data),
+
+  listPaymentTags: (data: { houseId: string }) =>
+    callFunction<{ houseId: string }, PaymentTag[]>('listPaymentTags', data),
+
+  createPaymentTag: (data: CreatePaymentTagRequest) =>
+    callFunction<CreatePaymentTagRequest, { tagId: string; name: string; type: string }>('createPaymentTag', data),
+
+  deletePaymentTag: (data: DeletePaymentTagRequest) =>
+    callFunction<DeletePaymentTagRequest, { tagId: string; deleted: boolean }>('deletePaymentTag', data),
+
+  createRecurringMonthlyFee: (data: CreateRecurringMonthlyFeeRequest) =>
+    callFunction<CreateRecurringMonthlyFeeRequest, CreateRecurringMonthlyFeeResponse>('createRecurringMonthlyFee', data),
 }

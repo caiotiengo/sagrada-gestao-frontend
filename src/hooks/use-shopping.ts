@@ -143,6 +143,9 @@ export function useToggleShoppingItem() {
       shoppingService.toggleShoppingItem(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['shopping-items'] })
+      queryClient.invalidateQueries({ queryKey: ['financial-statement'] })
+      queryClient.invalidateQueries({ queryKey: ['member-financial-summary'] })
+      queryClient.invalidateQueries({ queryKey: ['my-financial-summary'] })
     },
     onError: () => {
       toast.error('Erro ao atualizar item')
@@ -208,6 +211,9 @@ export function useConfirmListPayment() {
       shoppingService.confirmListPayment(data),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['shopping-items'] })
+      queryClient.invalidateQueries({ queryKey: ['financial-statement'] })
+      queryClient.invalidateQueries({ queryKey: ['member-financial-summary'] })
+      queryClient.invalidateQueries({ queryKey: ['my-financial-summary'] })
       toast.success(variables.isPaid === false ? 'Pagamento revertido' : 'Pagamento confirmado')
     },
     onError: () => {

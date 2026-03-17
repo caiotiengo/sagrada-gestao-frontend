@@ -17,6 +17,9 @@ import type {
   FeeStatus,
   PaymentType,
   ListFinancialStatementRequest,
+  CreatePaymentTagRequest,
+  DeletePaymentTagRequest,
+  CreateRecurringMonthlyFeeRequest,
 } from '@/types'
 import { toast } from 'sonner'
 
@@ -297,5 +300,67 @@ export function useMemberFinancialSummary(memberId: string) {
         memberId,
       }),
     enabled: !!houseId && !!memberId,
+  })
+}
+
+// ---- Payment Tags ----
+
+export function usePaymentTags() {
+  const houseId = useAuthStore((s) => s.currentHouseId())
+
+  return useQuery({
+    queryKey: ['payment-tags', houseId],
+    queryFn: () => financeService.listPaymentTags({ houseId: houseId! }),
+    enabled: !!houseId,
+  })
+}
+
+export function useCreatePaymentTag() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (data: CreatePaymentTagRequest) =>
+      financeService.createPaymentTag(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['payment-tags'] })
+      toast.success('Tag criada')
+    },
+    onError: () => {
+      toast.error('Erro ao criar tag')
+    },
+  })
+}
+
+export function useDeletePaymentTag() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (data: DeletePaymentTagRequest) =>
+      financeService.deletePaymentTag(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['payment-tags'] })
+      toast.success('Tag excluída')
+    },
+    onError: () => {
+      toast.error('Erro ao excluir tag')
+    },
+  })
+}
+
+// ---- Recurring Monthly Fee ----
+
+export function useCreateRecurringMonthlyFee() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (data: CreateRecurringMonthlyFeeRequest) =>
+      financeService.createRecurringMonthlyFee(data),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['monthly-fees'] })
+      toast.success(`${data.created} mensalidade(s) criada(s)`)
+    },
+    onError: () => {
+      toast.error('Erro ao criar mensalidades')
+    },
   })
 }

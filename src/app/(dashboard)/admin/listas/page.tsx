@@ -531,6 +531,7 @@ function ShoppingTab({ type }: { type: ShoppingListType }) {
   const [page, setPage] = useState(1)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [showCompleted, setShowCompleted] = useState(false)
 
   // Create form
   const [title, setTitle] = useState('')
@@ -538,7 +539,7 @@ function ShoppingTab({ type }: { type: ShoppingListType }) {
   const [price, setPrice] = useState(0)
   const [assignedMemberIds, setAssignedMemberIds] = useState<string[]>([])
 
-  const { data, isLoading, isError, refetch } = useShoppingLists(page, type, 'active')
+  const { data, isLoading, isError, refetch } = useShoppingLists(page, type, showCompleted ? 'completed' : 'active')
   const createList = useCreateShoppingList()
   const updateList = useUpdateShoppingList()
   const deleteList = useDeleteShoppingList()
@@ -577,9 +578,27 @@ function ShoppingTab({ type }: { type: ShoppingListType }) {
 
   return (
     <div className="space-y-4">
+      {/* Status toggle */}
+      <div className="flex gap-1">
+        <Button
+          variant={!showCompleted ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => { setShowCompleted(false); setPage(1) }}
+        >
+          Ativos
+        </Button>
+        <Button
+          variant={showCompleted ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => { setShowCompleted(true); setPage(1) }}
+        >
+          Finalizados
+        </Button>
+      </div>
+
       <div className="flex items-center justify-between gap-3">
         <p className="text-sm text-muted-foreground">{config.description}</p>
-        {canCreate && (
+        {canCreate && !showCompleted && (
           <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm() }}>
             <DialogTrigger render={<Button size="sm" className="shrink-0 gap-2" />}>
               <Plus className="size-4" />

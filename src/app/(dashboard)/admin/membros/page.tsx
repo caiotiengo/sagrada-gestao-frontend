@@ -1,18 +1,25 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { Users, Search, Shield, MoreVertical, Trash2 } from 'lucide-react'
 import { useMembers, useUpdateMemberPermissions } from '@/hooks/use-members'
 import { useAuthStore } from '@/stores/auth'
-import { ROUTES, PERMISSION_LABELS } from '@/constants'
-import type { MemberItem, ExtraPermission } from '@/types'
+import { ROUTES, PERMISSION_LABELS, ROLE_LABELS } from '@/constants'
+import type { MemberItem, ExtraPermission, UserRole } from '@/types'
 import { MemberListItem } from '@/components/cards/member-list-item'
 import { ListSkeleton } from '@/components/feedback/list-skeleton'
 import { ErrorState } from '@/components/feedback/error-state'
 import { EmptyState } from '@/components/feedback/empty-state'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -107,18 +114,25 @@ export default function MembersListPage() {
   const canManage = useAuthStore((s) => s.hasPermission('canManageMembers'))
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
-  const { data, isLoading, isError, refetch } = useMembers(page)
+  const [roleFilter, setRoleFilter] = useState<UserRole | undefined>(undefined)
+  const [activeFilter, setActiveFilter] = useState<boolean | undefined>(undefined)
+  const { data, isLoading, isError, refetch } = useMembers(page, undefined, roleFilter, activeFilter)
 
   const members = data?.data ?? []
   const totalPages = data?.pagination.totalPages ?? 1
 
-  const filteredMembers = search.trim()
-    ? members.filter(
+  const filteredMembers = useMemo(() => {
+    let result = members
+    if (search.trim()) {
+      const q = search.toLowerCase()
+      result = result.filter(
         (m) =>
-          m.fullName.toLowerCase().includes(search.toLowerCase()) ||
-          m.email.toLowerCase().includes(search.toLowerCase()),
+          m.fullName.toLowerCase().includes(q) ||
+          m.email.toLowerCase().includes(q),
       )
-    : members
+    }
+    return result.sort((a, b) => a.fullName.localeCompare(b.fullName, 'pt-BR'))
+  }, [members, search])
 
   const handleMemberClick = (member: MemberItem) => {
     router.push(ROUTES.MEMBER_DETAIL(member.id))
@@ -155,6 +169,38 @@ export default function MembersListPage() {
           onChange={(e) => setSearch(e.target.value)}
           className="pl-9"
         />
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-wrap gap-2">
+        <Select
+          value={roleFilter ?? 'all'}
+          onValueChange={(v) => { setRoleFilter(v === 'all' ? undefined : v as UserRole); setPage(1) }}
+        >
+          <SelectTrigger className="w-[160px]">
+            <SelectValue placeholder="Cargo" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos os cargos</SelectItem>
+            {Object.entries(ROLE_LABELS).map(([key, label]) => (
+              <SelectItem key={key} value={key}>{label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select
+          value={activeFilter === undefined ? 'all' : activeFilter ? 'active' : 'inactive'}
+          onValueChange={(v) => { setActiveFilter(v === 'all' ? undefined : v === 'active'); setPage(1) }}
+        >
+          <SelectTrigger className="w-[140px]">
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos</SelectItem>
+            <SelectItem value="active">Ativos</SelectItem>
+            <SelectItem value="inactive">Inativos</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Members List */}
