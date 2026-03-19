@@ -3,6 +3,7 @@
 // ========================================
 
 export const APP_NAME = 'Sagrada Gestão'
+export const APP_TITLE = 'Sagrada Gestão - Organizando o seu Templo'
 export const APP_DESCRIPTION = 'Sistema de gestão para casas de santo'
 export const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
 

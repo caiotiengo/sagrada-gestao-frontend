@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { useParams } from 'next/navigation'
 import Image from 'next/image'
 import { useForm, Controller } from 'react-hook-form'
@@ -21,6 +22,7 @@ import { CurrencyInput } from '@/components/forms/currency-input'
 import { MaskedInput } from '@/components/forms/masked-input'
 import { Textarea } from '@/components/ui/textarea'
 import { Progress } from '@/components/ui/progress'
+import { DuplicateConfirmDialog } from '@/components/feedback/duplicate-confirm-dialog'
 
 export default function SiteCampaignPage() {
   const { house } = useSiteContext()
@@ -28,31 +30,43 @@ export default function SiteCampaignPage() {
   const campaignSlug = params.campaignSlug as string
 
   const { data: campaign, isLoading, isError, refetch } = usePublicCampaign(house.slug, campaignSlug)
-  const { mutate: contribute, isPending } = useCampaignContribute()
+  const { mutateAsync: contributeAsync, isPending } = useCampaignContribute()
+  const [duplicateInfo, setDuplicateInfo] = useState<{ donorName: string; amount: number; formData: CampaignContributionFormData } | null>(null)
 
   const { register, handleSubmit, reset, control, formState: { errors } } = useForm<CampaignContributionFormData>({
     resolver: zodResolver(campaignContributionSchema),
     defaultValues: { amount: 0, donorName: '', donorPhone: '', donorEmail: '', message: '' },
   })
 
-  function onSubmit(data: CampaignContributionFormData) {
+  async function submitContribution(data: CampaignContributionFormData, forceCreate = false) {
     if (!campaign) return
-    contribute(
-      {
+    try {
+      const result = await contributeAsync({
         houseSlug: house.slug,
         campaignSlug,
         donorName: data.donorName,
         donorPhone: data.donorPhone,
         amount: data.amount,
         message: data.message || undefined,
-      },
-      {
-        onSuccess: () => {
-          reset()
-          refetch()
-        },
-      },
-    )
+        forceCreate,
+      })
+      if (result.duplicate) {
+        setDuplicateInfo({
+          donorName: result.existingDonorName || data.donorName,
+          amount: result.existingAmount || data.amount,
+          formData: data,
+        })
+        return
+      }
+      reset()
+      refetch()
+    } catch {
+      // error toast handled by hook
+    }
+  }
+
+  function onSubmit(data: CampaignContributionFormData) {
+    submitContribution(data)
   }
 
   if (isLoading) {
@@ -199,6 +213,19 @@ export default function SiteCampaignPage() {
           </div>
         </div>
       </div>
+      <DuplicateConfirmDialog
+        open={!!duplicateInfo}
+        onClose={() => setDuplicateInfo(null)}
+        onConfirm={() => {
+          if (duplicateInfo) {
+            setDuplicateInfo(null)
+            submitContribution(duplicateInfo.formData, true)
+          }
+        }}
+        isPending={isPending}
+        donorName={duplicateInfo?.donorName}
+        amount={duplicateInfo?.amount}
+      />
     </SiteInnerLayout>
   )
 }

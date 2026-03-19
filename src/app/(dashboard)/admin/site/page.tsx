@@ -58,7 +58,9 @@ export default function AdminSitePage() {
   const [template, setTemplate] = useState<Template>('classic')
   const [primaryColor, setPrimaryColor] = useState('#4f46e5')
   const [secondaryColor, setSecondaryColor] = useState('#d97706')
+  const [siteTitle, setSiteTitle] = useState('')
   const [logoUrl, setLogoUrl] = useState('')
+  const [faviconUrl, setFaviconUrl] = useState('')
   const [heroImageUrl, setHeroImageUrl] = useState('')
   const [aboutText, setAboutText] = useState('')
   const [instagramUrl, setInstagramUrl] = useState('')
@@ -99,10 +101,12 @@ export default function AdminSitePage() {
       const c = houseData.siteConfig
       setSiteEnabled(c.siteEnabled)
       setSubdomain(c.subdomain ?? '')
+      setSiteTitle(c.siteTitle ?? '')
       setTemplate(c.template ?? 'classic')
       setPrimaryColor(c.primaryColor ?? '#4f46e5')
       setSecondaryColor(c.secondaryColor ?? '#d97706')
       setLogoUrl(c.logoUrl ?? '')
+      setFaviconUrl(c.faviconUrl ?? '')
       setHeroImageUrl(c.heroImageUrl ?? '')
       setAboutText(c.aboutText ?? '')
       setInstagramUrl(c.instagramUrl ?? '')
@@ -127,10 +131,12 @@ export default function AdminSitePage() {
         siteConfig: {
           siteEnabled,
           subdomain,
+          siteTitle,
           template,
           primaryColor,
           secondaryColor,
           logoUrl,
+          faviconUrl,
           heroImageUrl,
           aboutText,
           instagramUrl,
@@ -269,6 +275,47 @@ export default function AdminSitePage() {
                 <p className="text-xs text-muted-foreground">
                   Subdomínio atual da sua casa
                 </p>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Site Title */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Título do Site</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <Input
+                placeholder="Ex: Templo Espiritualista Nossa Senhora da Conceição"
+                value={siteTitle}
+                onChange={(e) => setSiteTitle(e.target.value)}
+                maxLength={100}
+              />
+              <p className="text-xs text-muted-foreground">
+                Aparece na aba do navegador e nos mecanismos de busca
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* Favicon */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Favicon</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <Input
+                placeholder="URL do favicon (ex: https://...favicon.ico)"
+                value={faviconUrl}
+                onChange={(e) => setFaviconUrl(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Ícone que aparece na aba do navegador. Use uma imagem quadrada (32x32 ou 64x64).
+              </p>
+              {faviconUrl && (
+                <div className="flex items-center gap-2">
+                  <img src={faviconUrl} alt="Favicon" className="size-8 rounded" referrerPolicy="no-referrer" />
+                  <span className="text-xs text-muted-foreground">Preview</span>
+                </div>
               )}
             </CardContent>
           </Card>

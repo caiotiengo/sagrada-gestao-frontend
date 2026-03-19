@@ -1,5 +1,6 @@
 import { httpsCallable, type HttpsCallableResult } from 'firebase/functions'
 import { functions, auth } from './firebase'
+import { trackError } from './analytics'
 
 /**
  * Refresh Firebase ID token and retry once on auth errors.
@@ -32,12 +33,18 @@ export async function callFunction<TRequest, TResponse>(
   name: string,
   data: TRequest
 ): Promise<TResponse> {
-  const fn = httpsCallable<TRequest, { success: true; data: TResponse }>(functions, name)
-  const result = await withTokenRefresh(async () => {
-    const r: HttpsCallableResult<{ success: true; data: TResponse }> = await fn(data)
-    return r
-  })
-  return result.data.data
+  try {
+    const fn = httpsCallable<TRequest, { success: true; data: TResponse }>(functions, name)
+    const result = await withTokenRefresh(async () => {
+      const r: HttpsCallableResult<{ success: true; data: TResponse }> = await fn(data)
+      return r
+    })
+    return result.data.data
+  } catch (error: unknown) {
+    const message = (error as { message?: string })?.message || 'Unknown error'
+    trackError(message, `callable:${name}`)
+    throw error
+  }
 }
 
 /**

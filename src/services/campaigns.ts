@@ -5,6 +5,9 @@ import type {
   UpdateCampaignRequest,
   ListCampaignsRequest,
   AssignQuotaRequest,
+  AssignQuotaWithPixRequest,
+  AssignQuotaWithPixResponse,
+  QuotaPaymentStatusResponse,
   PayQuotaRequest,
   RegisterExternalContributionRequest,
   UpdateContributionStatusRequest,
@@ -28,6 +31,12 @@ export const campaignsService = {
 
   assignQuota: (data: AssignQuotaRequest) =>
     callFunction<AssignQuotaRequest, QuotaItem>('assignQuota', data),
+
+  assignQuotaWithPix: (data: AssignQuotaWithPixRequest) =>
+    callFunction<AssignQuotaWithPixRequest, AssignQuotaWithPixResponse>('assignQuotaWithPix', data),
+
+  getQuotaPaymentStatus: (data: { quotaId: string }) =>
+    callFunction<{ quotaId: string }, QuotaPaymentStatusResponse>('getQuotaPaymentStatus', data),
 
   payQuota: (data: PayQuotaRequest) =>
     callFunction<PayQuotaRequest, QuotaItem>('payQuota', data),

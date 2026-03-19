@@ -1,11 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import {
   Heart, Target, Share2, Check, Megaphone, Hammer, Gamepad2, HandCoins,
-  ClipboardList, Loader2, Plus, UserPlus,
+  ClipboardList, Loader2, Plus, UserPlus, QrCode, Copy, CheckCircle2,
 } from 'lucide-react'
-import { useCampaigns, useAssignQuota } from '@/hooks/use-campaigns'
+import { useCampaigns, useAssignQuota, useAssignQuotaWithPix, useQuotaPaymentStatus } from '@/hooks/use-campaigns'
+import { useMember } from '@/hooks/use-members'
 import {
   useShoppingLists, useShoppingItems, useCreateShoppingList,
   useAddShoppingItem, useToggleShoppingItem, useSignUpForList,
@@ -30,6 +31,8 @@ import {
 } from '@/components/ui/dialog'
 import { formatCurrency, formatDate } from '@/utils'
 import { cn } from '@/lib/utils'
+import { PixCountdown } from '@/components/pix/pix-countdown'
+import { toast } from 'sonner'
 import type { CampaignStatus, CampaignItem, ShoppingListItem, ShoppingItem as ShoppingItemType, ShoppingListType } from '@/types'
 
 // ========================================
@@ -112,24 +115,85 @@ function MemberCampaignsTab() {
   const { data, isLoading, isError, refetch } = useCampaigns(1, 'active')
   const houseId = useAuthStore((s) => s.currentHouseId())
   const memberId = useAuthStore((s) => s.currentHouse?.memberId)
+  const profile = useAuthStore((s) => s.profile)
+  const { data: memberDetails } = useMember(memberId ?? '')
   const assignQuota = useAssignQuota()
+  const assignQuotaWithPix = useAssignQuotaWithPix()
 
   const [participateDialogOpen, setParticipateDialogOpen] = useState(false)
   const [selectedCampaign, setSelectedCampaign] = useState<CampaignItem | null>(null)
   const [quotaAmount, setQuotaAmount] = useState(0)
+  const [paymentChoiceOpen, setPaymentChoiceOpen] = useState(false)
+  const [pixData, setPixData] = useState<{ quotaId: string; amount: number; pixEmv: string; startedAt: number } | null>(null)
+  const [copied, setCopied] = useState(false)
+
+  const isPending = assignQuota.isPending || assignQuotaWithPix.isPending
+  const memberCpf = memberDetails?.mediumProfile?.cpf || memberDetails?.user?.documentNumber || ''
+
+  // Poll quota payment status
+  const { data: statusData } = useQuotaPaymentStatus(pixData?.quotaId ?? null)
+
+  useEffect(() => {
+    if (statusData?.isPaid && pixData) {
+      setPixData(null)
+      refetch()
+      toast.success('Pagamento confirmado! Cota paga com sucesso.')
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [statusData?.isPaid, pixData])
+
+  const copyPixCode = useCallback(async () => {
+    if (!pixData?.pixEmv) return
+    try {
+      await navigator.clipboard.writeText(pixData.pixEmv)
+      setCopied(true)
+      toast.success('Codigo PIX copiado!')
+      setTimeout(() => setCopied(false), 3000)
+    } catch { toast.error('Erro ao copiar') }
+  }, [pixData?.pixEmv])
+
+  const handleConfirmAmount = () => {
+    if (!quotaAmount) return
+    setParticipateDialogOpen(false)
+    setPaymentChoiceOpen(true)
+  }
+
+  const handlePaymentChoice = (choice: 'pix' | 'later') => {
+    if (!houseId || !memberId || !selectedCampaign || !quotaAmount) return
+    if (choice === 'pix' && quotaAmount < 5) {
+      toast.error('Valor minimo para pagamento via PIX e R$ 5,00')
+      return
+    }
+    setPaymentChoiceOpen(false)
+
+    if (choice === 'later') {
+      assignQuota.mutate(
+        { houseId, campaignId: selectedCampaign.id, memberId, amount: quotaAmount },
+        { onSuccess: () => { setSelectedCampaign(null); setQuotaAmount(0) } },
+      )
+    } else {
+      if (!memberCpf || memberCpf.replace(/\D/g, '').length < 11) {
+        toast.error('CPF nao encontrado no seu cadastro. Atualize seu perfil.')
+        return
+      }
+      assignQuotaWithPix.mutate(
+        { houseId, campaignId: selectedCampaign.id, memberId, amount: quotaAmount, buyerDocument: memberCpf },
+        {
+          onSuccess: (result) => {
+            if (result.pix?.emv) {
+              setPixData({ quotaId: result.quotaId, amount: quotaAmount, pixEmv: result.pix.emv, startedAt: Date.now() })
+            }
+            setQuotaAmount(0)
+          },
+        },
+      )
+    }
+  }
 
   const campaigns: CampaignItem[] = data?.data ?? []
 
   if (isLoading) return <LoadingState />
   if (isError) return <ErrorState onRetry={() => refetch()} />
-
-  const handleParticipate = () => {
-    if (!houseId || !memberId || !selectedCampaign || !quotaAmount) return
-    assignQuota.mutate(
-      { houseId, campaignId: selectedCampaign.id, memberId, amount: quotaAmount },
-      { onSuccess: () => { setParticipateDialogOpen(false); setSelectedCampaign(null); setQuotaAmount(0) } },
-    )
-  }
 
   if (campaigns.length === 0) {
     return <EmptyState icon={Heart} title="Nenhuma lista ativa" description="No momento não há listas de arrecadação ativas." />
@@ -190,6 +254,7 @@ function MemberCampaignsTab() {
         })}
       </div>
 
+      {/* Amount Dialog */}
       <Dialog open={participateDialogOpen} onOpenChange={(open) => { setParticipateDialogOpen(open); if (!open) { setSelectedCampaign(null); setQuotaAmount(0) } }}>
         <DialogContent>
           <DialogHeader>
@@ -204,10 +269,70 @@ function MemberCampaignsTab() {
           </div>
           <DialogFooter>
             <DialogClose render={<Button variant="outline" />}>Cancelar</DialogClose>
-            <Button onClick={handleParticipate} disabled={assignQuota.isPending || !quotaAmount}>
-              {assignQuota.isPending ? 'Enviando...' : 'Confirmar'}
+            <Button onClick={handleConfirmAmount} disabled={!quotaAmount}>
+              Continuar
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Payment Choice Dialog */}
+      <Dialog open={paymentChoiceOpen} onOpenChange={setPaymentChoiceOpen}>
+        <DialogContent className="max-w-md p-0 overflow-hidden">
+          <div className="bg-gradient-to-br from-primary to-primary/80 px-6 pb-5 pt-6 text-primary-foreground">
+            <p className="text-sm font-medium text-primary-foreground/70">{selectedCampaign?.title}</p>
+            <p className="mt-1 text-3xl font-bold tracking-tight">{formatCurrency(quotaAmount)}</p>
+            <p className="mt-1 text-sm text-primary-foreground/80">{profile?.fullName}</p>
+          </div>
+          <div className="px-6 pb-6 pt-4">
+            <p className="mb-4 text-sm font-medium text-foreground">Como deseja pagar?</p>
+            <div className="space-y-3">
+              <button type="button" className="flex w-full items-center gap-4 rounded-xl border-2 border-primary/20 bg-primary/5 p-4 text-left transition-all hover:border-primary/50 hover:bg-primary/10 disabled:opacity-50" onClick={() => handlePaymentChoice('pix')} disabled={isPending}>
+                <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary/10"><QrCode className="size-6 text-primary" /></div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold text-foreground">Pagar agora com PIX</p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">Gere o codigo PIX e pague na hora</p>
+                </div>
+              </button>
+              <button type="button" className="flex w-full items-center gap-4 rounded-xl border-2 border-muted p-4 text-left transition-all hover:border-muted-foreground/30 hover:bg-muted/50 disabled:opacity-50" onClick={() => handlePaymentChoice('later')} disabled={isPending}>
+                <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-muted"><HandCoins className="size-6 text-muted-foreground" /></div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold text-foreground">Pagar depois</p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">Registre a cota e combine o pagamento</p>
+                </div>
+              </button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* PIX Payment Dialog */}
+      <Dialog open={!!pixData} onOpenChange={(open) => { if (!open) setPixData(null) }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><QrCode className="size-4 text-primary" />Pagar com PIX</DialogTitle>
+          </DialogHeader>
+          {pixData && (
+            <div className="space-y-4">
+              <div className="rounded-lg border bg-muted/50 p-4 text-center">
+                <p className="text-2xl font-bold text-primary">{formatCurrency(pixData.amount)}</p>
+              </div>
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Codigo PIX (Copia e Cola)</p>
+                <div className="max-h-20 overflow-y-auto rounded-md border bg-muted/30 p-3 text-xs break-all font-mono">{pixData.pixEmv}</div>
+                <Button onClick={copyPixCode} variant={copied ? 'default' : 'outline'} className="w-full" size="lg">
+                  {copied ? <><CheckCircle2 className="size-4" />Copiado!</> : <><Copy className="size-4" />Copiar codigo PIX</>}
+                </Button>
+              </div>
+              <PixCountdown
+                startedAt={pixData.startedAt}
+                onExpired={() => {
+                  setPixData(null)
+                  toast.info('PIX expirado. Sua cota foi registrada para pagamento posterior.')
+                }}
+              />
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </>

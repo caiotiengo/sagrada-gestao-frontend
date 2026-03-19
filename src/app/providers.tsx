@@ -1,9 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { Suspense, useState } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { AppShell } from '@/components/layout/app-shell'
+import { AnalyticsProvider } from '@/components/analytics/analytics-provider'
 
 function makeQueryClient() {
   return new QueryClient({
@@ -26,7 +27,11 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <AppShell>{children}</AppShell>
+        <Suspense fallback={null}>
+          <AnalyticsProvider>
+            <AppShell>{children}</AppShell>
+          </AnalyticsProvider>
+        </Suspense>
       </TooltipProvider>
     </QueryClientProvider>
   )

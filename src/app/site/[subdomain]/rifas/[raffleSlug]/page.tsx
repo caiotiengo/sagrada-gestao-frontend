@@ -21,6 +21,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
+import { DuplicateConfirmDialog } from '@/components/feedback/duplicate-confirm-dialog'
 
 export default function SiteRafflePage() {
   const { house } = useSiteContext()
@@ -28,8 +29,9 @@ export default function SiteRafflePage() {
   const raffleSlug = params.raffleSlug as string
 
   const { data: raffle, isLoading, isError, refetch } = usePublicRaffle(house.slug, raffleSlug)
-  const { mutate: reserve, isPending } = useRaffleReservation()
+  const { mutateAsync: reserveAsync, isPending } = useRaffleReservation()
   const [selectedNumbers, setSelectedNumbers] = useState<number[]>([])
+  const [duplicateInfo, setDuplicateInfo] = useState<{ buyerName: string; numbers: number[]; amount: number; formData: RaffleReservationFormData } | null>(null)
 
   const { register, handleSubmit, setValue, reset, formState: { errors } } = useForm<RaffleReservationFormData>({
     resolver: zodResolver(raffleReservationSchema),
@@ -53,24 +55,36 @@ export default function SiteRafflePage() {
     [soldNumbersSet, setValue],
   )
 
-  function onSubmit(data: RaffleReservationFormData) {
+  async function submitReservation(data: RaffleReservationFormData, forceCreate = false) {
     if (!raffle) return
-    reserve(
-      {
+    try {
+      const result = await reserveAsync({
         houseSlug: house.slug,
         raffleSlug,
         numbers: data.numbers,
         buyerName: data.buyerName,
         buyerPhone: data.buyerPhone,
-      },
-      {
-        onSuccess: () => {
-          reset()
-          setSelectedNumbers([])
-          refetch()
-        },
-      },
-    )
+        forceCreate,
+      })
+      if (result.duplicate) {
+        setDuplicateInfo({
+          buyerName: result.existingBuyerName || data.buyerName,
+          numbers: result.existingNumbers || data.numbers,
+          amount: result.existingAmount || 0,
+          formData: data,
+        })
+        return
+      }
+      reset()
+      setSelectedNumbers([])
+      refetch()
+    } catch {
+      // error toast handled by hook
+    }
+  }
+
+  function onSubmit(data: RaffleReservationFormData) {
+    submitReservation(data)
   }
 
   if (isLoading) {
@@ -294,6 +308,20 @@ export default function SiteRafflePage() {
           </div>
         </div>
       </div>
+      <DuplicateConfirmDialog
+        open={!!duplicateInfo}
+        onClose={() => setDuplicateInfo(null)}
+        onConfirm={() => {
+          if (duplicateInfo) {
+            setDuplicateInfo(null)
+            submitReservation(duplicateInfo.formData, true)
+          }
+        }}
+        isPending={isPending}
+        donorName={duplicateInfo?.buyerName}
+        amount={duplicateInfo?.amount}
+        description={`números ${duplicateInfo?.numbers.join(', ')}`}
+      />
     </SiteInnerLayout>
   )
 }

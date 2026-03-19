@@ -20,6 +20,7 @@ import { SiteInnerLayout } from '@/components/site/site-inner-layout'
 import { LoadingState } from '@/components/feedback/loading-state'
 import { ErrorState } from '@/components/feedback/error-state'
 import { EmptyState } from '@/components/feedback/empty-state'
+import { DuplicateConfirmDialog } from '@/components/feedback/duplicate-confirm-dialog'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -38,6 +39,7 @@ export default function SiteStorePage() {
   const { house } = useSiteContext()
   const { data, isLoading, isError, refetch } = usePublicStore(house.slug)
   const { mutateAsync: createOrderAsync, isPending } = usePublicStoreOrder()
+  const [duplicateInfo, setDuplicateInfo] = useState<{ buyerName: string; orderNumber: string } | null>(null)
 
   const [cart, setCart] = useState<CartItem[]>([])
   const [buyerName, setBuyerName] = useState('')
@@ -89,7 +91,7 @@ export default function SiteStorePage() {
 
   const cartTotal = cart.reduce((sum, c) => sum + c.price * c.quantity, 0)
 
-  const handleOrder = async () => {
+  const handleOrder = async (forceCreate = false) => {
     if (!buyerName.trim() || !buyerPhone.trim() || cart.length === 0) return
     try {
       const response = await createOrderAsync({
@@ -98,7 +100,15 @@ export default function SiteStorePage() {
         buyerName: buyerName.trim(),
         buyerPhone: buyerPhone.trim() || undefined,
         notes: notes.trim() || undefined,
+        forceCreate,
       })
+      if (response?.duplicate) {
+        setDuplicateInfo({
+          buyerName: response.existingBuyerName || buyerName,
+          orderNumber: response.existingOrderNumber || '',
+        })
+        return
+      }
       setCart([])
       setBuyerName('')
       setBuyerPhone('')
@@ -285,7 +295,7 @@ export default function SiteStorePage() {
                     <Input placeholder="Alguma observação..." value={notes} onChange={(e) => setNotes(e.target.value)} />
                   </div>
                 </div>
-                <Button size="lg" disabled={isPending || cart.length === 0 || !buyerName.trim()} className="w-full" onClick={handleOrder}>
+                <Button size="lg" disabled={isPending || cart.length === 0 || !buyerName.trim()} className="w-full" onClick={() => handleOrder()}>
                   {isPending && <Loader2 className="size-4 animate-spin" />}
                   {isPending ? 'Enviando...' : `Fazer Pedido (${formatCurrency(cartTotal)})`}
                 </Button>
@@ -294,6 +304,17 @@ export default function SiteStorePage() {
           </div>
         </div>
       </div>
+      <DuplicateConfirmDialog
+        open={!!duplicateInfo}
+        onClose={() => setDuplicateInfo(null)}
+        onConfirm={() => {
+          setDuplicateInfo(null)
+          handleOrder(true)
+        }}
+        isPending={isPending}
+        donorName={duplicateInfo?.buyerName}
+        description={`pedido ${duplicateInfo?.orderNumber}`}
+      />
     </SiteInnerLayout>
   )
 }

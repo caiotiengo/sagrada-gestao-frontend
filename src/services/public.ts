@@ -8,8 +8,14 @@ import type {
   PublicRaffle,
   PublicReserveRaffleNumbersRequest,
   ReserveRaffleNumbersResponse,
+  PublicReserveRaffleWithPixRequest,
+  PublicReserveRaffleWithPixResponse,
+  PublicReservationStatusResponse,
   PublicRegisterContributionRequest,
   PublicRegisterContributionResponse,
+  PublicContributeWithPixRequest,
+  PublicContributeWithPixResponse,
+  PublicContributionStatusResponse,
   PublicStoreData,
   PublicStoreOrderRequest,
   PublicStoreOrderResponse,
@@ -52,4 +58,16 @@ export const publicService = {
 
   publicListCampaigns: (data: { houseSlug: string }) =>
     callFunction<{ houseSlug: string }, PublicCampaignListItem[]>('publicListCampaigns', data),
+
+  publicReserveRaffleWithPix: (data: PublicReserveRaffleWithPixRequest) =>
+    callFunction<PublicReserveRaffleWithPixRequest, PublicReserveRaffleWithPixResponse>('publicReserveRaffleWithPix', data),
+
+  publicGetReservationStatus: (data: { reservationId: string }) =>
+    callFunction<{ reservationId: string }, PublicReservationStatusResponse>('publicGetReservationStatus', data),
+
+  publicContributeWithPix: (data: PublicContributeWithPixRequest) =>
+    callFunction<PublicContributeWithPixRequest, PublicContributeWithPixResponse>('publicContributeWithPix', data),
+
+  publicGetContributionStatus: (data: { contributionId: string }) =>
+    callFunction<{ contributionId: string }, PublicContributionStatusResponse>('publicGetContributionStatus', data),
 }

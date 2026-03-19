@@ -6,6 +6,7 @@ import {
 } from 'firebase/auth'
 import { auth } from '@/lib/firebase'
 import { callFunction } from '@/lib/callable'
+import { identifyUser, trackLogin, trackSignUp, trackLogout } from '@/lib/analytics'
 import type {
   LoginResponse,
   RegisterHouseRequest,
@@ -21,6 +22,8 @@ export const authService = {
   login: async (email: string, password: string): Promise<LoginResponse> => {
     await signInWithEmailAndPassword(auth, email, password)
     const data = await callFunction<Record<string, never>, LoginResponse>('login', {})
+    identifyUser(data.uid, { role: data.houses?.[0]?.role || 'unknown' })
+    trackLogin('email')
     return data
   },
 
@@ -46,6 +49,8 @@ export const authService = {
       'registerHouse',
       payload
     )
+    identifyUser(userCredential.user.uid, { role: 'admin' })
+    trackSignUp('email')
     return result
   },
 
@@ -69,6 +74,7 @@ export const authService = {
    * Sign out.
    */
   logout: async (): Promise<void> => {
+    trackLogout()
     await signOut(auth)
   },
 }

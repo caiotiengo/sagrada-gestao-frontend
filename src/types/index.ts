@@ -312,6 +312,8 @@ export interface CreatePaymentRequest {
   paymentMethod?: PaymentMethod
   memberId?: string
   receiptUrl?: string
+  coraEntryId?: string
+  paidAt?: string
 }
 
 export interface ListPaymentsRequest {
@@ -732,6 +734,24 @@ export interface AssignQuotaRequest {
   amount: number
 }
 
+export interface AssignQuotaWithPixRequest extends AssignQuotaRequest {
+  buyerDocument: string
+}
+
+export interface AssignQuotaWithPixResponse {
+  quotaId: string
+  amount: number
+  status: string
+  pix?: { emv: string } | null
+  invoiceId?: string
+}
+
+export interface QuotaPaymentStatusResponse {
+  quotaId: string
+  isPaid: boolean
+  amount: number
+}
+
 export interface PayQuotaRequest {
   houseId: string
   quotaId: string
@@ -834,6 +854,10 @@ export interface ReserveRaffleNumbersResponse {
   numbers: number[]
   totalAmount: number
   buyerName: string
+  duplicate?: boolean
+  existingBuyerName?: string
+  existingNumbers?: number[]
+  existingAmount?: number
 }
 
 export interface PublicReserveRaffleNumbersRequest {
@@ -842,6 +866,31 @@ export interface PublicReserveRaffleNumbersRequest {
   numbers: number[]
   buyerName: string
   buyerPhone: string
+  forceCreate?: boolean
+}
+
+// PIX Raffle
+export interface PublicReserveRaffleWithPixRequest {
+  houseSlug: string
+  raffleSlug: string
+  numbers: number[]
+  buyerName: string
+  buyerPhone: string
+  buyerDocument: string
+  forceCreate?: boolean
+}
+
+export interface PublicReserveRaffleWithPixResponse extends ReserveRaffleNumbersResponse {
+  pix?: { emv: string } | null
+  bankSlip?: { barcode: string; digitable: string; url: string } | null
+  invoiceId?: string
+}
+
+export interface PublicReservationStatusResponse {
+  reservationId: string
+  isPaid: boolean
+  totalAmount: number
+  buyerName: string
 }
 
 export interface PublicRegisterContributionRequest {
@@ -851,11 +900,53 @@ export interface PublicRegisterContributionRequest {
   donorPhone: string
   amount: number
   message?: string
+  forceCreate?: boolean
 }
 
 export interface PublicRegisterContributionResponse {
   contributionId: string
   amount: number
+  duplicate?: boolean
+  existingAmount?: number
+  existingDonorName?: string
+}
+
+// PIX Contribution
+export interface PublicContributeWithPixRequest {
+  houseSlug: string
+  campaignSlug: string
+  donorName: string
+  donorPhone: string
+  donorDocument: string
+  amount: number
+  message?: string
+  forceCreate?: boolean
+}
+
+export interface PublicContributeWithPixResponse {
+  contributionId: string
+  amount: number
+  isPaid: boolean
+  duplicate?: boolean
+  existingAmount?: number
+  existingDonorName?: string
+  pix?: {
+    emv: string
+  } | null
+  bankSlip?: {
+    barcode: string
+    digitable: string
+    url: string
+  } | null
+  invoiceId?: string
+}
+
+export interface PublicContributionStatusResponse {
+  contributionId: string
+  isPaid: boolean
+  paidAt: string | null
+  amount: number
+  donorName: string
 }
 
 export interface ListRaffleReservationsRequest {
@@ -1042,6 +1133,7 @@ export interface PublicStoreOrderRequest {
   buyerName: string
   buyerPhone?: string
   notes?: string
+  forceCreate?: boolean
 }
 
 export interface PublicStoreOrderResponse {
@@ -1054,6 +1146,10 @@ export interface PublicStoreOrderResponse {
   orderTotal: number
   buyerName: string
   orderNumber: string
+  duplicate?: boolean
+  existingBuyerName?: string
+  existingOrderNumber?: string
+  existingTotal?: number
 }
 
 export interface PublicStoreMembersData {
@@ -1234,6 +1330,7 @@ export interface PublicHouse {
   siteConfig?: {
     siteEnabled: boolean
     subdomain: string
+    siteTitle: string | null
     template: 'classic' | 'modern' | 'minimal'
     instagramUrl: string | null
     facebookUrl: string | null
@@ -1254,6 +1351,7 @@ export interface UpdateHouseSiteConfigRequest {
   siteConfig: Partial<{
     siteEnabled: boolean
     subdomain: string
+    siteTitle: string
     template: 'classic' | 'modern' | 'minimal'
     instagramUrl: string
     facebookUrl: string

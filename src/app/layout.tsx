@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { Inter, JetBrains_Mono } from 'next/font/google'
 import './globals.css'
 
-import { APP_NAME, APP_DESCRIPTION } from '@/constants'
+import { APP_NAME, APP_TITLE, APP_DESCRIPTION } from '@/constants'
 import { Providers } from './providers'
 import { Toaster } from '@/components/ui/sonner'
 
@@ -20,7 +20,7 @@ const jetbrainsMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: APP_NAME,
+    default: APP_TITLE,
     template: `%s | ${APP_NAME}`,
   },
   description: APP_DESCRIPTION,

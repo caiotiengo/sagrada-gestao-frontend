@@ -14,8 +14,11 @@ import {
   ArrowDownLeft,
   ArrowRight,
 } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
 import { useAuthStore } from '@/stores/auth'
 import { useFinancialStatement } from '@/hooks/use-finance'
+import { coraService } from '@/services/cora'
+import { Landmark } from 'lucide-react'
 import { ROUTES } from '@/constants'
 import { CardSkeleton } from '@/components/feedback/card-skeleton'
 import { ErrorState } from '@/components/feedback/error-state'
@@ -37,6 +40,19 @@ const quickActions = [
 export default function AdminHomePage() {
   const { profile } = useAuthStore()
   const { data: statementData, isLoading, isError, refetch } = useFinancialStatement(1)
+  const houseId = useAuthStore((s) => s.currentHouseId())
+  const { data: coraBalance } = useQuery({
+    queryKey: ['cora-balance', houseId],
+    queryFn: () => coraService.getBalance({ houseId: houseId! }),
+    enabled: !!houseId,
+    staleTime: 60_000,
+  })
+  const { data: coraStatement } = useQuery({
+    queryKey: ['cora-statement', houseId],
+    queryFn: () => coraService.getStatement({ houseId: houseId!, limit: 10 }),
+    enabled: !!houseId,
+    staleTime: 60_000,
+  })
 
   if (isError) {
     return (
@@ -96,6 +112,15 @@ export default function AdminHomePage() {
                 </span>
               </div>
             </div>
+            {coraBalance && (
+              <div className="mt-3 flex items-center gap-2 border-t border-white/15 pt-3">
+                <Landmark className="size-3.5 text-primary-foreground/70" />
+                <span className="text-xs text-primary-foreground/70">Cora:</span>
+                <span className="text-sm font-semibold">
+                  {formatCurrency(coraBalance.balance / 100)}
+                </span>
+              </div>
+            )}
           </CardContent>
         </Card>
       ) : null}
@@ -149,45 +174,116 @@ export default function AdminHomePage() {
               </div>
             ))}
           </div>
-        ) : statementData?.data && statementData.data.length > 0 ? (
-          <Card>
-            <CardContent className="divide-y p-0">
-              {statementData.data.slice(0, 10).map((entry) => (
-                <div key={entry.id} className="flex items-center gap-3 px-4 py-3">
-                  <div className={`flex size-9 shrink-0 items-center justify-center rounded-full ${
-                    entry.type === 'income'
-                      ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400'
-                      : 'bg-red-100 text-red-600 dark:bg-red-950 dark:text-red-400'
-                  }`}>
-                    {entry.type === 'income' ? (
-                      <ArrowDownLeft className="size-4" />
-                    ) : (
-                      <ArrowUpRight className="size-4" />
-                    )}
+        ) : (() => {
+          // Merge platform entries + Cora bank entries
+          const platformEntries = (statementData?.data ?? []).slice(0, 10).map((entry) => ({
+            id: entry.id,
+            type: entry.type as 'income' | 'expense',
+            description: entry.description,
+            sourceLabel: entry.sourceLabel,
+            date: entry.date,
+            amount: Math.abs(entry.amount),
+            isCora: false,
+          }))
+
+          const coraEntries = (coraStatement?.entries ?? []).filter((entry) => entry.createdAt).map((entry) => {
+            let dateStr: string | null = null
+            try {
+              let raw = entry.createdAt as string
+              if (typeof raw === 'string' && /\+\d{2}$/.test(raw)) raw = raw + ':00'
+              const d = new Date(raw)
+              if (!isNaN(d.getTime())) dateStr = d.toISOString()
+            } catch { /* skip */ }
+            return {
+              id: `cora-${entry.id}`,
+              type: entry.type === 'CREDIT' ? 'income' as const : 'expense' as const,
+              description: entry.transaction?.counterParty?.name || entry.transaction?.description || (entry.type === 'CREDIT' ? 'Recebimento' : 'Pagamento'),
+              sourceLabel: 'Cora',
+              date: dateStr,
+              amount: entry.amount / 100,
+              isCora: true,
+            }
+          })
+
+          const now = Date.now()
+          const parseDate = (d: string | null) => {
+            if (!d) return now
+            if (d.length === 10 && d.includes('-')) return new Date(d + 'T12:00:00').getTime()
+            return new Date(d).getTime() || now
+          }
+          const getDay = (d: string | null) => d ? d.substring(0, 10) : ''
+
+          // Deduplicate: Cora CREDIT with same day+amount+name as platform income → keep only Cora
+          const normalize = (s: string) => s.toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+          const coraCredits = new Map<string, boolean>()
+          for (const c of coraEntries) {
+            if (c.type === 'income') coraCredits.set(`${getDay(c.date)}_${c.amount.toFixed(2)}_${normalize(c.description)}`, true)
+          }
+          const dedupedPlatform = platformEntries.filter((p) => {
+            if (p.type !== 'income') return true
+            const day = getDay(p.date)
+            const amt = Math.abs(p.amount).toFixed(2)
+            const desc = normalize(p.description)
+            for (const [key] of coraCredits) {
+              const [cDay, cAmt, ...cNameParts] = key.split('_')
+              const cName = cNameParts.join('_')
+              if (cDay === day && cAmt === amt && cName && desc.includes(cName)) {
+                coraCredits.delete(key); return false
+              }
+            }
+            return true
+          })
+
+          const allEntries = [...dedupedPlatform, ...coraEntries]
+            .sort((a, b) => parseDate(b.date) - parseDate(a.date))
+            .slice(0, 12)
+
+          return allEntries.length > 0 ? (
+            <Card>
+              <CardContent className="divide-y p-0">
+                {allEntries.map((entry) => (
+                  <div key={entry.id} className="flex items-center gap-3 px-4 py-3">
+                    <div className={`flex size-9 shrink-0 items-center justify-center rounded-full ${
+                      entry.isCora
+                        ? 'bg-violet-100 text-violet-600 dark:bg-violet-950 dark:text-violet-400'
+                        : entry.type === 'income'
+                          ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400'
+                          : 'bg-red-100 text-red-600 dark:bg-red-950 dark:text-red-400'
+                    }`}>
+                      {entry.isCora ? (
+                        <Landmark className="size-4" />
+                      ) : entry.type === 'income' ? (
+                        <ArrowDownLeft className="size-4" />
+                      ) : (
+                        <ArrowUpRight className="size-4" />
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium">{entry.description}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {entry.sourceLabel}
+                        {entry.date ? ` · ${formatDate(entry.date)}` : ''}
+                      </p>
+                    </div>
+                    <span className={`shrink-0 text-sm font-semibold tabular-nums ${
+                      entry.type === 'income'
+                        ? 'text-emerald-600 dark:text-emerald-400'
+                        : 'text-red-600 dark:text-red-400'
+                    }`}>
+                      {entry.type === 'income' ? '+' : '-'}{formatCurrency(entry.amount)}
+                    </span>
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium">{entry.description}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {entry.sourceLabel}
-                      {entry.date ? ` · ${formatDate(entry.date)}` : ''}
-                    </p>
-                  </div>
-                  <span className={`shrink-0 text-sm font-semibold tabular-nums ${
-                    entry.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'
-                  }`}>
-                    {entry.type === 'income' ? '+' : '-'}{formatCurrency(Math.abs(entry.amount))}
-                  </span>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        ) : (
-          <Card>
-            <CardContent className="py-8 text-center">
-              <p className="text-sm text-muted-foreground">Nenhuma movimentação encontrada</p>
-            </CardContent>
-          </Card>
-        )}
+                ))}
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <CardContent className="py-8 text-center">
+                <p className="text-sm text-muted-foreground">Nenhuma movimentação encontrada</p>
+              </CardContent>
+            </Card>
+          )
+        })()}
       </div>
     </div>
   )

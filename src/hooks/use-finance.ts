@@ -22,6 +22,7 @@ import type {
   CreateRecurringMonthlyFeeRequest,
 } from '@/types'
 import { toast } from 'sonner'
+import { trackPayment, trackFeePayment, trackDebtPayment } from '@/lib/analytics'
 
 // ---- Monthly Fees ----
 
@@ -97,9 +98,10 @@ export function usePayMonthlyFee() {
   return useMutation({
     mutationFn: (data: PayMonthlyFeeRequest) =>
       financeService.payMonthlyFee(data),
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['monthly-fees'] })
       toast.success('Pagamento registrado')
+      trackFeePayment(data.amount ?? 0, variables.paymentMethod)
     },
     onError: () => {
       toast.error('Erro ao registrar pagamento')
@@ -149,9 +151,10 @@ export function useCreatePayment() {
   return useMutation({
     mutationFn: (data: CreatePaymentRequest) =>
       financeService.createPayment(data),
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['payments'] })
       toast.success('Pagamento criado')
+      trackPayment(variables.category, variables.amount, variables.type)
     },
     onError: () => {
       toast.error('Erro ao criar pagamento')
@@ -217,9 +220,10 @@ export function usePayDebt() {
   return useMutation({
     mutationFn: (data: PayDebtRequest) =>
       financeService.payDebt(data),
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['debts'] })
       toast.success('Pagamento de débito registrado')
+      trackDebtPayment(variables.amount)
     },
     onError: () => {
       toast.error('Erro ao registrar pagamento de débito')

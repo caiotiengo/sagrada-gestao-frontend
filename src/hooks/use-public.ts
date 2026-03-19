@@ -2,8 +2,9 @@
 
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { publicService } from '@/services/public'
-import type { PublicRegisterContributionRequest, PublicReserveRaffleNumbersRequest, PublicStoreOrderRequest } from '@/types'
+import type { PublicRegisterContributionRequest, PublicReserveRaffleNumbersRequest, PublicStoreOrderRequest, PublicContributeWithPixRequest, PublicReserveRaffleWithPixRequest } from '@/types'
 import { toast } from 'sonner'
+import { trackContribution, trackRaffleReservation, trackStoreOrder } from '@/lib/analytics'
 
 export function usePublicHouse(slug: string) {
   return useQuery({
@@ -25,12 +26,65 @@ export function useCampaignContribute() {
   return useMutation({
     mutationFn: (data: PublicRegisterContributionRequest) =>
       publicService.publicRegisterContribution(data),
-    onSuccess: () => {
-      toast.success('Contribuição registrada com sucesso!')
+    onSuccess: (data, variables) => {
+      if (!data.duplicate) {
+        toast.success('Contribuição registrada com sucesso!')
+        trackContribution(variables.campaignSlug, variables.amount)
+      }
     },
     onError: () => {
       toast.error('Erro ao registrar contribuição')
     },
+  })
+}
+
+export function useCampaignContributeWithPix() {
+  return useMutation({
+    mutationFn: (data: PublicContributeWithPixRequest) =>
+      publicService.publicContributeWithPix(data),
+    onSuccess: (data, variables) => {
+      if (!data.duplicate && data.pix) {
+        toast.success('QR Code PIX gerado!')
+        trackContribution(variables.campaignSlug, variables.amount)
+      }
+    },
+    onError: () => {
+      toast.error('Erro ao gerar cobrança PIX')
+    },
+  })
+}
+
+export function useContributionStatus(contributionId: string | null) {
+  return useQuery({
+    queryKey: ['contribution-status', contributionId],
+    queryFn: () => publicService.publicGetContributionStatus({ contributionId: contributionId! }),
+    enabled: !!contributionId,
+    refetchInterval: 5000, // Poll every 5 seconds
+  })
+}
+
+export function useRaffleReservationWithPix() {
+  return useMutation({
+    mutationFn: (data: PublicReserveRaffleWithPixRequest) =>
+      publicService.publicReserveRaffleWithPix(data),
+    onSuccess: (data, variables) => {
+      if (!data.duplicate && data.pix) {
+        toast.success('QR Code PIX gerado!')
+        trackRaffleReservation(variables.raffleSlug, variables.numbers.length, data.totalAmount)
+      }
+    },
+    onError: () => {
+      toast.error('Erro ao gerar cobranca PIX')
+    },
+  })
+}
+
+export function useReservationStatus(reservationId: string | null) {
+  return useQuery({
+    queryKey: ['reservation-status', reservationId],
+    queryFn: () => publicService.publicGetReservationStatus({ reservationId: reservationId! }),
+    enabled: !!reservationId,
+    refetchInterval: 5000,
   })
 }
 
@@ -46,8 +100,11 @@ export function useRaffleReservation() {
   return useMutation({
     mutationFn: (data: PublicReserveRaffleNumbersRequest) =>
       publicService.publicReserveRaffleNumbers(data),
-    onSuccess: () => {
-      toast.success('Números reservados com sucesso!')
+    onSuccess: (data, variables) => {
+      if (!data.duplicate) {
+        toast.success('Números reservados com sucesso!')
+        trackRaffleReservation(variables.raffleSlug, variables.numbers.length, data.totalAmount)
+      }
     },
     onError: () => {
       toast.error('Erro ao reservar números')
@@ -99,8 +156,11 @@ export function usePublicStoreOrder() {
   return useMutation({
     mutationFn: (data: PublicStoreOrderRequest) =>
       publicService.publicCreateStoreOrder(data),
-    onSuccess: () => {
-      toast.success('Pedido realizado com sucesso!')
+    onSuccess: (data, variables) => {
+      if (!data.duplicate) {
+        toast.success('Pedido realizado com sucesso!')
+        trackStoreOrder(variables.items.length, data.orderTotal)
+      }
     },
     onError: () => {
       toast.error('Erro ao realizar pedido')

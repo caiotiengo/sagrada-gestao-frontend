@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, type ReactNode } from 'react'
 import { useParams } from 'next/navigation'
 import { useHouseBySubdomain } from '@/hooks/use-site'
 import { usePublicEvents } from '@/hooks/use-public'
@@ -27,6 +27,24 @@ export function SiteProvider({ children }: { children: ReactNode }) {
   const subdomain = params.subdomain as string
   const { data: house, isLoading, isError } = useHouseBySubdomain(subdomain)
   const { data: events } = usePublicEvents(house?.slug ?? '')
+
+  // Set dynamic title and favicon for public site
+  useEffect(() => {
+    if (!house) return
+    const title = house.siteConfig?.siteTitle || house.displayName || house.name
+    document.title = title
+
+    const faviconUrl = house.siteConfig?.faviconUrl
+    if (faviconUrl) {
+      let link = document.querySelector<HTMLLinkElement>('link[rel="icon"]')
+      if (!link) {
+        link = document.createElement('link')
+        link.rel = 'icon'
+        document.head.appendChild(link)
+      }
+      link.href = faviconUrl
+    }
+  }, [house])
 
   if (isLoading) return <LoadingState message="Carregando site..." />
   if (isError || !house)
