@@ -1,12 +1,14 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import {
   DollarSign,
   AlertTriangle,
   CheckCircle2,
   Clock,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react'
 import { useMonthlyFees, useDebts, useMyFinancialSummary } from '@/hooks/use-finance'
 import { useAuthStore } from '@/stores/auth'
@@ -15,6 +17,7 @@ import type { MonthlyFeeItem, DebtItem, ShoppingDebtItem, QuotaItem, SaleItem, F
 import { formatCurrency, formatDate } from '@/utils'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import {
   Tabs,
   TabsList,
@@ -25,16 +28,21 @@ import { LoadingState } from '@/components/feedback/loading-state'
 import { EmptyState } from '@/components/feedback/empty-state'
 import { ErrorState } from '@/components/feedback/error-state'
 
+const MONTH_NAMES = [
+  'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
+]
+
 function statusBadgeClasses(status: FeeStatus) {
   switch (status) {
     case 'pending':
-      return 'border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300'
+      return 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-400'
     case 'paid':
-      return 'border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300'
+      return 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-400'
     case 'overdue':
-      return 'border-red-300 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950/40 dark:text-red-300'
+      return 'border-red-200 bg-red-50 text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-400'
     case 'cancelled':
-      return 'border-gray-300 bg-gray-50 text-gray-500 dark:border-gray-700 dark:bg-gray-900/40 dark:text-gray-400'
+      return 'border-gray-200 bg-gray-50 text-gray-500 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-500'
     default:
       return ''
   }
@@ -53,17 +61,31 @@ function statusIcon(status: FeeStatus) {
   }
 }
 
+function formatYearMonth(year: number, month: number) {
+  return `${year}-${String(month + 1).padStart(2, '0')}`
+}
+
 export default function MemberFinancePage() {
   const searchParams = useSearchParams()
   const initialTab = searchParams.get('tab') === 'debitos' ? 'debitos' : 'mensalidades'
   const memberId = useAuthStore((s) => s.currentHouse?.memberId)
+
+  const now = new Date()
+  const [year, setYear] = useState(now.getFullYear())
+  const [month, setMonth] = useState(now.getMonth())
+
+  const selectedMonth = formatYearMonth(year, month)
 
   const {
     data: feesData,
     isLoading: feesLoading,
     isError: feesError,
     refetch: refetchFees,
-  } = useMonthlyFees(1, memberId)
+  } = useMonthlyFees(1, memberId, undefined, selectedMonth)
+
+  // All fees (for totalPending calculation)
+  const { data: allFeesData } = useMonthlyFees(1, memberId)
+  const allFees: MonthlyFeeItem[] = allFeesData?.data ?? []
 
   const {
     data: debtsData,
@@ -83,12 +105,18 @@ export default function MemberFinancePage() {
   const quotas: QuotaItem[] = (financialSummary?.quotas ?? []).filter((q) => q.status !== 'paid')
   const storeTab: SaleItem[] = financialSummary?.storeTab ?? []
 
+  const currentMonth = formatYearMonth(now.getFullYear(), now.getMonth())
+
+  // Total pending: only current month + overdue (not future)
   const { totalPending, totalPaid } = useMemo(() => {
     let pending = 0
     let paid = 0
-    for (const fee of fees) {
+    for (const fee of allFees) {
       if (fee.status === 'pending' || fee.status === 'overdue') {
-        pending += fee.amount
+        const feeMonth = fee.referenceMonth || ''
+        if (feeMonth <= currentMonth) {
+          pending += fee.amount
+        }
       } else if (fee.status === 'paid') {
         paid += fee.amount
       }
@@ -108,7 +136,20 @@ export default function MemberFinancePage() {
       pending += s.totalPrice
     }
     return { totalPending: pending, totalPaid: paid }
-  }, [fees, debts, shoppingDebts, quotas, storeTab])
+  }, [allFees, debts, shoppingDebts, quotas, storeTab, currentMonth])
+
+  const goToPrevMonth = () => {
+    if (month === 0) { setMonth(11); setYear((y) => y - 1) }
+    else setMonth((m) => m - 1)
+  }
+  const goToNextMonth = () => {
+    if (month === 11) { setMonth(0); setYear((y) => y + 1) }
+    else setMonth((m) => m + 1)
+  }
+  const goToToday = () => {
+    setYear(now.getFullYear())
+    setMonth(now.getMonth())
+  }
 
   const isLoading = feesLoading || debtsLoading || summaryLoading
 
@@ -121,14 +162,14 @@ export default function MemberFinancePage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-5xl space-y-8 px-4 py-6 lg:px-8 lg:py-8">
+    <div className="mx-auto w-full max-w-5xl space-y-6 px-4 py-6 lg:px-8 lg:py-8">
       {/* Header */}
       <div>
         <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
           Financeiro
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Acompanhe suas mensalidades e débitos
+          Acompanhe suas mensalidades e debitos
         </p>
       </div>
 
@@ -175,22 +216,39 @@ export default function MemberFinancePage() {
       <Tabs defaultValue={initialTab}>
         <TabsList>
           <TabsTrigger value="mensalidades">Mensalidades</TabsTrigger>
-          <TabsTrigger value="debitos">Débitos</TabsTrigger>
+          <TabsTrigger value="debitos">Debitos</TabsTrigger>
         </TabsList>
 
         {/* Mensalidades Tab */}
-        <TabsContent value="mensalidades">
+        <TabsContent value="mensalidades" className="space-y-4">
+          {/* Month Navigator */}
+          <div className="flex items-center justify-between rounded-lg border bg-card p-2">
+            <Button variant="ghost" size="icon" onClick={goToPrevMonth}>
+              <ChevronLeft className="size-4" />
+            </Button>
+            <button
+              type="button"
+              onClick={goToToday}
+              className="text-sm font-medium hover:text-primary transition-colors"
+            >
+              {MONTH_NAMES[month]} {year}
+            </button>
+            <Button variant="ghost" size="icon" onClick={goToNextMonth}>
+              <ChevronRight className="size-4" />
+            </Button>
+          </div>
+
           {feesError ? (
             <ErrorState
               title="Erro ao carregar mensalidades"
-              message="Não foi possível carregar suas mensalidades."
+              message="Nao foi possivel carregar suas mensalidades."
               onRetry={() => refetchFees()}
             />
           ) : fees.length === 0 ? (
             <EmptyState
               icon={DollarSign}
               title="Nenhuma mensalidade"
-              description="Você não possui mensalidades registradas."
+              description={`Nenhuma mensalidade em ${MONTH_NAMES[month]} ${year}.`}
             />
           ) : (
             <div className="space-y-2">
@@ -214,6 +272,7 @@ export default function MemberFinancePage() {
                           </Badge>
                         </div>
                         <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                          {fee.dueDate && <span>Vencimento: {formatDate(fee.dueDate)}</span>}
                           {fee.paidAt && (
                             <span>Pago em: {formatDate(fee.paidAt)}</span>
                           )}
@@ -237,15 +296,15 @@ export default function MemberFinancePage() {
         <TabsContent value="debitos">
           {debtsError ? (
             <ErrorState
-              title="Erro ao carregar débitos"
-              message="Não foi possível carregar seus débitos."
+              title="Erro ao carregar debitos"
+              message="Nao foi possivel carregar seus debitos."
               onRetry={() => refetchDebts()}
             />
           ) : debts.length === 0 && shoppingDebts.length === 0 && quotas.length === 0 && storeTab.length === 0 ? (
             <EmptyState
               icon={DollarSign}
-              title="Nenhum débito"
-              description="Você não possui débitos registrados."
+              title="Nenhum debito"
+              description="Voce nao possui debitos registrados."
             />
           ) : (
             <div className="space-y-2">
@@ -256,13 +315,8 @@ export default function MemberFinancePage() {
                     <div className="flex items-center justify-between gap-3">
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium">
-                            {item.listTitle}
-                          </span>
-                          <Badge
-                            variant="outline"
-                            className={statusBadgeClasses('pending')}
-                          >
+                          <span className="text-sm font-medium">{item.listTitle}</span>
+                          <Badge variant="outline" className={statusBadgeClasses('pending')}>
                             {statusIcon('pending')}
                             <span className="ml-1">Pendente</span>
                           </Badge>
@@ -270,13 +324,9 @@ export default function MemberFinancePage() {
                             {item.listType === 'job' ? 'Trabalho' : item.listType === 'game' ? 'Jogo' : 'Lista'}
                           </Badge>
                         </div>
-                        <div className="mt-1 text-xs text-muted-foreground">
-                          {formatDate(item.createdAt)}
-                        </div>
+                        <div className="mt-1 text-xs text-muted-foreground">{formatDate(item.createdAt)}</div>
                       </div>
-                      <span className="shrink-0 text-sm font-semibold">
-                        {formatCurrency(item.amount)}
-                      </span>
+                      <span className="shrink-0 text-sm font-semibold">{formatCurrency(item.amount)}</span>
                     </div>
                   </CardContent>
                 </Card>
@@ -289,17 +339,10 @@ export default function MemberFinancePage() {
                     <div className="flex items-center justify-between gap-3">
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium">
-                            {q.campaignName ?? 'Campanha'}
-                          </span>
-                          <Badge
-                            variant="outline"
-                            className={statusBadgeClasses(q.status === 'partial' ? 'pending' : q.status)}
-                          >
+                          <span className="text-sm font-medium">{q.campaignName ?? 'Campanha'}</span>
+                          <Badge variant="outline" className={statusBadgeClasses(q.status === 'partial' ? 'pending' : q.status)}>
                             {statusIcon(q.status === 'partial' ? 'pending' : q.status)}
-                            <span className="ml-1">
-                              {q.status === 'partial' ? 'Parcial' : 'Pendente'}
-                            </span>
+                            <span className="ml-1">{q.status === 'partial' ? 'Parcial' : 'Pendente'}</span>
                           </Badge>
                           <Badge variant="secondary" className="text-xs">Cota</Badge>
                         </div>
@@ -308,9 +351,7 @@ export default function MemberFinancePage() {
                           {q.paidAmount > 0 && <span>Pago: {formatCurrency(q.paidAmount)}</span>}
                         </div>
                       </div>
-                      <span className="shrink-0 text-sm font-semibold">
-                        {formatCurrency(q.amount - q.paidAmount)}
-                      </span>
+                      <span className="shrink-0 text-sm font-semibold">{formatCurrency(q.amount - q.paidAmount)}</span>
                     </div>
                   </CardContent>
                 </Card>
@@ -327,60 +368,40 @@ export default function MemberFinancePage() {
                             {s.itemName || 'Compra fiado'}
                             {s.quantity > 1 && ` x${s.quantity}`}
                           </span>
-                          <Badge
-                            variant="outline"
-                            className={statusBadgeClasses('pending')}
-                          >
+                          <Badge variant="outline" className={statusBadgeClasses('pending')}>
                             {statusIcon('pending')}
                             <span className="ml-1">Pendente</span>
                           </Badge>
                           <Badge variant="secondary" className="text-xs">Cantina</Badge>
                         </div>
-                        <div className="mt-1 text-xs text-muted-foreground">
-                          {formatDate(s.createdAt)}
-                        </div>
+                        <div className="mt-1 text-xs text-muted-foreground">{formatDate(s.createdAt)}</div>
                       </div>
-                      <span className="shrink-0 text-sm font-semibold">
-                        {formatCurrency(s.totalPrice)}
-                      </span>
+                      <span className="shrink-0 text-sm font-semibold">{formatCurrency(s.totalPrice)}</span>
                     </div>
                   </CardContent>
                 </Card>
               ))}
 
-              {/* Débitos manuais */}
+              {/* Debitos manuais */}
               {debts.map((debt) => (
                 <Card key={debt.id} className="rounded-xl">
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between gap-3">
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium">
-                            {debt.description}
-                          </span>
-                          <Badge
-                            variant="outline"
-                            className={statusBadgeClasses(debt.status)}
-                          >
+                          <span className="text-sm font-medium">{debt.description}</span>
+                          <Badge variant="outline" className={statusBadgeClasses(debt.status)}>
                             {statusIcon(debt.status)}
-                            <span className="ml-1">
-                              {FEE_STATUS_LABELS[debt.status] ?? debt.status}
-                            </span>
+                            <span className="ml-1">{FEE_STATUS_LABELS[debt.status] ?? debt.status}</span>
                           </Badge>
                         </div>
                         <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
                           <span>Total: {formatCurrency(debt.amount)}</span>
-                          <span>
-                            Restante: {formatCurrency(debt.remainingAmount)}
-                          </span>
-                          {debt.dueDate && (
-                            <span>Vencimento: {formatDate(debt.dueDate)}</span>
-                          )}
+                          <span>Restante: {formatCurrency(debt.remainingAmount)}</span>
+                          {debt.dueDate && <span>Vencimento: {formatDate(debt.dueDate)}</span>}
                         </div>
                       </div>
-                      <span className="shrink-0 text-sm font-semibold">
-                        {formatCurrency(debt.remainingAmount)}
-                      </span>
+                      <span className="shrink-0 text-sm font-semibold">{formatCurrency(debt.remainingAmount)}</span>
                     </div>
                   </CardContent>
                 </Card>

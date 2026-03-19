@@ -44,6 +44,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { PixCountdown } from '@/components/pix/pix-countdown'
+import { PixQrCode } from '@/components/pix/pix-qrcode'
 import { toast } from 'sonner'
 
 const STATUS_LABELS: Record<RaffleStatus, string> = {
@@ -315,8 +316,9 @@ export default function MemberRaffleDetailPage() {
                 <div className="rounded-lg border bg-muted/50 p-4 text-center">
                   <p className="mb-1 text-2xl font-bold text-primary">{formatCurrency(pixData.amount)}</p>
                 </div>
+                <PixQrCode emv={pixData.pixEmv} />
                 <div className="space-y-2">
-                  <p className="text-sm font-medium">Codigo PIX (Copia e Cola)</p>
+                  <p className="text-sm font-medium">Ou copie o codigo PIX</p>
                   <div className="max-h-20 overflow-y-auto rounded-md border bg-muted/30 p-3 text-xs break-all font-mono">{pixData.pixEmv}</div>
                   <Button onClick={copyPixCode} variant={copied ? 'default' : 'outline'} className="w-full" size="lg">
                     {copied ? <><CheckCircle2 className="size-4" />Copiado!</> : <><Copy className="size-4" />Copiar codigo PIX</>}

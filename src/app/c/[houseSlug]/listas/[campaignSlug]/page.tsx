@@ -38,6 +38,7 @@ import { Progress } from '@/components/ui/progress'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { DuplicateConfirmDialog } from '@/components/feedback/duplicate-confirm-dialog'
 import { PixCountdown } from '@/components/pix/pix-countdown'
+import { PixQrCode } from '@/components/pix/pix-qrcode'
 import {
   Dialog,
   DialogContent,
@@ -373,9 +374,12 @@ export default function PublicCampaignPage({ params }: PageProps) {
                     </p>
                   </div>
 
+                  {/* QR Code */}
+                  <PixQrCode emv={pixData.pixEmv} />
+
                   {/* PIX Code */}
                   <div className="space-y-2">
-                    <p className="text-sm font-medium">Codigo PIX (Copia e Cola)</p>
+                    <p className="text-sm font-medium">Ou copie o codigo PIX</p>
                     <div className="relative">
                       <div className="max-h-20 overflow-y-auto rounded-md border bg-muted/30 p-3 text-xs break-all font-mono">
                         {pixData.pixEmv}
