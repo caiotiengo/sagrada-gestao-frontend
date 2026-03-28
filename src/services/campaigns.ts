@@ -12,6 +12,7 @@ import type {
   RegisterExternalContributionRequest,
   UpdateContributionStatusRequest,
   DeleteCampaignRequest,
+  DeleteContributionRequest,
   ListQuotasRequest,
   QuotaItem,
   ListCampaignContributionsRequest,
@@ -55,4 +56,7 @@ export const campaignsService = {
 
   listCampaignContributions: (data: ListCampaignContributionsRequest) =>
     callFunction<ListCampaignContributionsRequest, PaginatedResponse<CampaignContributionItem>>('listCampaignContributions', data),
+
+  deleteContribution: (data: DeleteContributionRequest) =>
+    callFunction<DeleteContributionRequest, { contributionId: string; deleted: true }>('deleteContribution', data),
 }

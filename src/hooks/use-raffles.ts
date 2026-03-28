@@ -10,6 +10,7 @@ import type {
   ConfirmRafflePaymentRequest,
   DrawRaffleRequest,
   DeleteRaffleRequest,
+  DeleteRaffleReservationRequest,
   RaffleStatus,
 } from '@/types'
 import { toast } from 'sonner'
@@ -158,6 +159,22 @@ export function useDeleteRaffle() {
     },
     onError: () => {
       toast.error('Erro ao cancelar rifa')
+    },
+  })
+}
+
+export function useDeleteRaffleReservation() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (data: DeleteRaffleReservationRequest) => rafflesService.deleteRaffleReservation(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['raffle-reservations'] })
+      queryClient.invalidateQueries({ queryKey: ['raffles'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+      toast.success('Reserva excluída com sucesso')
+    },
+    onError: () => {
+      toast.error('Erro ao excluir reserva')
     },
   })
 }

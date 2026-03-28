@@ -513,6 +513,34 @@ export interface MyFinancialSummary {
   }
 }
 
+// ---- Delete: Sale ----
+
+export interface DeleteSaleRequest {
+  houseId: string
+  saleId: string
+}
+
+// ---- Delete: Shopping Item ----
+
+export interface DeleteShoppingItemRequest {
+  houseId: string
+  itemId: string
+}
+
+// ---- Delete: Raffle Reservation ----
+
+export interface DeleteRaffleReservationRequest {
+  houseId: string
+  reservationId: string
+}
+
+// ---- Delete: Contribution ----
+
+export interface DeleteContributionRequest {
+  houseId: string
+  contributionId: string
+}
+
 // ---- Store: Delete ----
 
 export interface DeleteStoreItemRequest {

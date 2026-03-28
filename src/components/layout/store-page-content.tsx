@@ -21,6 +21,7 @@ import {
   useStoreItems,
   useCreateStoreItem,
   useDeleteStoreItem,
+  useDeleteSale,
   useRegisterSale,
   useSales,
   useUpdateSaleStatus,
@@ -55,7 +56,18 @@ import {
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 
 const PAYMENT_METHODS: { value: PaymentMethod; label: string }[] = [
   { value: 'pix', label: 'PIX' },
@@ -124,6 +136,8 @@ export function StorePageContent({ category }: StorePageContentProps) {
   const [newStock, setNewStock] = useState('')
   const createMutation = useCreateStoreItem()
   const deleteMutation = useDeleteStoreItem()
+  const deleteSaleMutation = useDeleteSale()
+  const [deleteSaleAlertId, setDeleteSaleAlertId] = useState<string | null>(null)
 
   const handleDeleteItem = (itemId: string) => {
     if (!houseId) return
@@ -542,9 +556,9 @@ export function StorePageContent({ category }: StorePageContentProps) {
                                 )}
                               </div>
                             </div>
-                            {canManage && sale.status !== 'paid' && (
+                            {canManage && (
                               <div className="flex shrink-0 items-center gap-1">
-                                {(sale.status === 'pending') && (
+                                {sale.status === 'pending' && (
                                   <Button
                                     variant="outline"
                                     size="sm"
@@ -566,11 +580,21 @@ export function StorePageContent({ category }: StorePageContentProps) {
                                     <MoreVertical className="size-4" />
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent align="end">
+                                    {sale.status !== 'paid' && (
+                                      <DropdownMenuItem
+                                        onClick={() => openStatusDialog(sale.id, sale.status)}
+                                      >
+                                        <DollarSign className="size-4" />
+                                        Atualizar status
+                                      </DropdownMenuItem>
+                                    )}
+                                    <DropdownMenuSeparator />
                                     <DropdownMenuItem
-                                      onClick={() => openStatusDialog(sale.id, sale.status)}
+                                      variant="destructive"
+                                      onClick={() => setDeleteSaleAlertId(sale.id)}
                                     >
-                                      <DollarSign className="size-4" />
-                                      Atualizar status
+                                      <Trash2 className="size-4" />
+                                      Excluir venda
                                     </DropdownMenuItem>
                                   </DropdownMenuContent>
                                 </DropdownMenu>
@@ -615,6 +639,35 @@ export function StorePageContent({ category }: StorePageContentProps) {
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Delete Sale AlertDialog */}
+      <AlertDialog open={!!deleteSaleAlertId} onOpenChange={(open) => { if (!open) setDeleteSaleAlertId(null) }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir venda?</AlertDialogTitle>
+            <AlertDialogDescription>
+              A venda será excluída permanentemente e os valores serão revertidos nos saldos.
+              Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (!houseId || !deleteSaleAlertId) return
+                deleteSaleMutation.mutate(
+                  { houseId, saleId: deleteSaleAlertId },
+                  { onSuccess: () => setDeleteSaleAlertId(null) },
+                )
+              }}
+              disabled={deleteSaleMutation.isPending}
+            >
+              {deleteSaleMutation.isPending ? 'Excluindo...' : 'Excluir'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Register Sale Dialog */}
       <Dialog open={saleOpen} onOpenChange={setSaleOpen}>

@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Users, DollarSign, Plus, HandCoins, Phone, Heart, Check, Clock, Search } from 'lucide-react'
+import { ArrowLeft, Users, DollarSign, Plus, HandCoins, Phone, Heart, Check, Clock, Search, Trash2 } from 'lucide-react'
 import {
   useCampaigns,
   useQuotas,
@@ -12,6 +12,7 @@ import {
   usePayQuota,
   useRegisterExternalContribution,
   useUpdateContributionStatus,
+  useDeleteContribution,
 } from '@/hooks/use-campaigns'
 import { useAllMembers } from '@/hooks/use-members'
 import { useAuthStore } from '@/stores/auth'
@@ -37,6 +38,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 
 const statusLabel: Record<CampaignStatus, string> = {
   draft: 'Rascunho',
@@ -586,6 +597,8 @@ export default function CampaignDetailPage() {
 function ContributionCard({ item, canManage }: { item: CampaignContributionItem; canManage: boolean }) {
   const houseId = useAuthStore((s) => s.currentHouseId())
   const updateStatus = useUpdateContributionStatus()
+  const deleteContribution = useDeleteContribution()
+  const [deleteAlertOpen, setDeleteAlertOpen] = useState(false)
   const isMember = item.type === 'member'
   const isPaid = item.status === 'paid'
 
@@ -632,25 +645,35 @@ function ContributionCard({ item, canManage }: { item: CampaignContributionItem;
               <p className="text-xs text-muted-foreground">{formatDate(item.createdAt)}</p>
             </div>
             {canManage && (
-              <Button
-                variant={isPaid ? 'outline' : 'default'}
-                size="sm"
-                className="shrink-0 gap-1.5"
-                disabled={updateStatus.isPending}
-                onClick={handleToggleStatus}
-              >
-                {isPaid ? (
-                  <>
-                    <Clock className="size-3.5" />
-                    <span className="hidden sm:inline">Pendente</span>
-                  </>
-                ) : (
-                  <>
-                    <Check className="size-3.5" />
-                    <span className="hidden sm:inline">Pago</span>
-                  </>
-                )}
-              </Button>
+              <>
+                <Button
+                  variant={isPaid ? 'outline' : 'default'}
+                  size="sm"
+                  className="shrink-0 gap-1.5"
+                  disabled={updateStatus.isPending}
+                  onClick={handleToggleStatus}
+                >
+                  {isPaid ? (
+                    <>
+                      <Clock className="size-3.5" />
+                      <span className="hidden sm:inline">Pendente</span>
+                    </>
+                  ) : (
+                    <>
+                      <Check className="size-3.5" />
+                      <span className="hidden sm:inline">Pago</span>
+                    </>
+                  )}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={() => setDeleteAlertOpen(true)}
+                  title="Excluir contribuição"
+                >
+                  <Trash2 className="size-3.5 text-destructive" />
+                </Button>
+              </>
             )}
           </div>
         </div>
@@ -659,6 +682,35 @@ function ContributionCard({ item, canManage }: { item: CampaignContributionItem;
         {item.message && (
           <p className="text-xs italic text-muted-foreground">"{item.message}"</p>
         )}
+
+        {/* Delete Contribution AlertDialog */}
+        <AlertDialog open={deleteAlertOpen} onOpenChange={setDeleteAlertOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Excluir contribuição?</AlertDialogTitle>
+              <AlertDialogDescription>
+                A contribuição de {item.name ?? 'Anônimo'} ({formatCurrency(item.amount)}) será excluída permanentemente e os valores serão revertidos.
+                Esta ação não pode ser desfeita.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                onClick={() => {
+                  if (!houseId) return
+                  deleteContribution.mutate(
+                    { houseId, contributionId: item.id },
+                    { onSuccess: () => setDeleteAlertOpen(false) },
+                  )
+                }}
+                disabled={deleteContribution.isPending}
+              >
+                {deleteContribution.isPending ? 'Excluindo...' : 'Excluir'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </CardContent>
     </Card>
   )

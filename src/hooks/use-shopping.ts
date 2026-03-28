@@ -14,6 +14,7 @@ import type {
   SignUpForListRequest,
   AdminSignUpMemberRequest,
   ConfirmListPaymentRequest,
+  DeleteShoppingItemRequest,
   ShoppingListType,
   ShoppingListStatus,
 } from '@/types'
@@ -218,6 +219,22 @@ export function useConfirmListPayment() {
     },
     onError: () => {
       toast.error('Erro ao atualizar pagamento')
+    },
+  })
+}
+
+export function useDeleteShoppingItem() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (data: DeleteShoppingItemRequest) => shoppingService.deleteShoppingItem(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['shopping-items'] })
+      queryClient.invalidateQueries({ queryKey: ['shopping-lists'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+      toast.success('Inscrição removida com sucesso')
+    },
+    onError: () => {
+      toast.error('Erro ao remover inscrição')
     },
   })
 }

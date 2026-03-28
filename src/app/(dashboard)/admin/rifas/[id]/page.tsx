@@ -3,12 +3,13 @@
 import { useState, useMemo } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Trophy, Phone, CheckCircle2, Clock, Dices, Search } from 'lucide-react'
+import { ArrowLeft, Trophy, Phone, CheckCircle2, Clock, Dices, Search, Trash2 } from 'lucide-react'
 import {
   useRaffleDetails,
   useRaffleReservations,
   useConfirmRafflePayment,
   useDrawRaffle,
+  useDeleteRaffleReservation,
 } from '@/hooks/use-raffles'
 import { useAuthStore } from '@/stores/auth'
 import { ROUTES } from '@/constants'
@@ -70,6 +71,7 @@ export default function AdminRaffleDetailPage() {
   const paidQuery = useRaffleReservations(raffleId, paidPage, true)
   const confirmPayment = useConfirmRafflePayment()
   const drawRaffle = useDrawRaffle()
+  const deleteReservation = useDeleteRaffleReservation()
 
   const allPendingReservations = pendingQuery.data?.data ?? []
   const pendingTotalPages = pendingQuery.data?.pagination.totalPages ?? 1
@@ -266,6 +268,8 @@ export default function AdminRaffleDetailPage() {
                     reservation={reservation}
                     houseId={houseId}
                     confirmPayment={confirmPayment}
+                    deleteReservation={deleteReservation}
+                    canManage={canManage}
                     showConfirm={canManage}
                   />
                 ))}
@@ -298,6 +302,8 @@ export default function AdminRaffleDetailPage() {
                     reservation={reservation}
                     houseId={houseId}
                     confirmPayment={confirmPayment}
+                    deleteReservation={deleteReservation}
+                    canManage={canManage}
                   />
                 ))}
                 <Pagination
@@ -325,13 +331,19 @@ function ReservationCard({
   reservation,
   houseId,
   confirmPayment,
+  deleteReservation,
+  canManage,
   showConfirm,
 }: {
   reservation: RaffleReservationItem
   houseId?: string | null
   confirmPayment: ReturnType<typeof useConfirmRafflePayment>
+  deleteReservation: ReturnType<typeof useDeleteRaffleReservation>
+  canManage?: boolean
   showConfirm?: boolean
 }) {
+  const [deleteAlertOpen, setDeleteAlertOpen] = useState(false)
+
   return (
     <Card>
       <CardContent className="space-y-3 p-4">
@@ -362,42 +374,83 @@ function ReservationCard({
           ))}
         </div>
 
-        {showConfirm && (
-          <AlertDialog>
-            <AlertDialogTrigger
-              render={
-                <Button size="sm" className="w-full gap-2">
-                  <CheckCircle2 className="size-4" />
-                  Confirmar Pagamento
-                </Button>
-              }
-            />
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Confirmar pagamento?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Deseja confirmar o pagamento de {formatCurrency(reservation.totalAmount)} de{' '}
-                  {reservation.buyerName}? Esta ação não pode ser desfeita.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={() => {
-                    if (!houseId) return
-                    confirmPayment.mutate({
-                      houseId,
-                      reservationId: reservation.id,
-                    })
-                  }}
-                  disabled={confirmPayment.isPending}
-                >
-                  {confirmPayment.isPending ? 'Confirmando...' : 'Confirmar'}
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        )}
+        <div className="flex gap-2">
+          {showConfirm && (
+            <AlertDialog>
+              <AlertDialogTrigger
+                render={
+                  <Button size="sm" className="flex-1 gap-2">
+                    <CheckCircle2 className="size-4" />
+                    Confirmar Pagamento
+                  </Button>
+                }
+              />
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Confirmar pagamento?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Deseja confirmar o pagamento de {formatCurrency(reservation.totalAmount)} de{' '}
+                    {reservation.buyerName}? Esta ação não pode ser desfeita.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => {
+                      if (!houseId) return
+                      confirmPayment.mutate({
+                        houseId,
+                        reservationId: reservation.id,
+                      })
+                    }}
+                    disabled={confirmPayment.isPending}
+                  >
+                    {confirmPayment.isPending ? 'Confirmando...' : 'Confirmar'}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
+          {canManage && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1 text-destructive hover:bg-destructive/10"
+              onClick={() => setDeleteAlertOpen(true)}
+            >
+              <Trash2 className="size-3.5" />
+              Excluir
+            </Button>
+          )}
+        </div>
+
+        <AlertDialog open={deleteAlertOpen} onOpenChange={setDeleteAlertOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Excluir reserva?</AlertDialogTitle>
+              <AlertDialogDescription>
+                A reserva de {reservation.buyerName} ({reservation.numbers.length} números, {formatCurrency(reservation.totalAmount)}) será excluída permanentemente e os números serão liberados.
+                Esta ação não pode ser desfeita.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                onClick={() => {
+                  if (!houseId) return
+                  deleteReservation.mutate(
+                    { houseId, reservationId: reservation.id },
+                    { onSuccess: () => setDeleteAlertOpen(false) },
+                  )
+                }}
+                disabled={deleteReservation.isPending}
+              >
+                {deleteReservation.isPending ? 'Excluindo...' : 'Excluir'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </CardContent>
     </Card>
   )

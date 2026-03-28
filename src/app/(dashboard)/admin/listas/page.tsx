@@ -12,7 +12,7 @@ import {
   useShoppingLists, useShoppingItems, useCreateShoppingList,
   useUpdateShoppingList, useDeleteShoppingList, useArchiveShoppingList,
   useCompleteShoppingList, useAddShoppingItem, useToggleShoppingItem,
-  useConfirmListPayment, useAdminSignUpMember,
+  useConfirmListPayment, useAdminSignUpMember, useDeleteShoppingItem,
 } from '@/hooks/use-shopping'
 import { useAllMembers } from '@/hooks/use-members'
 import { useAuthStore } from '@/stores/auth'
@@ -775,6 +775,8 @@ function ShoppingListCard({
   const { data: items, isLoading: itemsLoading } = useShoppingItems(isExpanded || editDialogOpen ? list.id : null)
   const addItem = useAddShoppingItem()
   const toggleItem = useToggleShoppingItem()
+  const deleteShoppingItem = useDeleteShoppingItem()
+  const [deleteItemAlertId, setDeleteItemAlertId] = useState<string | null>(null)
 
   const shoppingItems: ShoppingItemType[] = items ?? []
 
@@ -894,6 +896,16 @@ function ShoppingListCard({
                                     <Ban className="size-3.5 text-destructive" />
                                   </Button>
                                 )}
+                                {canManage && !list.isCompleted && (
+                                  <Button
+                                    variant="ghost"
+                                    size="icon-sm"
+                                    onClick={() => setDeleteItemAlertId(item.id)}
+                                    title="Excluir inscrição"
+                                  >
+                                    <Trash2 className="size-3.5 text-destructive" />
+                                  </Button>
+                                )}
                               </div>
                             ) : item.isPaid === false ? (
                               <div className="flex items-center gap-1.5">
@@ -909,6 +921,16 @@ function ShoppingListCard({
                                     <DollarSign className="size-3.5 text-emerald-600" />
                                   </Button>
                                 )}
+                                {canManage && (
+                                  <Button
+                                    variant="ghost"
+                                    size="icon-sm"
+                                    onClick={() => setDeleteItemAlertId(item.id)}
+                                    title="Excluir inscrição"
+                                  >
+                                    <Trash2 className="size-3.5 text-destructive" />
+                                  </Button>
+                                )}
                               </div>
                             ) : null}
                           </>
@@ -921,6 +943,35 @@ function ShoppingListCard({
                     {type === 'list' ? 'Nenhum item adicionado ainda.' : 'Nenhuma inscrição ainda.'}
                   </p>
                 )}
+
+                {/* Delete Shopping Item AlertDialog */}
+                <AlertDialog open={!!deleteItemAlertId} onOpenChange={(open) => { if (!open) setDeleteItemAlertId(null) }}>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Excluir inscrição?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        A inscrição será removida permanentemente e os valores pagos serão revertidos nos saldos.
+                        Esta ação não pode ser desfeita.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        onClick={() => {
+                          if (!houseId || !deleteItemAlertId) return
+                          deleteShoppingItem.mutate(
+                            { houseId, itemId: deleteItemAlertId },
+                            { onSuccess: () => setDeleteItemAlertId(null) },
+                          )
+                        }}
+                        disabled={deleteShoppingItem.isPending}
+                      >
+                        {deleteShoppingItem.isPending ? 'Excluindo...' : 'Excluir'}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
 
                 {/* Add item form (only for lists) */}
                 {type === 'list' && !list.isCompleted && (

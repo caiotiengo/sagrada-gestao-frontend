@@ -12,6 +12,7 @@ import type {
   RegisterExternalContributionRequest,
   UpdateContributionStatusRequest,
   DeleteCampaignRequest,
+  DeleteContributionRequest,
   CampaignStatus,
 } from '@/types'
 import { toast } from 'sonner'
@@ -194,6 +195,22 @@ export function useCampaignContributions(
         type,
       }),
     enabled: !!houseId && !!campaignId,
+  })
+}
+
+export function useDeleteContribution() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (data: DeleteContributionRequest) => campaignsService.deleteContribution(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['campaign-contributions'] })
+      queryClient.invalidateQueries({ queryKey: ['campaigns'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+      toast.success('Contribuição excluída com sucesso')
+    },
+    onError: () => {
+      toast.error('Erro ao excluir contribuição')
+    },
   })
 }
 

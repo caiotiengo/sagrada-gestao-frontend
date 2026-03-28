@@ -13,6 +13,7 @@ import type {
   GetSalesSummaryRequest,
   SalesSummary,
   DeleteStoreItemRequest,
+  DeleteSaleRequest,
   PaginatedResponse,
 } from '@/types'
 
@@ -43,4 +44,7 @@ export const storeService = {
 
   deleteStoreItem: (data: DeleteStoreItemRequest) =>
     callFunction<DeleteStoreItemRequest, { deleted: true }>('deleteStoreItem', data),
+
+  deleteSale: (data: DeleteSaleRequest) =>
+    callFunction<DeleteSaleRequest, { saleId: string; deleted: true }>('deleteSale', data),
 }

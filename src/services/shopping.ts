@@ -14,6 +14,7 @@ import type {
   SignUpForListRequest,
   AdminSignUpMemberRequest,
   ConfirmListPaymentRequest,
+  DeleteShoppingItemRequest,
   PaginatedResponse,
 } from '@/types'
 
@@ -53,4 +54,7 @@ export const shoppingService = {
 
   confirmListPayment: (data: ConfirmListPaymentRequest) =>
     callFunction<ConfirmListPaymentRequest, ShoppingItem>('confirmListPayment', data),
+
+  deleteShoppingItem: (data: DeleteShoppingItemRequest) =>
+    callFunction<DeleteShoppingItemRequest, { itemId: string; deleted: true }>('deleteShoppingItem', data),
 }

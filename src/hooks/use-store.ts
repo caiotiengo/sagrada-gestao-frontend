@@ -10,6 +10,7 @@ import type {
   PaySaleRequest,
   UpdateSaleStatusRequest,
   DeleteStoreItemRequest,
+  DeleteSaleRequest,
   SaleStatus,
   StoreCategory,
 } from '@/types'
@@ -160,6 +161,22 @@ export function useDeleteStoreItem() {
     },
     onError: () => {
       toast.error('Erro ao excluir item')
+    },
+  })
+}
+
+export function useDeleteSale() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (data: DeleteSaleRequest) => storeService.deleteSale(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sales'] })
+      queryClient.invalidateQueries({ queryKey: ['sales-summary'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+      toast.success('Venda excluída com sucesso')
+    },
+    onError: () => {
+      toast.error('Erro ao excluir venda')
     },
   })
 }

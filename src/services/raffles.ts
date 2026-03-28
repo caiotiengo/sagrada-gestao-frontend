@@ -13,6 +13,7 @@ import type {
   DrawRaffleRequest,
   DrawRaffleResponse,
   DeleteRaffleRequest,
+  DeleteRaffleReservationRequest,
   PaginatedResponse,
 } from '@/types'
 
@@ -43,4 +44,7 @@ export const rafflesService = {
 
   deleteRaffle: (data: DeleteRaffleRequest) =>
     callFunction<DeleteRaffleRequest, { message: string }>('deleteRaffle', data),
+
+  deleteRaffleReservation: (data: DeleteRaffleReservationRequest) =>
+    callFunction<DeleteRaffleReservationRequest, { reservationId: string; deleted: true }>('deleteRaffleReservation', data),
 }
