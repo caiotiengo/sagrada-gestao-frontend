@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import Link from 'next/link'
 import {
   DollarSign,
   Receipt,
@@ -22,7 +23,11 @@ import {
   Repeat,
   Landmark,
   RefreshCw,
+  ShieldCheck,
+  FileSearch,
+  Database,
 } from 'lucide-react'
+import { ROUTES } from '@/constants'
 import {
   useMonthlyFees,
   useCreateBulkMonthlyFees,
@@ -36,7 +41,7 @@ import {
   useCreateDebt,
   usePayDebt,
   useDeleteDebt,
-  useFinancialStatement,
+  useLegacyFinancialStatement,
   usePaymentTags,
   useCreatePaymentTag,
   useDeletePaymentTag,
@@ -1824,7 +1829,7 @@ export default function AdminFinancePage() {
 
   const exportStartDate = `${exportYear}-${String(exportMonth + 1).padStart(2, '0')}-01`
   const exportEndDate = `${exportYear}-${String(exportMonth + 1).padStart(2, '0')}-${new Date(exportYear, exportMonth + 1, 0).getDate()}`
-  const { data: exportData, isFetching: exportLoading } = useFinancialStatement(1, undefined, undefined, exportStartDate, exportEndDate)
+  const { data: exportData, isFetching: exportLoading } = useLegacyFinancialStatement(1, undefined, undefined, exportStartDate, exportEndDate)
 
   const handleExportCSV = () => {
     const entries = exportData?.data ?? []
@@ -1891,6 +1896,30 @@ export default function AdminFinancePage() {
           </Button>
         </div>
       </div>
+
+      {/* Ledger navigation (admin-only) */}
+      {canManage && (
+        <div className="flex flex-wrap gap-2">
+          <Link href={ROUTES.ADMIN_FINANCE_HEALTH}>
+            <Button variant="outline" size="sm" className="gap-2">
+              <ShieldCheck className="size-4" />
+              Saúde
+            </Button>
+          </Link>
+          <Link href={ROUTES.ADMIN_FINANCE_AUDIT}>
+            <Button variant="outline" size="sm" className="gap-2">
+              <FileSearch className="size-4" />
+              Auditoria
+            </Button>
+          </Link>
+          <Link href={ROUTES.ADMIN_FINANCE_BACKFILL}>
+            <Button variant="outline" size="sm" className="gap-2">
+              <Database className="size-4" />
+              Backfill
+            </Button>
+          </Link>
+        </div>
+      )}
 
       {/* Tab Navigation */}
       <div className="flex gap-1 rounded-lg bg-muted p-1">

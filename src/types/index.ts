@@ -227,6 +227,28 @@ export interface DashboardSummary {
   activeCampaigns: number
   activeRaffles: number
   lastUpdatedAt: string
+  /** New detailed revenue breakdown (post-ledger migration). */
+  revenue?: {
+    monthlyFees: number
+    storeSales: number
+    raffles: number
+    campaigns: number
+    payments: number
+    shopping: number
+    total: number
+  }
+  /** New detailed pending breakdown (post-ledger migration). */
+  pending?: {
+    feesCount: number
+    feesAmount: number
+    debtsCount: number
+    debtsAmount: number
+    salesCount: number
+    salesAmount: number
+    shoppingCount: number
+    shoppingAmount: number
+    totalAmount: number
+  }
 }
 
 // ---- Finance: Monthly Fees ----

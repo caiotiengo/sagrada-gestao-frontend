@@ -248,9 +248,9 @@ export function useDeleteDebt() {
   })
 }
 
-// ---- Financial Statement ----
-
-export function useFinancialStatement(
+// ---- Financial Statement (LEGACY) ----
+/** @deprecated Use `useFinancialStatement` from `@/hooks/use-ledger` instead. */
+export function useLegacyFinancialStatement(
   page = 1,
   type?: 'income' | 'expense' | 'all',
   source?: ListFinancialStatementRequest['source'],
@@ -260,7 +260,7 @@ export function useFinancialStatement(
   const houseId = useAuthStore((s) => s.currentHouseId())
 
   return useQuery({
-    queryKey: ['financial-statement', houseId, page, type, source, startDate, endDate],
+    queryKey: ['legacy-financial-statement', houseId, page, type, source, startDate, endDate],
     queryFn: () =>
       financeService.listFinancialStatement({
         houseId: houseId!,
@@ -275,13 +275,13 @@ export function useFinancialStatement(
   })
 }
 
-// ---- My Financial Summary ----
-
-export function useMyFinancialSummary(referenceMonth?: string) {
+// ---- My Financial Summary (LEGACY) ----
+/** @deprecated Use `useFinancialStatement` from `@/hooks/use-ledger` instead. */
+export function useLegacyMyFinancialSummary(referenceMonth?: string) {
   const houseId = useAuthStore((s) => s.currentHouseId())
 
   return useQuery({
-    queryKey: ['my-financial-summary', houseId, referenceMonth],
+    queryKey: ['legacy-my-financial-summary', houseId, referenceMonth],
     queryFn: () =>
       financeService.getMyFinancialSummary({
         houseId: houseId!,
@@ -291,13 +291,13 @@ export function useMyFinancialSummary(referenceMonth?: string) {
   })
 }
 
-// ---- Member Financial Summary (Admin view) ----
-
-export function useMemberFinancialSummary(memberId: string) {
+// ---- Member Financial Summary (LEGACY) ----
+/** @deprecated Use `useFinancialStatement` from `@/hooks/use-ledger` with memberId param instead. */
+export function useLegacyMemberFinancialSummary(memberId: string) {
   const houseId = useAuthStore((s) => s.currentHouseId())
 
   return useQuery({
-    queryKey: ['member-financial-summary', houseId, memberId],
+    queryKey: ['legacy-member-financial-summary', houseId, memberId],
     queryFn: () =>
       financeService.getMemberFinancialSummary({
         houseId: houseId!,

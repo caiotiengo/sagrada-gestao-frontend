@@ -19,7 +19,7 @@ import {
   Briefcase,
 } from 'lucide-react'
 import { useMember } from '@/hooks/use-members'
-import { useMemberFinancialSummary } from '@/hooks/use-finance'
+import { useLegacyMemberFinancialSummary } from '@/hooks/use-finance'
 import { useAuthStore } from '@/stores/auth'
 import { ROUTES, ROLE_LABELS } from '@/constants'
 import { formatCPF, formatPhone, formatDate, formatCurrency, getInitials } from '@/utils'
@@ -52,7 +52,7 @@ export default function MemberDetailPage() {
   const memberId = params.id as string
   const houseId = useAuthStore((s) => s.currentHouseId())
   const { data: member, isLoading, isError, refetch } = useMember(memberId)
-  const { data: financialSummary, isLoading: isLoadingFinancial } = useMemberFinancialSummary(memberId)
+  const { data: financialSummary, isLoading: isLoadingFinancial } = useLegacyMemberFinancialSummary(memberId)
 
   const isCaixa = member?.extraPermissions.includes('canManageCashier') ?? false
 

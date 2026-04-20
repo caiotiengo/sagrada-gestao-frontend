@@ -13,10 +13,14 @@ import {
   ArrowUpRight,
   ArrowDownLeft,
   ArrowRight,
+  Hammer,
+  AlertTriangle,
+  ShieldCheck,
 } from 'lucide-react'
+import { useDashboardSummary } from '@/hooks/use-dashboard'
 import { useQuery } from '@tanstack/react-query'
 import { useAuthStore } from '@/stores/auth'
-import { useFinancialStatement } from '@/hooks/use-finance'
+import { useLegacyFinancialStatement } from '@/hooks/use-finance'
 import { coraService } from '@/services/cora'
 import { Landmark } from 'lucide-react'
 import { ROUTES } from '@/constants'
@@ -39,7 +43,8 @@ const quickActions = [
 
 export default function AdminHomePage() {
   const { profile } = useAuthStore()
-  const { data: statementData, isLoading, isError, refetch } = useFinancialStatement(1)
+  const { data: statementData, isLoading, isError, refetch } = useLegacyFinancialStatement(1)
+  const { data: dashboardSummary } = useDashboardSummary()
   const houseId = useAuthStore((s) => s.currentHouseId())
   const { data: coraBalance } = useQuery({
     queryKey: ['cora-balance', houseId],
@@ -124,6 +129,85 @@ export default function AdminHomePage() {
           </CardContent>
         </Card>
       ) : null}
+
+      {/* Pending breakdown (new ledger data) */}
+      {dashboardSummary?.pending && dashboardSummary.pending.totalAmount > 0 && (
+        <Card className="mb-8 border-amber-200 dark:border-amber-900">
+          <CardContent className="py-4">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="size-4 text-amber-600 dark:text-amber-400" />
+              <p className="text-sm font-semibold text-amber-800 dark:text-amber-200">
+                Pendências da casa
+              </p>
+              <span className="text-sm font-bold">
+                {formatCurrency(dashboardSummary.pending.totalAmount)}
+              </span>
+            </div>
+            <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {dashboardSummary.pending.feesAmount > 0 && (
+                <div className="rounded-md bg-muted/40 px-2 py-1.5">
+                  <p className="text-[0.65rem] uppercase tracking-wide text-muted-foreground">Mensalidades</p>
+                  <p className="text-sm font-semibold">{formatCurrency(dashboardSummary.pending.feesAmount)}</p>
+                  <p className="text-[0.65rem] text-muted-foreground">{dashboardSummary.pending.feesCount} {dashboardSummary.pending.feesCount === 1 ? 'item' : 'itens'}</p>
+                </div>
+              )}
+              {dashboardSummary.pending.debtsAmount > 0 && (
+                <div className="rounded-md bg-muted/40 px-2 py-1.5">
+                  <p className="text-[0.65rem] uppercase tracking-wide text-muted-foreground">Dívidas</p>
+                  <p className="text-sm font-semibold">{formatCurrency(dashboardSummary.pending.debtsAmount)}</p>
+                  <p className="text-[0.65rem] text-muted-foreground">{dashboardSummary.pending.debtsCount} {dashboardSummary.pending.debtsCount === 1 ? 'item' : 'itens'}</p>
+                </div>
+              )}
+              {dashboardSummary.pending.salesAmount > 0 && (
+                <div className="rounded-md bg-muted/40 px-2 py-1.5">
+                  <p className="text-[0.65rem] uppercase tracking-wide text-muted-foreground">Loja (fiado)</p>
+                  <p className="text-sm font-semibold">{formatCurrency(dashboardSummary.pending.salesAmount)}</p>
+                  <p className="text-[0.65rem] text-muted-foreground">{dashboardSummary.pending.salesCount} {dashboardSummary.pending.salesCount === 1 ? 'item' : 'itens'}</p>
+                </div>
+              )}
+              {dashboardSummary.pending.shoppingAmount > 0 && (
+                <div className="rounded-md bg-muted/40 px-2 py-1.5">
+                  <p className="text-[0.65rem] uppercase tracking-wide text-muted-foreground">Trabalhos</p>
+                  <p className="text-sm font-semibold">{formatCurrency(dashboardSummary.pending.shoppingAmount)}</p>
+                  <p className="text-[0.65rem] text-muted-foreground">{dashboardSummary.pending.shoppingCount} {dashboardSummary.pending.shoppingCount === 1 ? 'item' : 'itens'}</p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Revenue breakdown (new ledger data) */}
+      {dashboardSummary?.revenue && dashboardSummary.revenue.total > 0 && (
+        <Card className="mb-8">
+          <CardContent className="py-4">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Receita por origem
+            </p>
+            <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+              {[
+                { key: 'monthlyFees', label: 'Mensalidades', icon: DollarSign },
+                { key: 'storeSales', label: 'Loja', icon: ShoppingBag },
+                { key: 'raffles', label: 'Rifas', icon: Ticket },
+                { key: 'campaigns', label: 'Campanhas', icon: List },
+                { key: 'shopping', label: 'Trabalhos', icon: Hammer },
+                { key: 'payments', label: 'Avulsos', icon: DollarSign },
+              ].map(({ key, label }) => {
+                const amount = dashboardSummary.revenue![key as keyof typeof dashboardSummary.revenue] as number
+                if (!amount || amount === 0) return null
+                return (
+                  <div key={key} className="rounded-md bg-muted/40 px-2 py-1.5">
+                    <p className="text-[0.65rem] uppercase tracking-wide text-muted-foreground">{label}</p>
+                    <p className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">
+                      {formatCurrency(amount)}
+                    </p>
+                  </div>
+                )
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Quick Actions */}
       <div>

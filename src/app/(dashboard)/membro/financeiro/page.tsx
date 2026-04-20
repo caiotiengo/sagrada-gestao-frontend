@@ -9,12 +9,16 @@ import {
   Clock,
   ChevronLeft,
   ChevronRight,
+  History,
+  RotateCcw,
 } from 'lucide-react'
-import { useMonthlyFees, useDebts, useMyFinancialSummary } from '@/hooks/use-finance'
+import { useMonthlyFees, useDebts, useLegacyMyFinancialSummary } from '@/hooks/use-finance'
+import { useFinancialStatement } from '@/hooks/use-ledger'
 import { useAuthStore } from '@/stores/auth'
 import { FEE_STATUS_LABELS } from '@/constants'
 import type { MonthlyFeeItem, DebtItem, ShoppingDebtItem, QuotaItem, SaleItem, FeeStatus } from '@/types'
 import { formatCurrency, formatDate } from '@/utils'
+import { SOURCE_LABELS, CHANNEL_LABELS } from '@/lib/ledger-labels'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -67,8 +71,11 @@ function formatYearMonth(year: number, month: number) {
 
 export default function MemberFinancePage() {
   const searchParams = useSearchParams()
-  const initialTab = searchParams.get('tab') === 'debitos' ? 'debitos' : 'mensalidades'
+  const tabParam = searchParams.get('tab')
+  const initialTab =
+    tabParam === 'debitos' ? 'debitos' : tabParam === 'historico' ? 'historico' : 'mensalidades'
   const memberId = useAuthStore((s) => s.currentHouse?.memberId)
+  const [historyPage, setHistoryPage] = useState(1)
 
   const now = new Date()
   const [year, setYear] = useState(now.getFullYear())
@@ -94,10 +101,18 @@ export default function MemberFinancePage() {
     refetch: refetchDebts,
   } = useDebts(1, memberId)
 
+  // Legacy summary still needed for per-item listings (shoppingDebts, quotas, storeTab)
+  // pending totals come from the unified ledger endpoint below.
   const {
     data: financialSummary,
     isLoading: summaryLoading,
-  } = useMyFinancialSummary()
+  } = useLegacyMyFinancialSummary()
+
+  // New unified ledger-based statement
+  const { data: statement, isLoading: statementLoading } = useFinancialStatement({
+    page: historyPage,
+    limit: 30,
+  })
 
   const fees: MonthlyFeeItem[] = feesData?.data ?? []
   const debts: DebtItem[] = debtsData?.data ?? []
@@ -107,8 +122,15 @@ export default function MemberFinancePage() {
 
   const currentMonth = formatYearMonth(now.getFullYear(), now.getMonth())
 
-  // Total pending: only current month + overdue (not future)
+  // Totals from ledger (authoritative source).
+  // Fallback to client-side calculation while statement loads.
   const { totalPending, totalPaid } = useMemo(() => {
+    if (statement) {
+      return {
+        totalPending: statement.pending.amount,
+        totalPaid: statement.balance.revenue,
+      }
+    }
     let pending = 0
     let paid = 0
     for (const fee of allFees) {
@@ -136,7 +158,7 @@ export default function MemberFinancePage() {
       pending += s.totalPrice
     }
     return { totalPending: pending, totalPaid: paid }
-  }, [allFees, debts, shoppingDebts, quotas, storeTab, currentMonth])
+  }, [statement, allFees, debts, shoppingDebts, quotas, storeTab, currentMonth])
 
   const goToPrevMonth = () => {
     if (month === 0) { setMonth(11); setYear((y) => y - 1) }
@@ -151,7 +173,7 @@ export default function MemberFinancePage() {
     setMonth(now.getMonth())
   }
 
-  const isLoading = feesLoading || debtsLoading || summaryLoading
+  const isLoading = feesLoading || debtsLoading || summaryLoading || statementLoading
 
   if (isLoading) {
     return (
@@ -212,11 +234,44 @@ export default function MemberFinancePage() {
         </Card>
       </div>
 
+      {/* Pending breakdown by type (from ledger) */}
+      {statement && statement.pending.amount > 0 && (
+        <Card className="rounded-xl">
+          <CardContent className="py-3">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Pendências por tipo
+            </p>
+            <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-5">
+              {[
+                { key: 'fees', label: 'Mensalidades' },
+                { key: 'debts', label: 'Dívidas' },
+                { key: 'quotas', label: 'Cotas' },
+                { key: 'sales', label: 'Loja' },
+                { key: 'shopping', label: 'Trabalhos' },
+              ].map(({ key, label }) => {
+                const item = statement.pending.byType[key as keyof typeof statement.pending.byType]
+                if (!item || item.amount === 0) return null
+                return (
+                  <div key={key} className="rounded-md bg-muted/40 px-2 py-1.5">
+                    <p className="text-[0.65rem] uppercase tracking-wide text-muted-foreground">{label}</p>
+                    <p className="text-sm font-semibold">{formatCurrency(item.amount)}</p>
+                    <p className="text-[0.65rem] text-muted-foreground">
+                      {item.count} {item.count === 1 ? 'item' : 'itens'}
+                    </p>
+                  </div>
+                )
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Tabs */}
       <Tabs defaultValue={initialTab}>
         <TabsList>
           <TabsTrigger value="mensalidades">Mensalidades</TabsTrigger>
           <TabsTrigger value="debitos">Debitos</TabsTrigger>
+          <TabsTrigger value="historico">Histórico</TabsTrigger>
         </TabsList>
 
         {/* Mensalidades Tab */}
@@ -407,6 +462,107 @@ export default function MemberFinancePage() {
                 </Card>
               ))}
             </div>
+          )}
+        </TabsContent>
+
+        {/* Histórico (ledger) */}
+        <TabsContent value="historico" className="space-y-3">
+          {!statement || statement.data.length === 0 ? (
+            <EmptyState
+              icon={History}
+              title="Nenhuma movimentação"
+              description="Você ainda não possui lançamentos registrados."
+            />
+          ) : (
+            <>
+              <div className="space-y-2">
+                {statement.data.map((entry) => {
+                  const isCredit = entry.direction === 'credit'
+                  const isReversed = entry.status === 'reversed'
+                  const isReversal = !!entry.reverses
+                  return (
+                    <Card
+                      key={entry.id}
+                      className={`rounded-xl ${isReversed ? 'opacity-60' : ''}`}
+                    >
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span
+                                className={`text-sm font-medium ${
+                                  isReversed ? 'line-through text-muted-foreground' : ''
+                                }`}
+                              >
+                                {isReversal && <RotateCcw className="mr-1 inline size-3 text-destructive" />}
+                                {entry.description}
+                              </span>
+                              <Badge variant="secondary" className="text-xs">
+                                {SOURCE_LABELS[entry.source] ?? entry.source}
+                              </Badge>
+                              {entry.channel !== 'internal' && (
+                                <Badge variant="outline" className="text-xs">
+                                  {CHANNEL_LABELS[entry.channel] ?? entry.channel}
+                                </Badge>
+                              )}
+                              {entry.status === 'pending' && (
+                                <Badge
+                                  variant="outline"
+                                  className={statusBadgeClasses('pending')}
+                                >
+                                  Pendente
+                                </Badge>
+                              )}
+                              {isReversed && (
+                                <Badge variant="destructive" className="text-xs">
+                                  Estornado
+                                </Badge>
+                              )}
+                            </div>
+                            <div className="mt-1 text-xs text-muted-foreground">
+                              {formatDate(entry.createdAt)}
+                            </div>
+                          </div>
+                          <span
+                            className={`shrink-0 text-sm font-semibold ${
+                              isCredit ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'
+                            } ${isReversed ? 'line-through' : ''}`}
+                          >
+                            {isCredit ? '+' : '-'}
+                            {formatCurrency(entry.amount)}
+                          </span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )
+                })}
+              </div>
+
+              {/* Pagination */}
+              {statement.pagination.totalPages > 1 && (
+                <div className="flex items-center justify-center gap-2 pt-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={!statement.pagination.hasPrev}
+                    onClick={() => setHistoryPage((p) => Math.max(1, p - 1))}
+                  >
+                    Anterior
+                  </Button>
+                  <span className="text-sm text-muted-foreground">
+                    {statement.pagination.page} de {statement.pagination.totalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={!statement.pagination.hasNext}
+                    onClick={() => setHistoryPage((p) => p + 1)}
+                  >
+                    Próximo
+                  </Button>
+                </div>
+              )}
+            </>
           )}
         </TabsContent>
       </Tabs>

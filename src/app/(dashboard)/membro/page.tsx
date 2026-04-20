@@ -19,7 +19,7 @@ import {
   Briefcase,
 } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth'
-import { useMyFinancialSummary } from '@/hooks/use-finance'
+import { useLegacyMyFinancialSummary } from '@/hooks/use-finance'
 import { ROLE_LABELS, ROUTES } from '@/constants'
 import { Card, CardContent } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -39,7 +39,7 @@ const quickActions = [
 
 export default function MemberHomePage() {
   const { profile, currentHouse } = useAuthStore()
-  const { data: financialSummary, isLoading: isLoadingSummary } = useMyFinancialSummary()
+  const { data: financialSummary, isLoading: isLoadingSummary } = useLegacyMyFinancialSummary()
 
   const firstName = profile?.fullName?.split(' ')[0] ?? 'Membro'
   const roleLabel = currentHouse?.role ? ROLE_LABELS[currentHouse.role] ?? currentHouse.role : ''
