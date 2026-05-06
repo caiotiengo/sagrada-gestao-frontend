@@ -13,7 +13,7 @@ import { useLedger, useReverseLedgerEntry } from '@/hooks/use-ledger'
 import { useAllMembers } from '@/hooks/use-members'
 import { useAuthStore } from '@/stores/auth'
 import { formatCurrency, formatDate } from '@/utils'
-import { SOURCE_LABELS, CHANNEL_LABELS, STATUS_LABELS, STATUS_VARIANTS } from '@/lib/ledger-labels'
+import { SOURCE_LABELS, channelLabel, STATUS_LABELS, STATUS_VARIANTS } from '@/lib/ledger-labels'
 import type { LedgerSource, LedgerStatus, LedgerDirection, LedgerEntryView } from '@/types/ledger'
 import { ROUTES } from '@/constants'
 import { Button } from '@/components/ui/button'
@@ -252,7 +252,7 @@ export default function LedgerAuditPage() {
                           {STATUS_LABELS[entry.status]}
                         </Badge>
                         <Badge variant="outline" className="text-[0.65rem]">
-                          {CHANNEL_LABELS[entry.channel] ?? entry.channel}
+                          {channelLabel(entry.channel)}
                         </Badge>
                       </div>
                       <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">

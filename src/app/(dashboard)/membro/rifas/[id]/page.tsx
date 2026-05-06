@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import {
@@ -10,16 +10,10 @@ import {
   Loader2,
   Ticket,
   Trophy,
-  QrCode,
-  HandCoins,
-  Copy,
-  CheckCircle2,
   Heart,
 } from 'lucide-react'
 
 import { useRaffleDetails, useReserveRaffleNumbers } from '@/hooks/use-raffles'
-import { useRaffleReservationWithPix, useReservationStatus } from '@/hooks/use-public'
-import { useMember } from '@/hooks/use-members'
 import { useAuthStore } from '@/stores/auth'
 import { ROUTES } from '@/constants'
 import { formatCurrency, formatDate } from '@/utils'
@@ -37,15 +31,6 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { cn } from '@/lib/utils'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import { PixCountdown } from '@/components/pix/pix-countdown'
-import { PixQrCode } from '@/components/pix/pix-qrcode'
-import { toast } from 'sonner'
 
 const STATUS_LABELS: Record<RaffleStatus, string> = {
   draft: 'Rascunho',
@@ -61,13 +46,6 @@ const STATUS_VARIANTS: Record<RaffleStatus, 'default' | 'secondary' | 'destructi
   cancelled: 'destructive',
 }
 
-interface PixPaymentData {
-  reservationId: string
-  amount: number
-  pixEmv: string
-  startedAt: number
-}
-
 export default function MemberRaffleDetailPage() {
   const params = useParams()
   const raffleId = params.id as string
@@ -75,36 +53,11 @@ export default function MemberRaffleDetailPage() {
   const houseId = useAuthStore((s) => s.currentHouseId())
   const memberId = useAuthStore((s) => s.currentHouse?.memberId)
   const profile = useAuthStore((s) => s.profile)
-  const currentHouse = useAuthStore((s) => s.currentHouse)
 
   const { data: raffle, isLoading, isError, refetch } = useRaffleDetails(raffleId)
-  const { data: memberDetails } = useMember(memberId ?? '')
-  const { mutate: reserve, isPending: isPendingReserve } = useReserveRaffleNumbers()
-  const { mutateAsync: reservePixAsync, isPending: isPendingPix } = useRaffleReservationWithPix()
-
-  const isPending = isPendingReserve || isPendingPix
+  const { mutate: reserve, isPending } = useReserveRaffleNumbers()
 
   const [selectedNumbers, setSelectedNumbers] = useState<number[]>([])
-  const [pixData, setPixData] = useState<PixPaymentData | null>(null)
-  const [copied, setCopied] = useState(false)
-  const [paymentChoiceOpen, setPaymentChoiceOpen] = useState(false)
-
-  const memberCpf = memberDetails?.mediumProfile?.cpf || memberDetails?.user?.documentNumber || ''
-
-  const isProcessing = isPending || !!pixData
-
-  // Poll reservation status
-  const { data: statusData } = useReservationStatus(pixData?.reservationId ?? null)
-
-  useEffect(() => {
-    if (statusData?.isPaid && pixData) {
-      setPixData(null)
-      setSelectedNumbers([])
-      refetch()
-      toast.success('Pagamento confirmado! Numeros reservados com sucesso.')
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statusData?.isPaid, pixData])
 
   const soldNumbersSet = useMemo(() => {
     if (!raffle) return new Set<number>()
@@ -113,86 +66,27 @@ export default function MemberRaffleDetailPage() {
 
   const toggleNumber = useCallback(
     (num: number) => {
-      if (soldNumbersSet.has(num) || isProcessing) return
+      if (soldNumbersSet.has(num) || isPending) return
       setSelectedNumbers((prev) =>
         prev.includes(num) ? prev.filter((n) => n !== num) : [...prev, num],
       )
     },
-    [soldNumbersSet, isProcessing],
+    [soldNumbersSet, isPending],
   )
-
-  const copyPixCode = useCallback(async () => {
-    if (!pixData?.pixEmv) return
-    try {
-      await navigator.clipboard.writeText(pixData.pixEmv)
-      setCopied(true)
-      toast.success('Codigo PIX copiado!')
-      setTimeout(() => setCopied(false), 3000)
-    } catch { toast.error('Erro ao copiar') }
-  }, [pixData?.pixEmv])
 
   function handleReserve() {
     if (!raffle || !houseId || selectedNumbers.length === 0) return
-    setPaymentChoiceOpen(true)
-  }
-
-  async function handlePaymentChoice(choice: 'pix' | 'later') {
-    if (!raffle || !houseId) return
-    const total = selectedNumbers.length * raffle.numberPrice
-    if (choice === 'pix' && total < 5) {
-      toast.error('Valor minimo para pagamento via PIX e R$ 5,00')
-      return
-    }
-    setPaymentChoiceOpen(false)
-
-    if (choice === 'later') {
-      reserve(
-        {
-          houseId,
-          raffleId: raffle.id,
-          numbers: selectedNumbers,
-          buyerName: profile?.fullName ?? '',
-          buyerPhone: profile?.phone ?? '',
-          memberId: memberId ?? undefined,
-        },
-        { onSuccess: () => { setSelectedNumbers([]); refetch() } },
-      )
-    } else {
-      // PIX - needs CPF from member profile
-      if (!memberCpf || memberCpf.replace(/\D/g, '').length < 11) {
-        toast.error('CPF nao encontrado no seu cadastro. Atualize seu perfil.')
-        return
-      }
-
-      // Use public endpoint with house/raffle slugs
-      const houseSlug = currentHouse?.houseSlug ?? ''
-      const raffleSlug = raffle.slug
-
-      if (!houseSlug || !raffleSlug) {
-        toast.error('Dados da rifa incompletos')
-        return
-      }
-
-      try {
-        const result = await reservePixAsync({
-          houseSlug,
-          raffleSlug,
-          numbers: selectedNumbers,
-          buyerName: profile?.fullName ?? '',
-          buyerPhone: profile?.phone ?? '',
-          buyerDocument: memberCpf,
-        })
-
-        if (result.pix?.emv) {
-          setPixData({
-            reservationId: result.reservationId,
-            amount: result.totalAmount,
-            pixEmv: result.pix.emv,
-            startedAt: Date.now(),
-          })
-        }
-      } catch { /* hook handles toast */ }
-    }
+    reserve(
+      {
+        houseId,
+        raffleId: raffle.id,
+        numbers: selectedNumbers,
+        buyerName: profile?.fullName ?? '',
+        buyerPhone: profile?.phone ?? '',
+        memberId: memberId ?? undefined,
+      },
+      { onSuccess: () => { setSelectedNumbers([]); refetch() } },
+    )
   }
 
   if (isLoading) return <LoadingState message="Carregando detalhes da rifa..." />
@@ -280,7 +174,7 @@ export default function MemberRaffleDetailPage() {
                   const isSelected = selectedNumbers.includes(num)
                   const isWinner = raffle.status === 'drawn' && raffle.winnerNumber === num
                   return (
-                    <button key={num} type="button" disabled={isClosed || isSold || isProcessing} onClick={() => toggleNumber(num)}
+                    <button key={num} type="button" disabled={isClosed || isSold || isPending} onClick={() => toggleNumber(num)}
                       className={cn(
                         'flex h-9 items-center justify-center rounded-md border text-xs font-medium tabular-nums transition-colors',
                         isWinner && 'border-amber-400 bg-amber-100 font-bold text-amber-900 ring-2 ring-amber-400 dark:bg-amber-900/40 dark:text-amber-100',
@@ -306,38 +200,7 @@ export default function MemberRaffleDetailPage() {
 
         {/* Sidebar */}
         <div className="lg:col-span-2">
-          {pixData ? (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg"><QrCode className="size-4 text-primary" />Pagar com PIX</CardTitle>
-                <CardDescription>Copie o codigo e pague no app do seu banco</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="rounded-lg border bg-muted/50 p-4 text-center">
-                  <p className="mb-1 text-2xl font-bold text-primary">{formatCurrency(pixData.amount)}</p>
-                </div>
-                <PixQrCode emv={pixData.pixEmv} />
-                <div className="space-y-2">
-                  <p className="text-sm font-medium">Ou copie o codigo PIX</p>
-                  <div className="max-h-20 overflow-y-auto rounded-md border bg-muted/30 p-3 text-xs break-all font-mono">{pixData.pixEmv}</div>
-                  <Button onClick={copyPixCode} variant={copied ? 'default' : 'outline'} className="w-full" size="lg">
-                    {copied ? <><CheckCircle2 className="size-4" />Copiado!</> : <><Copy className="size-4" />Copiar codigo PIX</>}
-                  </Button>
-                </div>
-                <PixCountdown
-                  startedAt={pixData.startedAt}
-                  onExpired={() => {
-                    setPixData(null)
-                    setSelectedNumbers([])
-                    toast.info('PIX expirado. Sua reserva foi registrada para pagamento posterior.')
-                  }}
-                />
-                <Button variant="ghost" className="w-full text-muted-foreground" onClick={() => { setPixData(null); setSelectedNumbers([]) }}>
-                  Voltar
-                </Button>
-              </CardContent>
-            </Card>
-          ) : isClosed ? (
+          {isClosed ? (
             <Card>
               <CardContent className="flex flex-col items-center gap-3 py-8 text-center">
                 {raffle.status === 'drawn' ? (
@@ -350,8 +213,8 @@ export default function MemberRaffleDetailPage() {
           ) : isSelling ? (
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg"><Ticket className="size-4 text-primary" />Reservar</CardTitle>
-                <CardDescription>Seus dados serao preenchidos automaticamente</CardDescription>
+                <CardTitle className="flex items-center gap-2 text-lg"><Ticket className="size-4 text-primary" />Reservar números</CardTitle>
+                <CardDescription>Para pagar, contate o administrador depois de reservar.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-3">
@@ -369,8 +232,8 @@ export default function MemberRaffleDetailPage() {
                   </div>
                 )}
 
-                <Button size="lg" disabled={isProcessing || totalSelected === 0} className="w-full" onClick={handleReserve}>
-                  {isPending ? <><Loader2 className="size-4 animate-spin" />Processando...</> : <><Heart className="size-4" />Reservar numeros</>}
+                <Button size="lg" disabled={isPending || totalSelected === 0} className="w-full" onClick={handleReserve}>
+                  {isPending ? <><Loader2 className="size-4 animate-spin" />Processando...</> : <><Heart className="size-4" />Reservar números</>}
                 </Button>
               </CardContent>
             </Card>
@@ -384,37 +247,6 @@ export default function MemberRaffleDetailPage() {
           )}
         </div>
       </div>
-
-      {/* Payment Choice Dialog */}
-      <Dialog open={paymentChoiceOpen} onOpenChange={setPaymentChoiceOpen}>
-        <DialogContent className="max-w-md p-0 overflow-hidden">
-          <div className="bg-gradient-to-br from-primary to-primary/80 px-6 pb-5 pt-6 text-primary-foreground">
-            <p className="text-sm font-medium text-primary-foreground/70">Sua reserva</p>
-            <p className="mt-1 text-3xl font-bold tracking-tight">{formatCurrency(totalPrice)}</p>
-            <p className="mt-1 text-sm text-primary-foreground/80">{totalSelected} numero{totalSelected > 1 ? 's' : ''} — {profile?.fullName}</p>
-          </div>
-          <div className="px-6 pb-6 pt-4">
-            <p className="mb-4 text-sm font-medium text-foreground">Como deseja pagar?</p>
-
-            <div className="space-y-3">
-              <button type="button" className="flex w-full items-center gap-4 rounded-xl border-2 border-primary/20 bg-primary/5 p-4 text-left transition-all hover:border-primary/50 hover:bg-primary/10 disabled:opacity-50" onClick={() => handlePaymentChoice('pix')} disabled={isPending}>
-                <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary/10"><QrCode className="size-6 text-primary" /></div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold text-foreground">Pagar agora com PIX</p>
-                  <p className="mt-0.5 text-xs text-muted-foreground">Gere o codigo PIX e pague na hora</p>
-                </div>
-              </button>
-              <button type="button" className="flex w-full items-center gap-4 rounded-xl border-2 border-muted p-4 text-left transition-all hover:border-muted-foreground/30 hover:bg-muted/50 disabled:opacity-50" onClick={() => handlePaymentChoice('later')} disabled={isPending}>
-                <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-muted"><HandCoins className="size-6 text-muted-foreground" /></div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold text-foreground">Pagar depois</p>
-                  <p className="mt-0.5 text-xs text-muted-foreground">Reserve e combine o pagamento</p>
-                </div>
-              </button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }

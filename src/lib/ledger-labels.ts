@@ -14,12 +14,20 @@ export const SOURCE_LABELS: Record<LedgerSource, string> = {
 
 export const CHANNEL_LABELS: Record<LedgerChannel, string> = {
   cash: 'Dinheiro',
-  pix_cora: 'PIX (Cora)',
-  pix_manual: 'PIX (manual)',
+  pix: 'PIX',
   card: 'Cartão',
   transfer: 'Transferência',
   internal: 'Interno',
   other: 'Outro',
+}
+
+/**
+ * Resolve channel label, falling back to "PIX" for legacy values
+ * (pix_cora, pix_manual) that may still exist in old ledger entries.
+ */
+export function channelLabel(channel: string): string {
+  if (channel.startsWith('pix')) return 'PIX'
+  return CHANNEL_LABELS[channel as LedgerChannel] ?? channel
 }
 
 export const STATUS_LABELS: Record<LedgerStatus, string> = {

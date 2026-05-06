@@ -1,11 +1,10 @@
 'use client'
 
-import { use } from 'react'
+import { use, useState } from 'react'
 import Image from 'next/image'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useState, useEffect, useCallback } from 'react'
-import { Heart, Home, Info, Loader2, Target, CheckCircle2, Copy, QrCode, Clock, HandCoins } from 'lucide-react'
+import { Heart, Home, Info, Loader2, Target, CheckCircle2 } from 'lucide-react'
 
 import {
   campaignContributionSchema,
@@ -14,8 +13,6 @@ import {
 import {
   usePublicCampaign,
   useCampaignContribute,
-  useCampaignContributeWithPix,
-  useContributionStatus,
 } from '@/hooks/use-public'
 import { formatCurrency } from '@/utils'
 import { PublicLayout } from '@/components/layout/public-layout'
@@ -37,29 +34,12 @@ import { Textarea } from '@/components/ui/textarea'
 import { Progress } from '@/components/ui/progress'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { DuplicateConfirmDialog } from '@/components/feedback/duplicate-confirm-dialog'
-import { PixCountdown } from '@/components/pix/pix-countdown'
-import { PixQrCode } from '@/components/pix/pix-qrcode'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import { toast } from 'sonner'
 
 interface PageProps {
   params: Promise<{
     houseSlug: string
     campaignSlug: string
   }>
-}
-
-interface PixPaymentData {
-  contributionId: string
-  amount: number
-  pixEmv: string
-  bankSlipUrl?: string
-  startedAt: number
 }
 
 export default function PublicCampaignPage({ params }: PageProps) {
@@ -72,29 +52,10 @@ export default function PublicCampaignPage({ params }: PageProps) {
     refetch,
   } = usePublicCampaign(houseSlug, campaignSlug)
 
-  const { mutateAsync: contributeAsync, isPending: isPendingContribute } = useCampaignContribute()
-  const { mutateAsync: contributePixAsync, isPending: isPendingPix } = useCampaignContributeWithPix()
-  const isPending = isPendingContribute || isPendingPix
+  const { mutateAsync: contributeAsync, isPending } = useCampaignContribute()
 
   const [duplicateInfo, setDuplicateInfo] = useState<{ donorName: string; amount: number; formData: CampaignContributionFormData } | null>(null)
-  const [pixData, setPixData] = useState<PixPaymentData | null>(null)
-  const [copied, setCopied] = useState(false)
-  const [paymentChoiceOpen, setPaymentChoiceOpen] = useState(false)
-  const [pendingFormData, setPendingFormData] = useState<CampaignContributionFormData | null>(null)
-  const [pendingForceCreate, setPendingForceCreate] = useState(false)
-  const [lastPaymentChoice, setLastPaymentChoice] = useState<'pix' | 'later' | null>(null)
-
-  // Poll contribution status when PIX is shown
-  const { data: statusData } = useContributionStatus(pixData?.contributionId ?? null)
-
-  // When payment confirmed, show success
-  useEffect(() => {
-    if (statusData?.isPaid && pixData) {
-      setPixData(null)
-      refetch()
-      toast.success('Pagamento confirmado! Obrigado pela contribuicao.')
-    }
-  }, [statusData?.isPaid, pixData, refetch])
+  const [contributionSuccess, setContributionSuccess] = useState(false)
 
   const {
     register,
@@ -114,62 +75,7 @@ export default function PublicCampaignPage({ params }: PageProps) {
     },
   })
 
-  const copyPixCode = useCallback(async () => {
-    if (!pixData?.pixEmv) return
-    try {
-      await navigator.clipboard.writeText(pixData.pixEmv)
-      setCopied(true)
-      toast.success('Codigo PIX copiado!')
-      setTimeout(() => setCopied(false), 3000)
-    } catch {
-      toast.error('Erro ao copiar')
-    }
-  }, [pixData?.pixEmv])
-
-  // Submit with PIX
-  async function submitWithPix(data: CampaignContributionFormData, forceCreate = false) {
-    if (!campaign) return
-    if (!data.donorDocument || data.donorDocument.replace(/\D/g, '').length < 11) {
-      toast.error('CPF e obrigatorio para pagamento via PIX')
-      return
-    }
-    try {
-      const result = await contributePixAsync({
-        houseSlug,
-        campaignSlug,
-        donorName: data.donorName,
-        donorPhone: data.donorPhone,
-        donorDocument: data.donorDocument,
-        amount: data.amount,
-        message: data.message || undefined,
-        forceCreate,
-      })
-
-      if (result.duplicate) {
-        setDuplicateInfo({
-          donorName: result.existingDonorName || data.donorName,
-          amount: result.existingAmount || data.amount,
-          formData: data,
-        })
-        return
-      }
-
-      if (result.pix?.emv) {
-        setPixData({
-          contributionId: result.contributionId,
-          amount: data.amount,
-          pixEmv: result.pix.emv,
-          bankSlipUrl: result.bankSlip?.url,
-          startedAt: Date.now(),
-        })
-      }
-    } catch {
-      // error toast handled by hook
-    }
-  }
-
-  // Submit without payment (pay later)
-  async function submitPayLater(data: CampaignContributionFormData, forceCreate = false) {
+  async function submitContribution(data: CampaignContributionFormData, forceCreate = false) {
     if (!campaign) return
     try {
       const result = await contributeAsync({
@@ -192,36 +98,15 @@ export default function PublicCampaignPage({ params }: PageProps) {
       }
 
       reset()
+      setContributionSuccess(true)
       refetch()
     } catch {
       // error toast handled by hook
     }
   }
 
-  // Form submit -> open payment choice dialog
   function onSubmit(data: CampaignContributionFormData) {
-    setPendingFormData(data)
-    setPendingForceCreate(false)
-    setPaymentChoiceOpen(true)
-  }
-
-  // Handle payment choice
-  function handlePaymentChoice(choice: 'pix' | 'later') {
-    if (!pendingFormData) return
-    if (choice === 'pix' && pendingFormData.amount < 5) {
-      toast.error('Valor minimo para pagamento via PIX e R$ 5,00')
-      return
-    }
-    setPaymentChoiceOpen(false)
-    setLastPaymentChoice(choice)
-    const forceCreate = pendingForceCreate
-    if (choice === 'pix') {
-      submitWithPix(pendingFormData, forceCreate)
-    } else {
-      submitPayLater(pendingFormData, forceCreate)
-    }
-    setPendingFormData(null)
-    setPendingForceCreate(false)
+    submitContribution(data)
   }
 
   if (isLoading) {
@@ -276,7 +161,6 @@ export default function PublicCampaignPage({ params }: PageProps) {
       </div>
 
       <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6 sm:py-10">
-        {/* Cover Image */}
         {campaign.imageUrl && (
           <div className="relative mb-6 aspect-[21/9] w-full overflow-hidden rounded-xl">
             <Image
@@ -289,7 +173,6 @@ export default function PublicCampaignPage({ params }: PageProps) {
           </div>
         )}
 
-        {/* Completed / Cancelled Banner */}
         {campaign.status === 'completed' && (
           <div className="mb-6 flex items-center gap-3 rounded-lg border border-green-200 bg-green-50 px-4 py-3 dark:border-green-900 dark:bg-green-950/30">
             <CheckCircle2 className="size-5 shrink-0 text-green-600 dark:text-green-400" />
@@ -318,7 +201,6 @@ export default function PublicCampaignPage({ params }: PageProps) {
         )}
 
         <div className="grid gap-6 lg:grid-cols-5">
-          {/* Campaign Info */}
           <div className="space-y-6 lg:col-span-3">
             <div className="space-y-2">
               <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
@@ -329,7 +211,6 @@ export default function PublicCampaignPage({ params }: PageProps) {
               </p>
             </div>
 
-            {/* Progress Section */}
             <Card>
               <CardContent className="space-y-4 pt-6">
                 <div className="flex items-center justify-between text-sm">
@@ -354,76 +235,19 @@ export default function PublicCampaignPage({ params }: PageProps) {
             </Card>
           </div>
 
-          {/* PIX Payment Screen OR Contribution Form */}
           <div className="lg:col-span-2">
-            {pixData ? (
+            {contributionSuccess ? (
               <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-lg">
-                    <QrCode className="size-4 text-primary" />
-                    Pagar com PIX
-                  </CardTitle>
-                  <CardDescription>
-                    Copie o codigo e pague no app do seu banco
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="rounded-lg border bg-muted/50 p-4 text-center">
-                    <p className="mb-1 text-2xl font-bold text-primary">
-                      {formatCurrency(pixData.amount)}
+                <CardContent className="flex flex-col items-center gap-3 py-8 text-center">
+                  <Heart className="size-10 text-emerald-500" />
+                  <div>
+                    <p className="text-base font-semibold">Contribuição registrada!</p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Aguardando confirmação do administrador.
                     </p>
                   </div>
-
-                  {/* QR Code */}
-                  <PixQrCode emv={pixData.pixEmv} />
-
-                  {/* PIX Code */}
-                  <div className="space-y-2">
-                    <p className="text-sm font-medium">Ou copie o codigo PIX</p>
-                    <div className="relative">
-                      <div className="max-h-20 overflow-y-auto rounded-md border bg-muted/30 p-3 text-xs break-all font-mono">
-                        {pixData.pixEmv}
-                      </div>
-                    </div>
-                    <Button
-                      onClick={copyPixCode}
-                      variant={copied ? 'default' : 'outline'}
-                      className="w-full"
-                      size="lg"
-                    >
-                      {copied ? (
-                        <>
-                          <CheckCircle2 className="size-4" />
-                          Copiado!
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="size-4" />
-                          Copiar codigo PIX
-                        </>
-                      )}
-                    </Button>
-                  </div>
-
-                  {/* Countdown */}
-                  <PixCountdown
-                    startedAt={pixData.startedAt}
-                    onExpired={() => {
-                      setPixData(null)
-                      reset()
-                      toast.info('PIX expirado. Sua contribuicao foi registrada para pagamento posterior.')
-                    }}
-                  />
-
-                  <Button
-                    variant="ghost"
-                    className="w-full text-muted-foreground"
-                    onClick={() => {
-                      setPixData(null)
-                      reset()
-                    }}
-                  >
-                    Voltar ao formulario
+                  <Button variant="outline" onClick={() => setContributionSuccess(false)}>
+                    Fazer outra contribuição
                   </Button>
                 </CardContent>
               </Card>
@@ -461,7 +285,7 @@ export default function PublicCampaignPage({ params }: PageProps) {
                     Contribuir
                   </CardTitle>
                   <CardDescription>
-                    Faca sua contribuicao para esta lista
+                    Registre sua contribuicao. O administrador confirmará o pagamento.
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -500,7 +324,7 @@ export default function PublicCampaignPage({ params }: PageProps) {
                     </FormField>
 
                     <FormField
-                      label="CPF"
+                      label="CPF (opcional)"
                       name="donorDocument"
                       error={errors.donorDocument}
                     >
@@ -579,66 +403,6 @@ export default function PublicCampaignPage({ params }: PageProps) {
         </div>
       </div>
 
-      {/* Payment Choice Dialog */}
-      <Dialog open={paymentChoiceOpen} onOpenChange={setPaymentChoiceOpen}>
-        <DialogContent className="max-w-md p-0 overflow-hidden">
-          {/* Header with amount */}
-          <div className="bg-gradient-to-br from-primary to-primary/80 px-6 pb-5 pt-6 text-primary-foreground">
-            <p className="text-sm font-medium text-primary-foreground/70">Sua contribuicao</p>
-            <p className="mt-1 text-3xl font-bold tracking-tight">
-              {pendingFormData ? formatCurrency(pendingFormData.amount) : ''}
-            </p>
-            {pendingFormData?.donorName && (
-              <p className="mt-1 text-sm text-primary-foreground/80">
-                {pendingFormData.donorName}
-              </p>
-            )}
-          </div>
-
-          <div className="px-6 pb-6 pt-4">
-            <p className="mb-4 text-sm font-medium text-foreground">
-              Como deseja pagar?
-            </p>
-            <div className="space-y-3">
-              <button
-                type="button"
-                className="flex w-full items-center gap-4 rounded-xl border-2 border-primary/20 bg-primary/5 p-4 text-left transition-all hover:border-primary/50 hover:bg-primary/10 disabled:opacity-50"
-                onClick={() => handlePaymentChoice('pix')}
-                disabled={isPending}
-              >
-                <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary/10">
-                  <QrCode className="size-6 text-primary" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold text-foreground">Pagar agora com PIX</p>
-                  <p className="mt-0.5 text-xs text-muted-foreground">
-                    Gere o codigo PIX e pague na hora pelo app do banco
-                  </p>
-                </div>
-              </button>
-
-              <button
-                type="button"
-                className="flex w-full items-center gap-4 rounded-xl border-2 border-muted p-4 text-left transition-all hover:border-muted-foreground/30 hover:bg-muted/50 disabled:opacity-50"
-                onClick={() => handlePaymentChoice('later')}
-                disabled={isPending}
-              >
-                <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-muted">
-                  <HandCoins className="size-6 text-muted-foreground" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold text-foreground">Pagar depois</p>
-                  <p className="mt-0.5 text-xs text-muted-foreground">
-                    Registre sua contribuicao e combine o pagamento
-                  </p>
-                </div>
-              </button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Duplicate Confirm Dialog */}
       <DuplicateConfirmDialog
         open={!!duplicateInfo}
         onClose={() => setDuplicateInfo(null)}
@@ -646,17 +410,7 @@ export default function PublicCampaignPage({ params }: PageProps) {
           if (duplicateInfo) {
             const formData = duplicateInfo.formData
             setDuplicateInfo(null)
-            // Retry with forceCreate using the same payment method chosen before
-            if (lastPaymentChoice === 'pix') {
-              submitWithPix(formData, true)
-            } else if (lastPaymentChoice === 'later') {
-              submitPayLater(formData, true)
-            } else {
-              // Fallback: re-open choice dialog
-              setPendingFormData({ ...formData })
-              setPendingForceCreate(true)
-              setPaymentChoiceOpen(true)
-            }
+            submitContribution(formData, true)
           }
         }}
         isPending={isPending}

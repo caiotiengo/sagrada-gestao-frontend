@@ -7,7 +7,6 @@ import type {
   CreateCampaignRequest,
   UpdateCampaignRequest,
   AssignQuotaRequest,
-  AssignQuotaWithPixRequest,
   PayQuotaRequest,
   RegisterExternalContributionRequest,
   UpdateContributionStatusRequest,
@@ -80,32 +79,6 @@ export function useAssignQuota() {
     onError: () => {
       toast.error('Erro ao atribuir cota')
     },
-  })
-}
-
-export function useAssignQuotaWithPix() {
-  const queryClient = useQueryClient()
-
-  return useMutation({
-    mutationFn: (data: AssignQuotaWithPixRequest) =>
-      campaignsService.assignQuotaWithPix(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['quotas'] })
-      queryClient.invalidateQueries({ queryKey: ['campaigns'] })
-      toast.success('QR Code PIX gerado!')
-    },
-    onError: () => {
-      toast.error('Erro ao gerar PIX')
-    },
-  })
-}
-
-export function useQuotaPaymentStatus(quotaId: string | null) {
-  return useQuery({
-    queryKey: ['quota-payment-status', quotaId],
-    queryFn: () => campaignsService.getQuotaPaymentStatus({ quotaId: quotaId! }),
-    enabled: !!quotaId,
-    refetchInterval: 5000,
   })
 }
 

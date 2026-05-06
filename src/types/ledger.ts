@@ -15,8 +15,7 @@ export type LedgerStatus = 'confirmed' | 'pending' | 'reversed'
 
 export type LedgerChannel =
   | 'cash'
-  | 'pix_cora'
-  | 'pix_manual'
+  | 'pix'
   | 'card'
   | 'transfer'
   | 'internal'

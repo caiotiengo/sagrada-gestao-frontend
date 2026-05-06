@@ -334,7 +334,6 @@ export interface CreatePaymentRequest {
   paymentMethod?: PaymentMethod
   memberId?: string
   receiptUrl?: string
-  coraEntryId?: string
   paidAt?: string
 }
 
@@ -784,24 +783,6 @@ export interface AssignQuotaRequest {
   amount: number
 }
 
-export interface AssignQuotaWithPixRequest extends AssignQuotaRequest {
-  buyerDocument: string
-}
-
-export interface AssignQuotaWithPixResponse {
-  quotaId: string
-  amount: number
-  status: string
-  pix?: { emv: string } | null
-  invoiceId?: string
-}
-
-export interface QuotaPaymentStatusResponse {
-  quotaId: string
-  isPaid: boolean
-  amount: number
-}
-
 export interface PayQuotaRequest {
   houseId: string
   quotaId: string
@@ -919,30 +900,6 @@ export interface PublicReserveRaffleNumbersRequest {
   forceCreate?: boolean
 }
 
-// PIX Raffle
-export interface PublicReserveRaffleWithPixRequest {
-  houseSlug: string
-  raffleSlug: string
-  numbers: number[]
-  buyerName: string
-  buyerPhone: string
-  buyerDocument: string
-  forceCreate?: boolean
-}
-
-export interface PublicReserveRaffleWithPixResponse extends ReserveRaffleNumbersResponse {
-  pix?: { emv: string } | null
-  bankSlip?: { barcode: string; digitable: string; url: string } | null
-  invoiceId?: string
-}
-
-export interface PublicReservationStatusResponse {
-  reservationId: string
-  isPaid: boolean
-  totalAmount: number
-  buyerName: string
-}
-
 export interface PublicRegisterContributionRequest {
   houseSlug: string
   campaignSlug: string
@@ -959,44 +916,6 @@ export interface PublicRegisterContributionResponse {
   duplicate?: boolean
   existingAmount?: number
   existingDonorName?: string
-}
-
-// PIX Contribution
-export interface PublicContributeWithPixRequest {
-  houseSlug: string
-  campaignSlug: string
-  donorName: string
-  donorPhone: string
-  donorDocument: string
-  amount: number
-  message?: string
-  forceCreate?: boolean
-}
-
-export interface PublicContributeWithPixResponse {
-  contributionId: string
-  amount: number
-  isPaid: boolean
-  duplicate?: boolean
-  existingAmount?: number
-  existingDonorName?: string
-  pix?: {
-    emv: string
-  } | null
-  bankSlip?: {
-    barcode: string
-    digitable: string
-    url: string
-  } | null
-  invoiceId?: string
-}
-
-export interface PublicContributionStatusResponse {
-  contributionId: string
-  isPaid: boolean
-  paidAt: string | null
-  amount: number
-  donorName: string
 }
 
 export interface ListRaffleReservationsRequest {

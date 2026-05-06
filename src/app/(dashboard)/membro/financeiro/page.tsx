@@ -18,7 +18,7 @@ import { useAuthStore } from '@/stores/auth'
 import { FEE_STATUS_LABELS } from '@/constants'
 import type { MonthlyFeeItem, DebtItem, ShoppingDebtItem, QuotaItem, SaleItem, FeeStatus } from '@/types'
 import { formatCurrency, formatDate } from '@/utils'
-import { SOURCE_LABELS, CHANNEL_LABELS } from '@/lib/ledger-labels'
+import { SOURCE_LABELS, channelLabel } from '@/lib/ledger-labels'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -502,7 +502,7 @@ export default function MemberFinancePage() {
                               </Badge>
                               {entry.channel !== 'internal' && (
                                 <Badge variant="outline" className="text-xs">
-                                  {CHANNEL_LABELS[entry.channel] ?? entry.channel}
+                                  {channelLabel(entry.channel)}
                                 </Badge>
                               )}
                               {entry.status === 'pending' && (

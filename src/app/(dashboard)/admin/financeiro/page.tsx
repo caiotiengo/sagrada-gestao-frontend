@@ -21,7 +21,6 @@ import {
   X,
   UserPlus,
   Repeat,
-  Landmark,
   RefreshCw,
   ShieldCheck,
   FileSearch,
@@ -64,7 +63,6 @@ import type {
 } from '@/types'
 import { formatCurrency, formatDate } from '@/utils'
 import { downloadCSV } from '@/utils/export-csv'
-import { coraService } from '@/services/cora'
 import { callFunction } from '@/lib/callable'
 import { toast } from 'sonner'
 import { ErrorState } from '@/components/feedback/error-state'
@@ -805,11 +803,6 @@ function PagamentosTab() {
   const [newTagType, setNewTagType] = useState<PaymentTagType>('both')
   const [categoryFilter, setCategoryFilter] = useState('')
 
-  // Register Cora entry state
-  const [registerCoraOpen, setRegisterCoraOpen] = useState(false)
-  const [coraEntry, setCoraEntry] = useState<{ id: string; description: string; amount: number; type: PaymentType; createdAt: string } | null>(null)
-  const [coraCategory, setCoraCategory] = useState('')
-
   // Create form state
   const [description, setDescription] = useState('')
   const [amount, setAmount] = useState(0)
@@ -824,55 +817,12 @@ function PagamentosTab() {
   const createTag = useCreatePaymentTag()
   const deleteTag = useDeletePaymentTag()
 
-  // Cora statement for selected month
-  const startDate = `${formatYearMonth(year, month)}-01`
-  const endDate = month === 11
-    ? `${year + 1}-01-01`
-    : `${year}-${String(month + 2).padStart(2, '0')}-01`
-  const { data: coraStatement } = useQuery({
-    queryKey: ['cora-statement-month', houseId, year, month],
-    queryFn: () => coraService.getStatement({ houseId: houseId!, startDate, endDate, limit: 100 }),
-    enabled: !!houseId,
-    staleTime: 60_000,
-  })
-
   const payments = data?.data ?? []
   const totalPages = data?.pagination?.totalPages ?? 1
   const [paymentSearch, setPaymentSearch] = useState('')
 
   const filteredPayments = useMemo(() => {
     const prefix = formatYearMonth(year, month)
-
-    // Platform payments for this month
-    const platformItems = payments
-      .filter((p) => p.createdAt.startsWith(prefix))
-      .map((p) => ({ ...p, isCora: false as const }))
-
-    // Cora bank entries for this month
-    const coraItems = (coraStatement?.entries ?? []).map((entry) => {
-      // Cora createdAt comes as "2026-03-18T18:27:18+00" (missing :00 in tz)
-      let dateStr = ''
-      try {
-        let raw = entry.createdAt as string | number
-        if (typeof raw === 'string' && /\+\d{2}$/.test(raw)) raw = raw + ':00' // fix "+00" → "+00:00"
-        const d = new Date(raw)
-        if (!isNaN(d.getTime())) dateStr = d.toISOString()
-      } catch { /* skip */ }
-      return {
-        id: `cora-${entry.id}`,
-        description: entry.transaction?.counterParty?.name || entry.transaction?.description || (entry.type === 'CREDIT' ? 'Recebimento Cora' : 'Pagamento Cora'),
-        amount: entry.amount / 100,
-        type: (entry.type === 'CREDIT' ? 'income' : 'expense') as PaymentType,
-        category: 'Cora',
-        status: 'paid' as const,
-        paymentMethod: (entry.type === 'CREDIT' ? 'pix' : 'transfer') as PaymentMethod,
-        paidAt: dateStr,
-        registeredBy: 'Cora',
-        memberId: null,
-        createdAt: dateStr,
-        isCora: true as const,
-      }
-    }).filter((item) => item.createdAt.startsWith(prefix))
 
     const parseTs = (d: string | null | undefined): number => {
       if (!d) return 0
@@ -881,42 +831,9 @@ function PagamentosTab() {
       return isNaN(t) ? 0 : t
     }
 
-    const getDay = (d: string | null | undefined): string => {
-      if (!d) return ''
-      return d.substring(0, 10)
-    }
-
-    // Deduplicate: if a Cora CREDIT matches a platform income (same day + amount + name),
-    // keep only the Cora entry to avoid showing the same PIX payment twice
-    const normalize = (s: string) => s.toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-    const coraCredits = new Map<string, boolean>()
-    for (const c of coraItems) {
-      if (c.type === 'income') {
-        const key = `${getDay(c.createdAt)}_${c.amount.toFixed(2)}_${normalize(c.description)}`
-        coraCredits.set(key, true)
-      }
-    }
-
-    const dedupedPlatform = platformItems.filter((p) => {
-      if (p.type !== 'income') return true
-      const day = getDay(p.createdAt)
-      const amt = Math.abs(p.amount).toFixed(2)
-      const desc = normalize((p as PaymentItem & { isCora: false }).description || '')
-      // Check if any Cora credit matches: same day + same amount + name contained in description
-      for (const [key] of coraCredits) {
-        const [cDay, cAmt, ...cNameParts] = key.split('_')
-        const cName = cNameParts.join('_')
-        if (cDay === day && cAmt === amt && cName && desc.includes(cName)) {
-          coraCredits.delete(key)
-          return false
-        }
-      }
-      return true
-    })
-
-    let merged = [...dedupedPlatform, ...coraItems].sort((a, b) => {
-      return parseTs(b.createdAt) - parseTs(a.createdAt)
-    })
+    let merged = payments
+      .filter((p) => p.createdAt.startsWith(prefix))
+      .sort((a, b) => parseTs(b.createdAt) - parseTs(a.createdAt))
 
     if (paymentSearch.trim()) {
       const term = paymentSearch.toLowerCase()
@@ -926,7 +843,7 @@ function PagamentosTab() {
       )
     }
     return merged
-  }, [payments, coraStatement, year, month, paymentSearch])
+  }, [payments, year, month, paymentSearch])
 
   const ITEMS_PER_PAGE = 20
   const paymentTotalPages = Math.max(1, Math.ceil(filteredPayments.length / ITEMS_PER_PAGE))
@@ -1215,11 +1132,10 @@ function PagamentosTab() {
       ) : paginatedPayments.length > 0 ? (
         <div className="space-y-2">
           {paginatedPayments.map((payment) => (
-            <Card key={payment.id} className={payment.isCora ? 'border-violet-200 dark:border-violet-900' : ''}>
+            <Card key={payment.id}>
               <CardContent className="flex items-center justify-between gap-3 p-4">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    {payment.isCora && <Landmark className="size-3.5 shrink-0 text-violet-500" />}
                     <span className="text-sm font-medium">
                       {payment.description}
                     </span>
@@ -1230,11 +1146,6 @@ function PagamentosTab() {
                     >
                       {PAYMENT_TYPE_LABELS[payment.type]}
                     </Badge>
-                    {payment.isCora && (
-                      <Badge variant="outline" className="border-violet-300 text-violet-600 dark:border-violet-800 dark:text-violet-400">
-                        Cora
-                      </Badge>
-                    )}
                   </div>
                   <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
                     <span>{formatCurrency(payment.amount)}</span>
@@ -1248,29 +1159,7 @@ function PagamentosTab() {
                     {payment.createdAt && <span>{formatDate(payment.createdAt)}</span>}
                   </div>
                 </div>
-                {canManage && payment.isCora && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="shrink-0 gap-1.5 border-violet-300 text-violet-600 hover:bg-violet-50 dark:border-violet-800 dark:text-violet-400"
-                    onClick={() => {
-                      const entryId = payment.id.replace('cora-', '')
-                      setCoraEntry({
-                        id: entryId,
-                        description: payment.description,
-                        amount: payment.amount,
-                        type: payment.type,
-                        createdAt: payment.createdAt,
-                      })
-                      setCoraCategory('')
-                      setRegisterCoraOpen(true)
-                    }}
-                  >
-                    <Check className="size-3.5" />
-                    Registrar
-                  </Button>
-                )}
-                {canManage && !payment.isCora && (
+                {canManage && (
                   <DropdownMenu>
                     <DropdownMenuTrigger
                       render={<Button variant="ghost" size="icon" className="size-8 shrink-0" />}
@@ -1333,88 +1222,6 @@ function PagamentosTab() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Register Cora Entry Dialog */}
-      <Dialog open={registerCoraOpen} onOpenChange={setRegisterCoraOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Landmark className="size-4 text-violet-500" />
-              Registrar movimentacao Cora
-            </DialogTitle>
-          </DialogHeader>
-          {coraEntry && (
-            <div className="space-y-4 py-2">
-              <div className="rounded-lg border bg-muted/50 p-3 space-y-1">
-                <p className="text-sm font-medium">{coraEntry.description}</p>
-                <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                  <span className={coraEntry.type === 'income' ? 'text-emerald-600 font-semibold' : 'text-red-600 font-semibold'}>
-                    {coraEntry.type === 'income' ? '+' : '-'}{formatCurrency(coraEntry.amount)}
-                  </span>
-                  <span>{coraEntry.type === 'income' ? 'Receita' : 'Despesa'}</span>
-                  {coraEntry.createdAt && <span>{formatDate(coraEntry.createdAt)}</span>}
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label>Categoria</Label>
-                <Select
-                  value={coraCategory || 'Cora'}
-                  onValueChange={(v) => setCoraCategory(v ?? '')}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione uma categoria" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Cora">Cora</SelectItem>
-                    {(tags ?? [])
-                      .filter((t) => t.type === 'both' || t.type === coraEntry.type)
-                      .map((tag) => (
-                        <SelectItem key={tag.id} value={tag.name}>{tag.name}</SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-                <Input
-                  placeholder="Ou digite uma nova categoria"
-                  value={coraCategory}
-                  onChange={(e) => setCoraCategory(e.target.value)}
-                />
-              </div>
-            </div>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setRegisterCoraOpen(false)}>
-              Cancelar
-            </Button>
-            <Button
-              disabled={createPayment.isPending || !coraEntry}
-              onClick={() => {
-                if (!houseId || !coraEntry) return
-                createPayment.mutate(
-                  {
-                    houseId,
-                    description: coraEntry.description,
-                    amount: coraEntry.amount,
-                    type: coraEntry.type,
-                    category: coraCategory || 'Cora',
-                    paymentMethod: 'pix',
-                    coraEntryId: coraEntry.id,
-                    paidAt: coraEntry.createdAt,
-                  },
-                  {
-                    onSettled: (_, error) => {
-                      if (!error) {
-                        setRegisterCoraOpen(false)
-                        setCoraEntry(null)
-                      }
-                    },
-                  },
-                )
-              }}
-            >
-              {createPayment.isPending ? 'Registrando...' : 'Registrar'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }
