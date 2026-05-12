@@ -7,6 +7,7 @@ import type {
   CreateStoreItemRequest,
   UpdateStoreItemRequest,
   RegisterSaleRequest,
+  RegisterSaleBatchRequest,
   PaySaleRequest,
   UpdateSaleStatusRequest,
   DeleteStoreItemRequest,
@@ -75,6 +76,27 @@ export function useRegisterSale() {
       queryClient.invalidateQueries({ queryKey: ['sales'] })
       queryClient.invalidateQueries({ queryKey: ['sales-summary'] })
       queryClient.invalidateQueries({ queryKey: ['store-items'] })
+      toast.success('Venda registrada')
+    },
+    onError: () => {
+      toast.error('Erro ao registrar venda')
+    },
+  })
+}
+
+export function useRegisterSaleBatch() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (data: RegisterSaleBatchRequest) =>
+      storeService.registerSaleBatch(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sales'] })
+      queryClient.invalidateQueries({ queryKey: ['sales-summary'] })
+      queryClient.invalidateQueries({ queryKey: ['store-items'] })
+      queryClient.invalidateQueries({ queryKey: ['debts'] })
+      queryClient.invalidateQueries({ queryKey: ['financial-statement'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
       toast.success('Venda registrada')
     },
     onError: () => {

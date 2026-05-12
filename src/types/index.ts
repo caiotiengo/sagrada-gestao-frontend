@@ -1028,6 +1028,28 @@ export interface RegisterSaleResponse {
   orderNumber?: string
 }
 
+export interface RegisterSaleBatchRequest {
+  houseId: string
+  items: Array<{ itemId: string; quantity: number }>
+  buyerName?: string
+  memberId?: string
+  paymentMethod?: PaymentMethod
+  isPaid?: boolean
+}
+
+export interface RegisterSaleBatchResponse {
+  orderNumber: string
+  orderTotal: number
+  isPaid: boolean
+  status: string
+  sales: Array<{
+    saleId: string
+    itemName: string
+    quantity: number
+    totalPrice: number
+  }>
+}
+
 export type SaleStatus = 'paid' | 'pending' | 'tab' | 'unpaid' | 'ready'
 
 export interface ListSalesRequest {

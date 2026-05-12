@@ -32,10 +32,10 @@ const quickActions = [
   { label: 'Calendário', href: ROUTES.MEMBER_CALENDAR, icon: CalendarDays, color: 'bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400' },
   { label: 'Listas', href: ROUTES.MEMBER_CAMPAIGNS, icon: List, color: 'bg-pink-100 text-pink-600 dark:bg-pink-950 dark:text-pink-400' },
   { label: 'Rifas', href: ROUTES.MEMBER_RAFFLES, icon: Ticket, color: 'bg-purple-100 text-purple-600 dark:bg-purple-950 dark:text-purple-400' },
-  { label: 'Cantina', href: ROUTES.MEMBER_STORE, icon: Store, color: 'bg-orange-100 text-orange-600 dark:bg-orange-950 dark:text-orange-400' },
+  { label: 'Cantina', href: ROUTES.MEMBER_STORE, icon: Store, color: 'bg-orange-100 text-orange-600 dark:bg-orange-950 dark:text-orange-400', permission: 'canRegisterSales' },
   { label: 'Compras', href: ROUTES.MEMBER_SHOPPING, icon: ShoppingCart, color: 'bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400' },
   { label: 'Notas', href: ROUTES.MEMBER_NOTES, icon: StickyNote, color: 'bg-sky-100 text-sky-600 dark:bg-sky-950 dark:text-sky-400' },
-]
+] as const
 
 export default function MemberHomePage() {
   const { profile, currentHouse } = useAuthStore()
@@ -169,18 +169,25 @@ export default function MemberHomePage() {
           Acesso Rápido
         </h2>
         <div className="grid grid-cols-4 gap-3 sm:grid-cols-4 lg:grid-cols-7">
-          {quickActions.map((action) => (
-            <Link key={action.href} href={action.href} className="group">
-              <div className="flex flex-col items-center gap-2 py-2">
-                <div className={`flex size-12 items-center justify-center rounded-2xl transition-transform duration-150 group-hover:scale-105 ${action.color}`}>
-                  <action.icon className="size-5" />
+          {quickActions
+            .filter((action) => {
+              const required = (action as { permission?: string }).permission
+              if (!required) return true
+              const isAdminRole = currentHouse?.role === 'admin'
+              return isAdminRole || (currentHouse?.extraPermissions ?? []).includes(required as never)
+            })
+            .map((action) => (
+              <Link key={action.href} href={action.href} className="group">
+                <div className="flex flex-col items-center gap-2 py-2">
+                  <div className={`flex size-12 items-center justify-center rounded-2xl transition-transform duration-150 group-hover:scale-105 ${action.color}`}>
+                    <action.icon className="size-5" />
+                  </div>
+                  <span className="text-center text-[0.6875rem] font-medium leading-tight text-muted-foreground group-hover:text-foreground">
+                    {action.label}
+                  </span>
                 </div>
-                <span className="text-center text-[0.6875rem] font-medium leading-tight text-muted-foreground group-hover:text-foreground">
-                  {action.label}
-                </span>
-              </div>
-            </Link>
-          ))}
+              </Link>
+            ))}
         </div>
       </div>
 

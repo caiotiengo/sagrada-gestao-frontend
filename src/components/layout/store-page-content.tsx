@@ -24,7 +24,7 @@ import {
   useUpdateStoreItem,
   useDeleteStoreItem,
   useDeleteSale,
-  useRegisterSale,
+  useRegisterSaleBatch,
   useSales,
   useUpdateSaleStatus,
   useSalesSummary,
@@ -209,7 +209,7 @@ export function StorePageContent({ category }: StorePageContentProps) {
   const [salePaymentMethod, setSalePaymentMethod] = useState<PaymentMethod>('pix')
   const [saleIsPaid, setSaleIsPaid] = useState(true)
   const [saleSubmitting, setSaleSubmitting] = useState(false)
-  const saleMutation = useRegisterSale()
+  const saleBatchMutation = useRegisterSaleBatch()
 
   const cartTotal = cart.reduce((sum, c) => sum + c.item.price * c.quantity, 0)
   const cartCount = cart.reduce((sum, c) => sum + c.quantity, 0)
@@ -269,17 +269,14 @@ export function StorePageContent({ category }: StorePageContentProps) {
       const buyerName =
         saleBuyerType === 'member' ? selectedMember?.fullName : saleBuyerName.trim()
       const memberId = saleBuyerType === 'member' ? saleMemberId : undefined
-      for (const c of cart) {
-        await saleMutation.mutateAsync({
-          houseId,
-          itemId: c.item.id,
-          quantity: c.quantity,
-          buyerName: buyerName || undefined,
-          memberId,
-          paymentMethod: salePaymentMethod,
-          isPaid: saleIsPaid,
-        })
-      }
+      await saleBatchMutation.mutateAsync({
+        houseId,
+        items: cart.map((c) => ({ itemId: c.item.id, quantity: c.quantity })),
+        buyerName: buyerName || undefined,
+        memberId,
+        paymentMethod: salePaymentMethod,
+        isPaid: saleIsPaid,
+      })
       setCart([])
       setSaleOpen(false)
     } finally {
@@ -324,6 +321,50 @@ export function StorePageContent({ category }: StorePageContentProps) {
       (s.itemName && s.itemName.toLowerCase().includes(query)),
     )
   }, [allSales, salesSearch])
+
+  // Group sales by orderNumber so multi-item purchases appear as one card
+  const groupedSales = useMemo(() => {
+    const groups: Array<{
+      orderNumber: string | null
+      items: typeof sales
+      buyerName: string | null
+      status: string
+      paymentMethod: string | null
+      source: string
+      totalPrice: number
+      totalQty: number
+      createdAt: string | null
+    }> = []
+    const byOrder = new Map<string, number>()
+    for (const sale of sales) {
+      const key = sale.orderNumber || `__solo_${sale.id}`
+      const existingIdx = byOrder.get(key)
+      if (existingIdx === undefined) {
+        byOrder.set(key, groups.length)
+        groups.push({
+          orderNumber: sale.orderNumber ?? null,
+          items: [sale],
+          buyerName: sale.buyerName ?? null,
+          status: sale.status,
+          paymentMethod: sale.paymentMethod ?? null,
+          source: sale.source ?? 'internal',
+          totalPrice: sale.totalPrice,
+          totalQty: sale.quantity,
+          createdAt: sale.createdAt ?? null,
+        })
+      } else {
+        const g = groups[existingIdx]
+        g.items.push(sale)
+        g.totalPrice += sale.totalPrice
+        g.totalQty += sale.quantity
+      }
+    }
+    return groups
+  }, [sales])
+
+  const [expandedOrders, setExpandedOrders] = useState<Record<string, boolean>>({})
+  const toggleOrderExpanded = (key: string) =>
+    setExpandedOrders((p) => ({ ...p, [key]: !p[key] }))
 
   // Summary
   const { data: summary } = useSalesSummary(salesDate || todayString(), category)
@@ -634,104 +675,117 @@ export function StorePageContent({ category }: StorePageContentProps) {
               </div>
             </div>
 
-            {/* Sales List */}
+            {/* Sales List (grouped by orderNumber) */}
             {salesLoading ? (
               <ListSkeleton rows={5} />
-            ) : sales.length > 0 ? (
+            ) : groupedSales.length > 0 ? (
               <div className="space-y-2">
-                {sales.map((sale, index) => {
-                  const saleNumber = (salesPage - 1) * salesLimit + index + 1
+                {groupedSales.map((group, gIdx) => {
+                  const key = group.orderNumber || `solo-${group.items[0].id}`
+                  const isExpanded = !!expandedOrders[key]
+                  const fallbackNumber = (salesPage - 1) * salesLimit + gIdx + 1
+                  const isMulti = group.items.length > 1
                   return (
-                  <Card key={sale.id}>
+                  <Card key={key}>
                     <CardContent className="p-3 sm:p-4">
-                      <div className="flex items-start gap-3">
-                        <div className="flex size-8 shrink-0 flex-col items-center justify-center rounded-lg bg-muted sm:size-10">
-                          {sale.orderNumber ? (
-                            <span className="text-[0.6rem] font-bold text-primary sm:text-xs" title={sale.orderNumber}>
-                              #{sale.orderNumber.split('-').pop()}
+                      <button
+                        type="button"
+                        onClick={() => isMulti && toggleOrderExpanded(key)}
+                        className={`flex w-full items-start gap-3 text-left ${isMulti ? 'cursor-pointer' : 'cursor-default'}`}
+                      >
+                        <div className="flex size-9 shrink-0 flex-col items-center justify-center rounded-lg bg-muted">
+                          {group.orderNumber ? (
+                            <span className="text-[0.6rem] font-bold text-primary sm:text-xs" title={group.orderNumber}>
+                              #{group.orderNumber.split('-').pop()}
                             </span>
                           ) : (
-                            <span className="text-sm font-bold text-muted-foreground sm:text-lg">
-                              {saleNumber}
-                            </span>
+                            <span className="text-sm font-bold text-muted-foreground">{fallbackNumber}</span>
                           )}
                         </div>
                         <div className="min-w-0 flex-1 space-y-1.5">
                           <div className="flex items-start justify-between gap-2">
                             <div className="min-w-0">
-                              <p className="truncate text-sm font-medium">{sale.itemName ?? 'Item'}</p>
+                              <p className="truncate text-sm font-medium">
+                                {group.buyerName ?? 'Sem comprador'}
+                              </p>
                               <div className="mt-1 flex flex-wrap gap-1">
-                                <Badge variant={SALE_STATUS_VARIANTS[sale.status] ?? 'outline'} className="text-[0.625rem]">
-                                  {SALE_STATUS_LABELS[sale.status] ?? sale.status}
+                                <Badge variant={SALE_STATUS_VARIANTS[group.status as SaleStatus] ?? 'outline'} className="text-[0.625rem]">
+                                  {SALE_STATUS_LABELS[group.status as SaleStatus] ?? group.status}
                                 </Badge>
-                                {sale.paymentMethod && (
+                                {group.paymentMethod && (
                                   <Badge variant="outline" className="text-[0.625rem]">
-                                    {PAYMENT_METHOD_LABELS[sale.paymentMethod] ?? sale.paymentMethod}
+                                    {PAYMENT_METHOD_LABELS[group.paymentMethod as PaymentMethod] ?? group.paymentMethod}
                                   </Badge>
                                 )}
-                                {sale.source === 'public' && (
+                                {group.source === 'public' && (
                                   <Badge variant="outline" className="gap-0.5 text-[0.625rem]">
                                     <Globe className="size-2.5" />
                                     Link
                                   </Badge>
                                 )}
+                                <Badge variant="secondary" className="text-[0.625rem]">
+                                  {group.items.length} {group.items.length === 1 ? 'item' : 'itens'} · {group.totalQty} un.
+                                </Badge>
                               </div>
                             </div>
-                            {canManage && (
-                              <div className="flex shrink-0 items-center gap-1">
-                                {sale.status === 'pending' && (
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="h-7 gap-1 text-xs"
-                                    disabled={updateStatusMutation.isPending}
-                                    onClick={() => {
-                                      if (!houseId) return
-                                      updateStatusMutation.mutate({ houseId, saleId: sale.id, status: 'ready' })
-                                    }}
-                                  >
-                                    <CheckCircle2 className="size-3" />
-                                    Pronto
-                                  </Button>
-                                )}
+                            <div className="flex shrink-0 flex-col items-end gap-0.5">
+                              <span className="text-sm font-semibold tabular-nums">{formatCurrency(group.totalPrice)}</span>
+                              {group.createdAt && (
+                                <span className="text-[0.65rem] text-muted-foreground">{formatDate(group.createdAt)}</span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </button>
+
+                      {/* Items: always show if single; expandable if multi */}
+                      {(!isMulti || isExpanded) && (
+                        <ul className="mt-3 space-y-1.5 border-t pt-3">
+                          {group.items.map((sale) => (
+                            <li key={sale.id} className="flex items-center gap-2 text-sm">
+                              <div className="min-w-0 flex-1">
+                                <p className="truncate font-medium">{sale.itemName ?? 'Item'}</p>
+                                <p className="text-[0.65rem] text-muted-foreground">
+                                  {sale.quantity}x {formatCurrency(sale.unitPrice)}
+                                </p>
+                              </div>
+                              <span className="w-20 text-right text-sm font-semibold tabular-nums">{formatCurrency(sale.totalPrice)}</span>
+                              {canManage && (
                                 <DropdownMenu>
-                                  <DropdownMenuTrigger
-                                    render={<Button variant="ghost" size="icon" className="size-8" />}
-                                  >
-                                    <MoreVertical className="size-4" />
+                                  <DropdownMenuTrigger render={<Button variant="ghost" size="icon" className="size-7" />}>
+                                    <MoreVertical className="size-3.5" />
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent align="end">
                                     {sale.status !== 'paid' && (
-                                      <DropdownMenuItem
-                                        onClick={() => openStatusDialog(sale.id, sale.status)}
-                                      >
+                                      <DropdownMenuItem onClick={() => openStatusDialog(sale.id, sale.status)}>
                                         <DollarSign className="size-4" />
                                         Atualizar status
                                       </DropdownMenuItem>
                                     )}
+                                    {sale.status === 'pending' && (
+                                      <DropdownMenuItem
+                                        disabled={updateStatusMutation.isPending}
+                                        onClick={() => {
+                                          if (!houseId) return
+                                          updateStatusMutation.mutate({ houseId, saleId: sale.id, status: 'ready' })
+                                        }}
+                                      >
+                                        <CheckCircle2 className="size-4" />
+                                        Marcar pronto
+                                      </DropdownMenuItem>
+                                    )}
                                     <DropdownMenuSeparator />
-                                    <DropdownMenuItem
-                                      variant="destructive"
-                                      onClick={() => setDeleteSaleAlertId(sale.id)}
-                                    >
+                                    <DropdownMenuItem variant="destructive" onClick={() => setDeleteSaleAlertId(sale.id)}>
                                       <Trash2 className="size-4" />
-                                      Excluir venda
+                                      Excluir item
                                     </DropdownMenuItem>
                                   </DropdownMenuContent>
                                 </DropdownMenu>
-                              </div>
-                            )}
-                          </div>
-                          <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
-                            {sale.orderNumber && <span className="font-medium text-primary">#{sale.orderNumber}</span>}
-                            <span>Qtd: {sale.quantity}</span>
-                            <span className="font-medium">{formatCurrency(sale.totalPrice)}</span>
-                            {sale.buyerName && <span>{sale.buyerName}</span>}
-                            {sale.buyerPhone && <span>{sale.buyerPhone}</span>}
-                            <span>{formatDate(sale.createdAt)}</span>
-                          </div>
-                        </div>
-                      </div>
+                              )}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
                     </CardContent>
                   </Card>
                   )

@@ -6,6 +6,8 @@ import type {
   ListStoreItemsRequest,
   RegisterSaleRequest,
   RegisterSaleResponse,
+  RegisterSaleBatchRequest,
+  RegisterSaleBatchResponse,
   ListSalesRequest,
   SaleItem,
   PaySaleRequest,
@@ -29,6 +31,9 @@ export const storeService = {
 
   registerSale: (data: RegisterSaleRequest) =>
     callFunction<RegisterSaleRequest, RegisterSaleResponse>('registerSale', data),
+
+  registerSaleBatch: (data: RegisterSaleBatchRequest) =>
+    callFunction<RegisterSaleBatchRequest, RegisterSaleBatchResponse>('registerSaleBatch', data),
 
   listSales: (data: ListSalesRequest) =>
     callFunction<ListSalesRequest, PaginatedResponse<SaleItem>>('listSales', data),

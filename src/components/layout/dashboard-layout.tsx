@@ -123,11 +123,20 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const memberExtraNav = !isAdmin
     ? permissionNavItems.filter((item) => item.permission && extraPerms.includes(item.permission as never))
     : []
-  const navItems: NavEntry[] = isAdmin ? adminNavItems : memberNavItems
+  // Filter Cantina out of "Vendas" submenu for members without canRegisterSales
+  const canRegisterSales = isAdmin || extraPerms.includes('canRegisterSales' as never)
+  const filteredMemberNavItems: NavEntry[] = memberNavItems.map((entry) => {
+    if (isNavGroup(entry) && entry.label === 'Vendas') {
+      const children = entry.children.filter((c) => c.href !== ROUTES.MEMBER_STORE || canRegisterSales)
+      return { ...entry, children }
+    }
+    return entry
+  })
+  const navItems: NavEntry[] = isAdmin ? adminNavItems : filteredMemberNavItems
 
   // Auto-expand group if current path matches a child
   useEffect(() => {
-    const items = isAdmin ? adminNavItems : memberNavItems
+    const items = isAdmin ? adminNavItems : filteredMemberNavItems
     for (const entry of items) {
       if (isNavGroup(entry)) {
         const hasActiveChild = entry.children.some((child) => pathname.startsWith(child.href))
