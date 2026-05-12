@@ -248,13 +248,15 @@ function MensalidadesTab() {
   const [editDueDate, setEditDueDate] = useState('')
 
   // Bulk form state
-  const [bulkMonth, setBulkMonth] = useState('')
+  const [bulkMonth, setBulkMonth] = useState<number | ''>('')
+  const [bulkYear, setBulkYear] = useState<number | ''>('')
   const [bulkAmount, setBulkAmount] = useState(0)
   const [bulkDueDate, setBulkDueDate] = useState('')
 
   // Single/Recurring form state
   const [singleMemberId, setSingleMemberId] = useState('')
-  const [singleMonth, setSingleMonth] = useState('')
+  const [singleMonth, setSingleMonth] = useState<number | ''>('')
+  const [singleYear, setSingleYear] = useState<number | ''>('')
   const [singleAmount, setSingleAmount] = useState(0)
   const [singleDueDay, setSingleDueDay] = useState(10)
   const [singleRecurring, setSingleRecurring] = useState(false)
@@ -297,27 +299,20 @@ function MensalidadesTab() {
     setMonth(now.getMonth())
   }
 
-  /**
-   * Parses a masked "MM/YYYY" or partial string into ISO "YYYY-MM".
-   * Returns empty string if not a valid 6-digit input.
-   */
-  const parseMonthMask = (masked: string): string => {
-    const digits = masked.replace(/\D/g, '').slice(0, 6)
-    if (digits.length !== 6) return ''
-    return `${digits.slice(2, 6)}-${digits.slice(0, 2)}`
-  }
+  // Year options for month/year selects (previous, current, next 2)
+  const currentYear = now.getFullYear()
+  const yearOptions = [currentYear - 1, currentYear, currentYear + 1, currentYear + 2]
 
   /**
-   * Masked onChange handler for MM/YYYY inputs.
+   * Combine month index (0-11) and year into ISO "YYYY-MM".
    */
-  const handleMonthMaskChange = (setter: (v: string) => void) => (e: React.ChangeEvent<HTMLInputElement>) => {
-    const digits = e.target.value.replace(/\D/g, '').slice(0, 6)
-    const masked = digits.length >= 3 ? `${digits.slice(0, 2)}/${digits.slice(2)}` : digits
-    setter(masked)
+  const monthIso = (m: number | '', y: number | ''): string => {
+    if (m === '' || y === '') return ''
+    return `${y}-${String(m + 1).padStart(2, '0')}`
   }
 
   const handleCreateBulk = () => {
-    const referenceMonthIso = parseMonthMask(bulkMonth)
+    const referenceMonthIso = monthIso(bulkMonth, bulkYear)
     if (!houseId || !referenceMonthIso || !bulkAmount || !bulkDueDate) return
     createBulk.mutate(
       {
@@ -331,6 +326,7 @@ function MensalidadesTab() {
           if (!error) {
             setBulkDialogOpen(false)
             setBulkMonth('')
+            setBulkYear('')
             setBulkAmount(0)
             setBulkDueDate('')
           }
@@ -411,7 +407,7 @@ function MensalidadesTab() {
           Gerencie as mensalidades dos membros
         </p>
         <div className="flex gap-2">
-        {canManage && <Dialog open={singleDialogOpen} onOpenChange={(open) => { setSingleDialogOpen(open); if (!open) { setSingleMemberId(''); setSingleMonth(''); setSingleAmount(0); setSingleDueDay(10); setSingleRecurring(false); setSingleMonths(1) } }}>
+        {canManage && <Dialog open={singleDialogOpen} onOpenChange={(open) => { setSingleDialogOpen(open); if (!open) { setSingleMemberId(''); setSingleMonth(''); setSingleYear(''); setSingleAmount(0); setSingleDueDay(10); setSingleRecurring(false); setSingleMonths(1) } }}>
           <DialogTrigger
             render={
               <Button size="sm" variant="outline" className="gap-1.5">
@@ -439,15 +435,29 @@ function MensalidadesTab() {
                 </select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="single-month">Mês de referência (MM/AAAA)</Label>
-                <Input
-                  id="single-month"
-                  inputMode="numeric"
-                  maxLength={7}
-                  placeholder="03/2026"
-                  value={singleMonth}
-                  onChange={handleMonthMaskChange(setSingleMonth)}
-                />
+                <Label>Mês de referência</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  <select
+                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    value={singleMonth === '' ? '' : String(singleMonth)}
+                    onChange={(e) => setSingleMonth(e.target.value === '' ? '' : Number(e.target.value))}
+                  >
+                    <option value="">Mês</option>
+                    {MONTH_NAMES.map((name, idx) => (
+                      <option key={idx} value={idx}>{name}</option>
+                    ))}
+                  </select>
+                  <select
+                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    value={singleYear === '' ? '' : String(singleYear)}
+                    onChange={(e) => setSingleYear(e.target.value === '' ? '' : Number(e.target.value))}
+                  >
+                    <option value="">Ano</option>
+                    {yearOptions.map((y) => (
+                      <option key={y} value={y}>{y}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
               <div className="space-y-2">
                 <Label>Valor (R$)</Label>
@@ -492,9 +502,9 @@ function MensalidadesTab() {
             <DialogFooter>
               <Button variant="outline" onClick={() => setSingleDialogOpen(false)}>Cancelar</Button>
               <Button
-                disabled={createRecurring.isPending || !singleMemberId || !parseMonthMask(singleMonth) || !singleAmount || !singleDueDay}
+                disabled={createRecurring.isPending || !singleMemberId || !monthIso(singleMonth, singleYear) || !singleAmount || !singleDueDay}
                 onClick={() => {
-                  const startMonthIso = parseMonthMask(singleMonth)
+                  const startMonthIso = monthIso(singleMonth, singleYear)
                   if (!houseId || !startMonthIso) return
                   createRecurring.mutate({
                     houseId,
@@ -506,7 +516,7 @@ function MensalidadesTab() {
                   }, {
                     onSuccess: () => {
                       setSingleDialogOpen(false)
-                      setSingleMemberId(''); setSingleMonth(''); setSingleAmount(0)
+                      setSingleMemberId(''); setSingleMonth(''); setSingleYear(''); setSingleAmount(0)
                       setSingleDueDay(10); setSingleRecurring(false); setSingleMonths(1)
                     },
                   })
@@ -532,15 +542,29 @@ function MensalidadesTab() {
             </DialogHeader>
             <div className="space-y-4 py-2">
               <div className="space-y-2">
-                <Label htmlFor="bulk-month">Mês de referência (MM/AAAA)</Label>
-                <Input
-                  id="bulk-month"
-                  inputMode="numeric"
-                  maxLength={7}
-                  placeholder="03/2026"
-                  value={bulkMonth}
-                  onChange={handleMonthMaskChange(setBulkMonth)}
-                />
+                <Label>Mês de referência</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  <select
+                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    value={bulkMonth === '' ? '' : String(bulkMonth)}
+                    onChange={(e) => setBulkMonth(e.target.value === '' ? '' : Number(e.target.value))}
+                  >
+                    <option value="">Mês</option>
+                    {MONTH_NAMES.map((name, idx) => (
+                      <option key={idx} value={idx}>{name}</option>
+                    ))}
+                  </select>
+                  <select
+                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    value={bulkYear === '' ? '' : String(bulkYear)}
+                    onChange={(e) => setBulkYear(e.target.value === '' ? '' : Number(e.target.value))}
+                  >
+                    <option value="">Ano</option>
+                    {yearOptions.map((y) => (
+                      <option key={y} value={y}>{y}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="bulk-amount">Valor (R$)</Label>
@@ -570,7 +594,7 @@ function MensalidadesTab() {
                 onClick={handleCreateBulk}
                 disabled={
                   createBulk.isPending ||
-                  !parseMonthMask(bulkMonth) ||
+                  !monthIso(bulkMonth, bulkYear) ||
                   !bulkAmount ||
                   !bulkDueDate
                 }
