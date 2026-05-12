@@ -171,6 +171,8 @@ export function StorePageContent({ category }: StorePageContentProps) {
   // Sale cart
   const [cart, setCart] = useState<Array<{ item: StoreItem; quantity: number }>>([])
   const [saleOpen, setSaleOpen] = useState(false)
+  const [saleBuyerType, setSaleBuyerType] = useState<'member' | 'external'>('member')
+  const [saleMemberId, setSaleMemberId] = useState('')
   const [saleBuyerName, setSaleBuyerName] = useState('')
   const [salePaymentMethod, setSalePaymentMethod] = useState<PaymentMethod>('pix')
   const [saleIsPaid, setSaleIsPaid] = useState(true)
@@ -217,6 +219,8 @@ export function StorePageContent({ category }: StorePageContentProps) {
 
   const openCheckout = () => {
     if (cart.length === 0) return
+    setSaleBuyerType('member')
+    setSaleMemberId('')
     setSaleBuyerName('')
     setSalePaymentMethod('pix')
     setSaleIsPaid(true)
@@ -225,14 +229,21 @@ export function StorePageContent({ category }: StorePageContentProps) {
 
   const handleRegisterSale = async () => {
     if (!houseId || cart.length === 0) return
+    if (saleBuyerType === 'member' && !saleMemberId) return
+    if (saleBuyerType === 'external' && !saleBuyerName.trim()) return
     setSaleSubmitting(true)
     try {
+      const selectedMember = members.find((m) => m.id === saleMemberId)
+      const buyerName =
+        saleBuyerType === 'member' ? selectedMember?.fullName : saleBuyerName.trim()
+      const memberId = saleBuyerType === 'member' ? saleMemberId : undefined
       for (const c of cart) {
         await saleMutation.mutateAsync({
           houseId,
           itemId: c.item.id,
           quantity: c.quantity,
-          buyerName: saleBuyerName.trim() || undefined,
+          buyerName: buyerName || undefined,
+          memberId,
           paymentMethod: salePaymentMethod,
           isPaid: saleIsPaid,
         })
@@ -799,12 +810,49 @@ export function StorePageContent({ category }: StorePageContentProps) {
 
           <div className="space-y-3 py-2">
             <div className="space-y-1.5">
-              <label className="text-sm font-medium">Nome do comprador (opcional)</label>
-              <Input
-                placeholder="Nome do comprador"
-                value={saleBuyerName}
-                onChange={(e) => setSaleBuyerName(e.target.value)}
-              />
+              <label className="text-sm font-medium">Comprador</label>
+              <div className="flex gap-1 rounded-md bg-muted p-1">
+                <button
+                  type="button"
+                  className={`flex-1 rounded px-3 py-1.5 text-xs font-medium transition-colors ${
+                    saleBuyerType === 'member'
+                      ? 'bg-background text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                  onClick={() => { setSaleBuyerType('member'); setSaleBuyerName('') }}
+                >
+                  Filho de Santo
+                </button>
+                <button
+                  type="button"
+                  className={`flex-1 rounded px-3 py-1.5 text-xs font-medium transition-colors ${
+                    saleBuyerType === 'external'
+                      ? 'bg-background text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                  onClick={() => { setSaleBuyerType('external'); setSaleMemberId('') }}
+                >
+                  Pessoa de fora
+                </button>
+              </div>
+              {saleBuyerType === 'member' ? (
+                <select
+                  className={SELECT_CLASS}
+                  value={saleMemberId}
+                  onChange={(e) => setSaleMemberId(e.target.value)}
+                >
+                  <option value="">Selecione um filho de santo</option>
+                  {members.map((m) => (
+                    <option key={m.id} value={m.id}>{m.fullName}</option>
+                  ))}
+                </select>
+              ) : (
+                <Input
+                  placeholder="Nome da pessoa"
+                  value={saleBuyerName}
+                  onChange={(e) => setSaleBuyerName(e.target.value)}
+                />
+              )}
             </div>
 
             <div className="space-y-1.5">
@@ -829,7 +877,7 @@ export function StorePageContent({ category }: StorePageContentProps) {
                 className="size-4 rounded border-input"
               />
               <label htmlFor="saleIsPaid" className="text-sm">
-                Pago no ato
+                Pago no ato {saleBuyerType === 'member' && !saleIsPaid && '(fica como fiado)'}
               </label>
             </div>
           </div>
@@ -837,7 +885,12 @@ export function StorePageContent({ category }: StorePageContentProps) {
             <DialogClose render={<Button variant="outline" />}>Cancelar</DialogClose>
             <Button
               onClick={handleRegisterSale}
-              disabled={cart.length === 0 || saleSubmitting}
+              disabled={
+                cart.length === 0 ||
+                saleSubmitting ||
+                (saleBuyerType === 'member' && !saleMemberId) ||
+                (saleBuyerType === 'external' && !saleBuyerName.trim())
+              }
             >
               {saleSubmitting ? 'Registrando...' : `Registrar ${formatCurrency(cartTotal)}`}
             </Button>
