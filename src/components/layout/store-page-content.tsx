@@ -21,6 +21,7 @@ import { useAuthStore } from '@/stores/auth'
 import {
   useStoreItems,
   useCreateStoreItem,
+  useUpdateStoreItem,
   useDeleteStoreItem,
   useDeleteSale,
   useRegisterSale,
@@ -136,7 +137,38 @@ export function StorePageContent({ category }: StorePageContentProps) {
   const [newPrice, setNewPrice] = useState(0)
   const [newStock, setNewStock] = useState('')
   const createMutation = useCreateStoreItem()
+  const updateMutation = useUpdateStoreItem()
   const deleteMutation = useDeleteStoreItem()
+
+  // Stock adjust dialog state
+  const [stockDialogOpen, setStockDialogOpen] = useState(false)
+  const [stockItem, setStockItem] = useState<StoreItem | null>(null)
+  const [stockMode, setStockMode] = useState<'add' | 'set'>('add')
+  const [stockValue, setStockValue] = useState('')
+
+  const openStockDialog = (item: StoreItem) => {
+    setStockItem(item)
+    setStockMode('add')
+    setStockValue('')
+    setStockDialogOpen(true)
+  }
+
+  const handleSaveStock = () => {
+    if (!houseId || !stockItem) return
+    const n = Number(stockValue)
+    if (!Number.isFinite(n) || n < 0) return
+    const nextStock = stockMode === 'add' ? stockItem.stock + n : n
+    updateMutation.mutate(
+      { houseId, itemId: stockItem.id, stock: nextStock },
+      {
+        onSuccess: () => {
+          setStockDialogOpen(false)
+          setStockItem(null)
+          setStockValue('')
+        },
+      },
+    )
+  }
   const deleteSaleMutation = useDeleteSale()
   const [deleteSaleAlertId, setDeleteSaleAlertId] = useState<string | null>(null)
 
@@ -486,6 +518,10 @@ export function StorePageContent({ category }: StorePageContentProps) {
                               <MoreVertical className="size-4" />
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => openStockDialog(item)}>
+                                <Package className="size-4" />
+                                Ajustar estoque
+                              </DropdownMenuItem>
                               <DropdownMenuItem
                                 disabled={deleteMutation.isPending}
                                 onClick={() => handleDeleteItem(item.id)}
@@ -754,63 +790,138 @@ export function StorePageContent({ category }: StorePageContentProps) {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Checkout Dialog */}
-      <Dialog open={saleOpen} onOpenChange={setSaleOpen}>
-        <DialogContent className="max-h-[85dvh] overflow-y-auto">
+      {/* Stock adjust Dialog */}
+      <Dialog open={stockDialogOpen} onOpenChange={(open) => { setStockDialogOpen(open); if (!open) { setStockItem(null); setStockValue('') } }}>
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle>Finalizar Venda</DialogTitle>
+            <DialogTitle>Ajustar estoque</DialogTitle>
             <DialogDescription>
-              {cart.length} {cart.length === 1 ? 'item' : 'itens'} no carrinho
+              {stockItem ? `${stockItem.name} — Estoque atual: ${stockItem.stock}` : ''}
             </DialogDescription>
           </DialogHeader>
-
-          {/* Cart items */}
-          <div className="space-y-2 rounded-lg border bg-muted/30 p-3">
-            {cart.map((c) => (
-              <div key={c.item.id} className="flex items-center gap-2 text-sm">
-                <div className="min-w-0 flex-1">
-                  <p className="truncate font-medium">{c.item.name}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {c.quantity}x {formatCurrency(c.item.price)}
-                  </p>
-                </div>
-                <div className="flex items-center gap-1">
-                  <Button variant="outline" size="icon" className="size-7" onClick={() => decCart(c.item.id)}>
-                    <Minus className="size-3" />
-                  </Button>
-                  <span className="w-6 text-center text-xs font-medium tabular-nums">{c.quantity}</span>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="size-7"
-                    disabled={c.quantity >= c.item.stock}
-                    onClick={() => incCart(c.item.id)}
-                  >
-                    <Plus className="size-3" />
-                  </Button>
-                </div>
-                <span className="w-20 text-right text-sm font-semibold tabular-nums">
-                  {formatCurrency(c.item.price * c.quantity)}
-                </span>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="size-6 text-muted-foreground hover:text-destructive"
-                  onClick={() => removeFromCart(c.item.id)}
-                >
-                  <Trash2 className="size-3" />
-                </Button>
-              </div>
-            ))}
-            <div className="flex items-center justify-between border-t pt-2 text-sm font-semibold">
-              <span>Total</span>
-              <span>{formatCurrency(cartTotal)}</span>
+          <div className="space-y-3 py-2">
+            <div className="flex gap-1 rounded-md bg-muted p-1">
+              <button
+                type="button"
+                className={`flex-1 rounded px-3 py-1.5 text-xs font-medium transition-colors ${
+                  stockMode === 'add'
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+                onClick={() => setStockMode('add')}
+              >
+                Adicionar
+              </button>
+              <button
+                type="button"
+                className={`flex-1 rounded px-3 py-1.5 text-xs font-medium transition-colors ${
+                  stockMode === 'set'
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+                onClick={() => setStockMode('set')}
+              >
+                Definir total
+              </button>
             </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">
+                {stockMode === 'add' ? 'Quantidade a adicionar' : 'Novo estoque total'}
+              </label>
+              <Input
+                type="number"
+                min={0}
+                placeholder="0"
+                value={stockValue}
+                onChange={(e) => setStockValue(e.target.value)}
+              />
+            </div>
+            {stockItem && stockValue && Number(stockValue) >= 0 && (
+              <p className="text-sm text-muted-foreground">
+                Estoque resultante:{' '}
+                <span className="font-semibold text-foreground">
+                  {stockMode === 'add' ? stockItem.stock + Number(stockValue) : Number(stockValue)}
+                </span>
+              </p>
+            )}
+          </div>
+          <DialogFooter>
+            <DialogClose render={<Button variant="outline" />}>Cancelar</DialogClose>
+            <Button
+              onClick={handleSaveStock}
+              disabled={!stockValue || Number(stockValue) < 0 || updateMutation.isPending}
+            >
+              {updateMutation.isPending ? 'Salvando...' : 'Salvar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Checkout Dialog */}
+      <Dialog open={saleOpen} onOpenChange={setSaleOpen}>
+        <DialogContent className="max-h-[90dvh] overflow-hidden p-0 sm:max-w-md">
+          {/* Header with total */}
+          <div className="bg-gradient-to-br from-primary to-primary/80 px-5 py-4 text-primary-foreground">
+            <p className="text-xs font-medium uppercase tracking-wider text-primary-foreground/70">
+              Total da venda
+            </p>
+            <p className="mt-0.5 text-3xl font-bold tracking-tight">{formatCurrency(cartTotal)}</p>
+            <p className="mt-0.5 text-xs text-primary-foreground/80">
+              {cartCount} {cartCount === 1 ? 'item' : 'itens'} no carrinho
+            </p>
           </div>
 
-          <div className="space-y-3 py-2">
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">Comprador</label>
+          <div className="max-h-[calc(90dvh-7rem)] space-y-5 overflow-y-auto px-5 py-4">
+            {/* Cart items */}
+            <section className="space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Itens
+              </p>
+              <div className="divide-y rounded-lg border">
+                {cart.map((c) => (
+                  <div key={c.item.id} className="flex items-center gap-2 px-3 py-2.5">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium">{c.item.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {formatCurrency(c.item.price)} cada
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1 rounded-md border bg-muted/30 p-0.5">
+                      <Button variant="ghost" size="icon" className="size-7" onClick={() => decCart(c.item.id)}>
+                        <Minus className="size-3" />
+                      </Button>
+                      <span className="w-6 text-center text-xs font-semibold tabular-nums">{c.quantity}</span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="size-7"
+                        disabled={c.quantity >= c.item.stock}
+                        onClick={() => incCart(c.item.id)}
+                      >
+                        <Plus className="size-3" />
+                      </Button>
+                    </div>
+                    <span className="w-20 text-right text-sm font-semibold tabular-nums">
+                      {formatCurrency(c.item.price * c.quantity)}
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="size-7 text-muted-foreground hover:text-destructive"
+                      onClick={() => removeFromCart(c.item.id)}
+                    >
+                      <Trash2 className="size-3.5" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            {/* Buyer */}
+            <section className="space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Comprador
+              </p>
               <div className="flex gap-1 rounded-md bg-muted p-1">
                 <button
                   type="button"
@@ -853,10 +964,13 @@ export function StorePageContent({ category }: StorePageContentProps) {
                   onChange={(e) => setSaleBuyerName(e.target.value)}
                 />
               )}
-            </div>
+            </section>
 
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">Método de pagamento</label>
+            {/* Payment */}
+            <section className="space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Pagamento
+              </p>
               <select
                 className={SELECT_CLASS}
                 value={salePaymentMethod}
@@ -866,24 +980,33 @@ export function StorePageContent({ category }: StorePageContentProps) {
                   <option key={m.value} value={m.value}>{m.label}</option>
                 ))}
               </select>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <input
-                id="saleIsPaid"
-                type="checkbox"
-                checked={saleIsPaid}
-                onChange={(e) => setSaleIsPaid(e.target.checked)}
-                className="size-4 rounded border-input"
-              />
-              <label htmlFor="saleIsPaid" className="text-sm">
-                Pago no ato {saleBuyerType === 'member' && !saleIsPaid && '(fica como fiado)'}
+              <label
+                htmlFor="saleIsPaid"
+                className="flex cursor-pointer items-center gap-2 rounded-md border bg-muted/30 px-3 py-2"
+              >
+                <input
+                  id="saleIsPaid"
+                  type="checkbox"
+                  checked={saleIsPaid}
+                  onChange={(e) => setSaleIsPaid(e.target.checked)}
+                  className="size-4 rounded border-input"
+                />
+                <span className="text-sm">
+                  Pago no ato
+                  {saleBuyerType === 'member' && !saleIsPaid && (
+                    <span className="ml-1 text-xs text-muted-foreground">(fica como fiado)</span>
+                  )}
+                </span>
               </label>
-            </div>
+            </section>
           </div>
-          <DialogFooter>
-            <DialogClose render={<Button variant="outline" />}>Cancelar</DialogClose>
+
+          <div className="flex shrink-0 items-center gap-2 border-t bg-background px-5 py-3">
+            <DialogClose render={<Button variant="outline" className="flex-1 sm:flex-none" />}>
+              Cancelar
+            </DialogClose>
             <Button
+              className="flex-1"
               onClick={handleRegisterSale}
               disabled={
                 cart.length === 0 ||
@@ -892,9 +1015,9 @@ export function StorePageContent({ category }: StorePageContentProps) {
                 (saleBuyerType === 'external' && !saleBuyerName.trim())
               }
             >
-              {saleSubmitting ? 'Registrando...' : `Registrar ${formatCurrency(cartTotal)}`}
+              {saleSubmitting ? 'Registrando...' : 'Registrar venda'}
             </Button>
-          </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
 
