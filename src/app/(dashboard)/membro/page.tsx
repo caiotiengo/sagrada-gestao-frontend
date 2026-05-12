@@ -176,18 +176,24 @@ export default function MemberHomePage() {
               const isAdminRole = currentHouse?.role === 'admin'
               return isAdminRole || (currentHouse?.extraPermissions ?? []).includes(required as never)
             })
-            .map((action) => (
-              <Link key={action.href} href={action.href} className="group">
-                <div className="flex flex-col items-center gap-2 py-2">
-                  <div className={`flex size-12 items-center justify-center rounded-2xl transition-transform duration-150 group-hover:scale-105 ${action.color}`}>
-                    <action.icon className="size-5" />
+            .map((action) => {
+              // For members with canRegisterSales, route Cantina to the admin manage view
+              const isAdminRole = currentHouse?.role === 'admin'
+              const canSell = isAdminRole || (currentHouse?.extraPermissions ?? []).includes('canRegisterSales' as never)
+              const href = canSell && action.href === ROUTES.MEMBER_STORE ? ROUTES.ADMIN_CANTEEN : action.href
+              return (
+                <Link key={action.href} href={href} className="group">
+                  <div className="flex flex-col items-center gap-2 py-2">
+                    <div className={`flex size-12 items-center justify-center rounded-2xl transition-transform duration-150 group-hover:scale-105 ${action.color}`}>
+                      <action.icon className="size-5" />
+                    </div>
+                    <span className="text-center text-[0.6875rem] font-medium leading-tight text-muted-foreground group-hover:text-foreground">
+                      {action.label}
+                    </span>
                   </div>
-                  <span className="text-center text-[0.6875rem] font-medium leading-tight text-muted-foreground group-hover:text-foreground">
-                    {action.label}
-                  </span>
-                </div>
-              </Link>
-            ))}
+                </Link>
+              )
+            })}
         </div>
       </div>
 

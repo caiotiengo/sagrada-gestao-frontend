@@ -120,14 +120,30 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const [expandedGroups, setExpandedGroups] = useState<string[]>([])
   const isAdmin = currentHouse?.role === 'admin'
   const extraPerms = currentHouse?.extraPermissions ?? []
-  const memberExtraNav = !isAdmin
-    ? permissionNavItems.filter((item) => item.permission && extraPerms.includes(item.permission as never))
-    : []
-  // Filter Cantina out of "Vendas" submenu for members without canRegisterSales
   const canRegisterSales = isAdmin || extraPerms.includes('canRegisterSales' as never)
+  // memberExtraNav holds the "Gestão" links shown under the main nav (e.g. "Gerenciar Caixa").
+  // For canRegisterSales we don't duplicate Loja/Cantina here — the main "Vendas" submenu
+  // already points to the admin/manage view (see filteredMemberNavItems below).
+  const memberExtraNav = !isAdmin
+    ? permissionNavItems.filter((item) =>
+        item.permission
+        && extraPerms.includes(item.permission as never)
+        && item.href !== ROUTES.ADMIN_STORE
+        && item.href !== ROUTES.ADMIN_CANTEEN,
+      )
+    : []
+  // For members with canRegisterSales: Vendas > Cantina/Loja point to /admin/* (manage view).
+  // For members without: hide Cantina entirely (Loja stays as a buyer page).
   const filteredMemberNavItems: NavEntry[] = memberNavItems.map((entry) => {
     if (isNavGroup(entry) && entry.label === 'Vendas') {
-      const children = entry.children.filter((c) => c.href !== ROUTES.MEMBER_STORE || canRegisterSales)
+      const children = entry.children
+        .filter((c) => c.href !== ROUTES.MEMBER_STORE || canRegisterSales)
+        .map((c) => {
+          if (!canRegisterSales) return c
+          if (c.href === ROUTES.MEMBER_LOJA) return { ...c, href: ROUTES.ADMIN_STORE }
+          if (c.href === ROUTES.MEMBER_STORE) return { ...c, href: ROUTES.ADMIN_CANTEEN }
+          return c
+        })
       return { ...entry, children }
     }
     return entry
