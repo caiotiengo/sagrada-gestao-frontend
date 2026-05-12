@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react'
 import {
   Package,
   Plus,
+  Minus,
   ShoppingCart,
   DollarSign,
   Clock,
@@ -167,42 +168,80 @@ export function StorePageContent({ category }: StorePageContentProps) {
     )
   }
 
-  // Sale dialog
+  // Sale cart
+  const [cart, setCart] = useState<Array<{ item: StoreItem; quantity: number }>>([])
   const [saleOpen, setSaleOpen] = useState(false)
-  const [saleItem, setSaleItem] = useState<StoreItem | null>(null)
-  const [saleQuantity, setSaleQuantity] = useState('1')
   const [saleBuyerName, setSaleBuyerName] = useState('')
   const [salePaymentMethod, setSalePaymentMethod] = useState<PaymentMethod>('pix')
   const [saleIsPaid, setSaleIsPaid] = useState(true)
+  const [saleSubmitting, setSaleSubmitting] = useState(false)
   const saleMutation = useRegisterSale()
 
-  const handleOpenSale = (item: StoreItem) => {
-    setSaleItem(item)
-    setSaleQuantity('1')
+  const cartTotal = cart.reduce((sum, c) => sum + c.item.price * c.quantity, 0)
+  const cartCount = cart.reduce((sum, c) => sum + c.quantity, 0)
+  const cartQty = (itemId: string) => cart.find((c) => c.item.id === itemId)?.quantity ?? 0
+
+  const addToCart = (item: StoreItem) => {
+    if (!item.isActive || item.stock <= 0) return
+    setCart((prev) => {
+      const existing = prev.find((c) => c.item.id === item.id)
+      if (existing) {
+        if (existing.quantity >= item.stock) return prev
+        return prev.map((c) => (c.item.id === item.id ? { ...c, quantity: c.quantity + 1 } : c))
+      }
+      return [...prev, { item, quantity: 1 }]
+    })
+  }
+
+  const incCart = (itemId: string) => {
+    setCart((prev) =>
+      prev.map((c) => {
+        if (c.item.id !== itemId) return c
+        if (c.quantity >= c.item.stock) return c
+        return { ...c, quantity: c.quantity + 1 }
+      }),
+    )
+  }
+
+  const decCart = (itemId: string) => {
+    setCart((prev) =>
+      prev
+        .map((c) => (c.item.id === itemId ? { ...c, quantity: c.quantity - 1 } : c))
+        .filter((c) => c.quantity > 0),
+    )
+  }
+
+  const removeFromCart = (itemId: string) => {
+    setCart((prev) => prev.filter((c) => c.item.id !== itemId))
+  }
+
+  const openCheckout = () => {
+    if (cart.length === 0) return
     setSaleBuyerName('')
     setSalePaymentMethod('pix')
     setSaleIsPaid(true)
     setSaleOpen(true)
   }
 
-  const handleRegisterSale = () => {
-    if (!houseId || !saleItem || !saleQuantity) return
-    saleMutation.mutate(
-      {
-        houseId,
-        itemId: saleItem.id,
-        quantity: Number(saleQuantity),
-        buyerName: saleBuyerName.trim() || undefined,
-        paymentMethod: salePaymentMethod,
-        isPaid: saleIsPaid,
-      },
-      {
-        onSuccess: () => {
-          setSaleOpen(false)
-          setSaleItem(null)
-        },
-      },
-    )
+  const handleRegisterSale = async () => {
+    if (!houseId || cart.length === 0) return
+    setSaleSubmitting(true)
+    try {
+      for (const c of cart) {
+        await saleMutation.mutateAsync({
+          houseId,
+          itemId: c.item.id,
+          quantity: c.quantity,
+          buyerName: saleBuyerName.trim() || undefined,
+          paymentMethod: salePaymentMethod,
+          isPaid: saleIsPaid,
+        })
+      }
+      setCart([])
+      setSaleOpen(false)
+    } finally {
+      setSaleSubmitting(false)
+    }
   }
 
   // Sales tab state
@@ -373,50 +412,85 @@ export function StorePageContent({ category }: StorePageContentProps) {
             <ListSkeleton rows={6} />
           ) : filteredItems.length > 0 ? (
             <div className="space-y-2">
-              {filteredItems.map((item) => (
-                <Card key={item.id}>
-                  <CardContent className="flex items-center justify-between p-4">
-                    <div className="min-w-0 flex-1 space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="truncate font-medium">{item.name}</span>
-                        <Badge variant={item.isActive ? 'default' : 'secondary'}>
-                          {item.isActive ? 'Ativo' : 'Inativo'}
-                        </Badge>
+              {filteredItems.map((item) => {
+                const qty = cartQty(item.id)
+                const remaining = item.stock - qty
+                const canAdd = item.isActive && item.stock > 0 && remaining > 0
+                return (
+                  <Card key={item.id}>
+                    <CardContent className="flex items-center justify-between gap-3 p-4">
+                      <div className="min-w-0 flex-1 space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="truncate font-medium">{item.name}</span>
+                          <Badge variant={item.isActive ? 'default' : 'secondary'}>
+                            {item.isActive ? 'Ativo' : 'Inativo'}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                          <span>{formatCurrency(item.price)}</span>
+                          <span>Estoque: {remaining}/{item.stock}</span>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                        <span>{formatCurrency(item.price)}</span>
-                        <span>Estoque: {item.stock}</span>
+                      <div className="flex shrink-0 items-center gap-1.5">
+                        {canManage && qty > 0 ? (
+                          <div className="flex items-center gap-1">
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="size-8"
+                              onClick={() => decCart(item.id)}
+                            >
+                              <Minus className="size-3" />
+                            </Button>
+                            <span className="w-6 text-center text-sm font-medium tabular-nums">{qty}</span>
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="size-8"
+                              disabled={remaining <= 0}
+                              onClick={() => incCart(item.id)}
+                            >
+                              <Plus className="size-3" />
+                            </Button>
+                          </div>
+                        ) : (
+                          canManage && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="gap-1.5"
+                              disabled={!canAdd}
+                              onClick={() => addToCart(item)}
+                            >
+                              <Plus className="size-3.5" />
+                              {item.stock <= 0 ? 'Sem estoque' : 'Adicionar'}
+                            </Button>
+                          )
+                        )}
+                        {canManage && (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger
+                              render={<Button variant="ghost" size="icon" className="size-8" />}
+                            >
+                              <MoreVertical className="size-4" />
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem
+                                disabled={deleteMutation.isPending}
+                                onClick={() => handleDeleteItem(item.id)}
+                                className="text-destructive focus:text-destructive"
+                              >
+                                <Trash2 className="size-4" />
+                                Excluir item
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
                       </div>
-                    </div>
-                    {canManage && (
-                      <DropdownMenu>
-                        <DropdownMenuTrigger
-                          render={<Button variant="ghost" size="icon" className="size-8" />}
-                        >
-                          <MoreVertical className="size-4" />
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            disabled={!item.isActive || item.stock <= 0}
-                            onClick={() => handleOpenSale(item)}
-                          >
-                            <ShoppingCart className="size-4" />
-                            Registrar venda
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            disabled={deleteMutation.isPending}
-                            onClick={() => handleDeleteItem(item.id)}
-                            className="text-destructive focus:text-destructive"
-                          >
-                            <Trash2 className="size-4" />
-                            Excluir item
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
+                    </CardContent>
+                  </Card>
+                )
+              })}
 
               {itemTotalPages > 1 && (
                 <div className="flex items-center justify-center gap-2 pt-2">
@@ -669,29 +743,61 @@ export function StorePageContent({ category }: StorePageContentProps) {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Register Sale Dialog */}
+      {/* Checkout Dialog */}
       <Dialog open={saleOpen} onOpenChange={setSaleOpen}>
-        <DialogContent>
+        <DialogContent className="max-h-[85dvh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Registrar Venda</DialogTitle>
+            <DialogTitle>Finalizar Venda</DialogTitle>
             <DialogDescription>
-              {saleItem
-                ? `Registre uma venda de "${saleItem.name}" (${formatCurrency(saleItem.price)} cada)`
-                : 'Selecione um item'}
+              {cart.length} {cart.length === 1 ? 'item' : 'itens'} no carrinho
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-3 py-2">
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">Quantidade</label>
-              <Input
-                type="number"
-                min={1}
-                max={saleItem?.stock}
-                value={saleQuantity}
-                onChange={(e) => setSaleQuantity(e.target.value)}
-              />
-            </div>
 
+          {/* Cart items */}
+          <div className="space-y-2 rounded-lg border bg-muted/30 p-3">
+            {cart.map((c) => (
+              <div key={c.item.id} className="flex items-center gap-2 text-sm">
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-medium">{c.item.name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {c.quantity}x {formatCurrency(c.item.price)}
+                  </p>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Button variant="outline" size="icon" className="size-7" onClick={() => decCart(c.item.id)}>
+                    <Minus className="size-3" />
+                  </Button>
+                  <span className="w-6 text-center text-xs font-medium tabular-nums">{c.quantity}</span>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="size-7"
+                    disabled={c.quantity >= c.item.stock}
+                    onClick={() => incCart(c.item.id)}
+                  >
+                    <Plus className="size-3" />
+                  </Button>
+                </div>
+                <span className="w-20 text-right text-sm font-semibold tabular-nums">
+                  {formatCurrency(c.item.price * c.quantity)}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-6 text-muted-foreground hover:text-destructive"
+                  onClick={() => removeFromCart(c.item.id)}
+                >
+                  <Trash2 className="size-3" />
+                </Button>
+              </div>
+            ))}
+            <div className="flex items-center justify-between border-t pt-2 text-sm font-semibold">
+              <span>Total</span>
+              <span>{formatCurrency(cartTotal)}</span>
+            </div>
+          </div>
+
+          <div className="space-y-3 py-2">
             <div className="space-y-1.5">
               <label className="text-sm font-medium">Nome do comprador (opcional)</label>
               <Input
@@ -726,25 +832,31 @@ export function StorePageContent({ category }: StorePageContentProps) {
                 Pago no ato
               </label>
             </div>
-
-            {saleItem && saleQuantity && (
-              <p className="text-sm text-muted-foreground">
-                Total: {formatCurrency(saleItem.price * Number(saleQuantity))}
-                {!saleIsPaid && ' (pendurado)'}
-              </p>
-            )}
           </div>
           <DialogFooter>
             <DialogClose render={<Button variant="outline" />}>Cancelar</DialogClose>
             <Button
               onClick={handleRegisterSale}
-              disabled={!saleQuantity || Number(saleQuantity) < 1 || saleMutation.isPending}
+              disabled={cart.length === 0 || saleSubmitting}
             >
-              {saleMutation.isPending ? 'Registrando...' : 'Registrar Venda'}
+              {saleSubmitting ? 'Registrando...' : `Registrar ${formatCurrency(cartTotal)}`}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Floating cart bar */}
+      {cartCount > 0 && !saleOpen && (
+        <div className="fixed inset-x-0 bottom-16 z-40 px-4 pb-2 sm:bottom-0 sm:pb-4">
+          <div className="mx-auto max-w-md">
+            <Button size="lg" className="w-full gap-2 shadow-lg" onClick={openCheckout}>
+              <ShoppingCart className="size-4" />
+              Finalizar venda ({cartCount} {cartCount === 1 ? 'item' : 'itens'})
+              <span className="ml-auto font-semibold">{formatCurrency(cartTotal)}</span>
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Update Sale Status Dialog */}
       <Dialog open={statusDialogOpen} onOpenChange={(open) => { setStatusDialogOpen(open); if (!open) setStatusSaleId('') }}>

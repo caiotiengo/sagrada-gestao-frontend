@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import Image from 'next/image'
 import {
   ShoppingCart,
@@ -62,6 +62,11 @@ export default function SiteStorePage() {
   const hasCanteen = canteenItems.length > 0
   const hasBoth = hasStore && hasCanteen
   const [activeCategory, setActiveCategory] = useState<'store' | 'canteen'>('store')
+  useEffect(() => {
+    if (!hasStore && hasCanteen && activeCategory === 'store') {
+      setActiveCategory('canteen')
+    }
+  }, [hasStore, hasCanteen, activeCategory])
   const displayItems = activeCategory === 'store' ? storeItems : canteenItems
 
   const addToCart = (item: { id: string; name: string; price: number; stock: number }) => {

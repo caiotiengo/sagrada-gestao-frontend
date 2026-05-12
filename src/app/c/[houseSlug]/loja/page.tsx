@@ -1,6 +1,6 @@
 'use client'
 
-import { use, useState, useMemo } from 'react'
+import { use, useEffect, useState, useMemo } from 'react'
 import Image from 'next/image'
 import { ShoppingCart, Loader2, Minus, Plus, Trash2, Store, UtensilsCrossed, ShoppingBag } from 'lucide-react'
 
@@ -64,6 +64,12 @@ export default function PublicStorePage({ params }: PageProps) {
   const hasCanteen = canteenItems.length > 0
   const hasBoth = hasStore && hasCanteen
   const [activeCategory, setActiveCategory] = useState<'store' | 'canteen'>('store')
+  // If only canteen exists, switch default to canteen
+  useEffect(() => {
+    if (!hasStore && hasCanteen && activeCategory === 'store') {
+      setActiveCategory('canteen')
+    }
+  }, [hasStore, hasCanteen, activeCategory])
   const displayItems = activeCategory === 'store' ? storeItems : canteenItems
 
   const addToCart = (item: { id: string; name: string; price: number; stock: number }) => {
