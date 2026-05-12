@@ -1,0 +1,70 @@
+[debug] [2026-05-12T19:54:09.939Z] ----------------------------------------------------------------------
+[debug] [2026-05-12T19:54:09.941Z] Command:       /usr/local/bin/node /Users/caio/Documents/Github/sagrada-gestao-frontend/node_modules/.bin/firebase deploy --only hosting --project=sagrada-gestao
+[debug] [2026-05-12T19:54:09.941Z] CLI Version:   15.9.1
+[debug] [2026-05-12T19:54:09.941Z] Platform:      darwin
+[debug] [2026-05-12T19:54:09.941Z] Node Version:  v24.14.0
+[debug] [2026-05-12T19:54:09.941Z] Time:          Tue May 12 2026 16:54:09 GMT-0300 (Brasilia Standard Time)
+[debug] [2026-05-12T19:54:09.941Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-05-12T19:54:09.941Z] >>> [apiv2][query] GET https://firebase-public.firebaseio.com/cli.json [none]
+[debug] [2026-05-12T19:54:10.642Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-05-12T19:54:10.642Z] > authorizing via signed-in user (caio@bitminrs.com)
+[debug] [2026-05-12T19:54:10.642Z] [iam] checking project sagrada-gestao for permissions ["firebase.projects.get","firebasehosting.sites.update"]
+[debug] [2026-05-12T19:54:10.643Z] Checked if tokens are valid: false, expires at: 1778284457372
+[debug] [2026-05-12T19:54:10.643Z] Checked if tokens are valid: false, expires at: 1778284457372
+[debug] [2026-05-12T19:54:10.643Z] > refreshing access token with scopes: []
+[debug] [2026-05-12T19:54:10.643Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2026-05-12T19:54:10.643Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-05-12T19:54:10.891Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 200
+[debug] [2026-05-12T19:54:10.891Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-05-12T19:54:10.904Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/sagrada-gestao:testIamPermissions [none]
+[debug] [2026-05-12T19:54:10.904Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/sagrada-gestao:testIamPermissions  x-goog-user-project=sagrada-gestao
+[debug] [2026-05-12T19:54:10.904Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/sagrada-gestao:testIamPermissions {"permissions":["firebase.projects.get","firebasehosting.sites.update"]}
+[debug] [2026-05-12T19:54:11.076Z] <<< [apiv2][status] GET https://firebase-public.firebaseio.com/cli.json 200
+[debug] [2026-05-12T19:54:11.077Z] <<< [apiv2][body] GET https://firebase-public.firebaseio.com/cli.json {"cloudBuildErrorAfter":1594252800000,"cloudBuildWarnAfter":1590019200000,"defaultNode10After":1594252800000,"minVersion":"3.0.5","node8DeploysDisabledAfter":1613390400000,"node8RuntimeDisabledAfter":1615809600000,"node8WarnAfter":1600128000000}
+[debug] [2026-05-12T19:54:11.911Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/sagrada-gestao:testIamPermissions 403
+[debug] [2026-05-12T19:54:11.911Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/sagrada-gestao:testIamPermissions {"error":{"code":403,"message":"Caller does not have required permission to use project sagrada-gestao. Grant the caller the roles/serviceusage.serviceUsageConsumer role, or a custom role with the serviceusage.services.use permission, by visiting https://console.developers.google.com/iam-admin/iam?project=sagrada-gestao and then retry. Propagation of the new permission may take a few minutes.","status":"PERMISSION_DENIED","details":[{"@type":"type.googleapis.com/google.rpc.ErrorInfo","reason":"USER_PROJECT_DENIED","domain":"googleapis.com","metadata":{"consoleUrl":"https://console.developers.google.com/iam-admin/iam?project=sagrada-gestao","consumer":"projects/sagrada-gestao","service":"cloudresourcemanager.googleapis.com","containerInfo":"sagrada-gestao"}},{"@type":"type.googleapis.com/google.rpc.LocalizedMessage","locale":"en-US","message":"Caller does not have required permission to use project sagrada-gestao. Grant the caller the roles/serviceusage.serviceUsageConsumer role, or a custom role with the serviceusage.services.use permission, by visiting https://console.developers.google.com/iam-admin/iam?project=sagrada-gestao and then retry. Propagation of the new permission may take a few minutes."},{"@type":"type.googleapis.com/google.rpc.Help","links":[{"description":"Google developer console IAM admin","url":"https://console.developers.google.com/iam-admin/iam?project=sagrada-gestao"}]}]}}
+[debug] [2026-05-12T19:54:11.912Z] [iam] error while checking permissions, command may fail: Request to https://cloudresourcemanager.googleapis.com/v1/projects/sagrada-gestao:testIamPermissions had HTTP Error: 403, Caller does not have required permission to use project sagrada-gestao. Grant the caller the roles/serviceusage.serviceUsageConsumer role, or a custom role with the serviceusage.services.use permission, by visiting https://console.developers.google.com/iam-admin/iam?project=sagrada-gestao and then retry. Propagation of the new permission may take a few minutes.
+[debug] [2026-05-12T19:54:11.913Z] Checked if tokens are valid: true, expires at: 1778619249891
+[debug] [2026-05-12T19:54:11.913Z] Checked if tokens are valid: true, expires at: 1778619249891
+[debug] [2026-05-12T19:54:11.913Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/sagrada-gestao [none]
+[debug] [2026-05-12T19:54:12.353Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/sagrada-gestao 403
+[debug] [2026-05-12T19:54:12.353Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/sagrada-gestao {"error":{"code":403,"message":"The caller does not have permission","status":"PERMISSION_DENIED"}}
+[debug] [2026-05-12T19:54:12.353Z] Request to https://firebase.googleapis.com/v1beta1/projects/sagrada-gestao had HTTP Error: 403, The caller does not have permission
+[debug] [2026-05-12T19:54:12.552Z] FirebaseError: Request to https://firebase.googleapis.com/v1beta1/projects/sagrada-gestao had HTTP Error: 403, The caller does not have permission
+    at responseToError (/Users/caio/Documents/Github/sagrada-gestao-frontend/node_modules/firebase-tools/lib/responseToError.js:53:12)
+    at RetryOperation._fn (/Users/caio/Documents/Github/sagrada-gestao-frontend/node_modules/firebase-tools/lib/apiv2.js:333:77)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+[error] 
+[error] Error: Failed to get Firebase project sagrada-gestao. Please make sure the project exists and your account has permission to access it.
+[debug] [2026-05-12T19:57:39.473Z] ----------------------------------------------------------------------
+[debug] [2026-05-12T19:57:39.474Z] Command:       /usr/local/bin/node /Users/caio/Documents/Github/sagrada-gestao-frontend/node_modules/.bin/firebase deploy --only hosting --project=sagrada-gestao
+[debug] [2026-05-12T19:57:39.474Z] CLI Version:   15.9.1
+[debug] [2026-05-12T19:57:39.474Z] Platform:      darwin
+[debug] [2026-05-12T19:57:39.474Z] Node Version:  v24.14.0
+[debug] [2026-05-12T19:57:39.474Z] Time:          Tue May 12 2026 16:57:39 GMT-0300 (Brasilia Standard Time)
+[debug] [2026-05-12T19:57:39.474Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-05-12T19:57:40.011Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-05-12T19:57:40.011Z] > authorizing via signed-in user (caio@bitminrs.com)
+[debug] [2026-05-12T19:57:40.011Z] [iam] checking project sagrada-gestao for permissions ["firebase.projects.get","firebasehosting.sites.update"]
+[debug] [2026-05-12T19:57:40.011Z] Checked if tokens are valid: true, expires at: 1778619249891
+[debug] [2026-05-12T19:57:40.011Z] Checked if tokens are valid: true, expires at: 1778619249891
+[debug] [2026-05-12T19:57:40.012Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/sagrada-gestao:testIamPermissions [none]
+[debug] [2026-05-12T19:57:40.012Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/sagrada-gestao:testIamPermissions  x-goog-user-project=sagrada-gestao
+[debug] [2026-05-12T19:57:40.012Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/sagrada-gestao:testIamPermissions {"permissions":["firebase.projects.get","firebasehosting.sites.update"]}
+[debug] [2026-05-12T19:57:41.016Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/sagrada-gestao:testIamPermissions 403
+[debug] [2026-05-12T19:57:41.017Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/sagrada-gestao:testIamPermissions {"error":{"code":403,"message":"Caller does not have required permission to use project sagrada-gestao. Grant the caller the roles/serviceusage.serviceUsageConsumer role, or a custom role with the serviceusage.services.use permission, by visiting https://console.developers.google.com/iam-admin/iam?project=sagrada-gestao and then retry. Propagation of the new permission may take a few minutes.","status":"PERMISSION_DENIED","details":[{"@type":"type.googleapis.com/google.rpc.ErrorInfo","reason":"USER_PROJECT_DENIED","domain":"googleapis.com","metadata":{"consoleUrl":"https://console.developers.google.com/iam-admin/iam?project=sagrada-gestao","containerInfo":"sagrada-gestao","service":"cloudresourcemanager.googleapis.com","consumer":"projects/sagrada-gestao"}},{"@type":"type.googleapis.com/google.rpc.LocalizedMessage","locale":"en-US","message":"Caller does not have required permission to use project sagrada-gestao. Grant the caller the roles/serviceusage.serviceUsageConsumer role, or a custom role with the serviceusage.services.use permission, by visiting https://console.developers.google.com/iam-admin/iam?project=sagrada-gestao and then retry. Propagation of the new permission may take a few minutes."},{"@type":"type.googleapis.com/google.rpc.Help","links":[{"description":"Google developer console IAM admin","url":"https://console.developers.google.com/iam-admin/iam?project=sagrada-gestao"}]}]}}
+[debug] [2026-05-12T19:57:41.018Z] [iam] error while checking permissions, command may fail: Request to https://cloudresourcemanager.googleapis.com/v1/projects/sagrada-gestao:testIamPermissions had HTTP Error: 403, Caller does not have required permission to use project sagrada-gestao. Grant the caller the roles/serviceusage.serviceUsageConsumer role, or a custom role with the serviceusage.services.use permission, by visiting https://console.developers.google.com/iam-admin/iam?project=sagrada-gestao and then retry. Propagation of the new permission may take a few minutes.
+[debug] [2026-05-12T19:57:41.018Z] Checked if tokens are valid: true, expires at: 1778619249891
+[debug] [2026-05-12T19:57:41.018Z] Checked if tokens are valid: true, expires at: 1778619249891
+[debug] [2026-05-12T19:57:41.018Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/sagrada-gestao [none]
+[debug] [2026-05-12T19:57:41.524Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/sagrada-gestao 403
+[debug] [2026-05-12T19:57:41.524Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/sagrada-gestao {"error":{"code":403,"message":"The caller does not have permission","status":"PERMISSION_DENIED"}}
+[debug] [2026-05-12T19:57:41.524Z] Request to https://firebase.googleapis.com/v1beta1/projects/sagrada-gestao had HTTP Error: 403, The caller does not have permission
+[debug] [2026-05-12T19:57:41.709Z] FirebaseError: Request to https://firebase.googleapis.com/v1beta1/projects/sagrada-gestao had HTTP Error: 403, The caller does not have permission
+    at responseToError (/Users/caio/Documents/Github/sagrada-gestao-frontend/node_modules/firebase-tools/lib/responseToError.js:53:12)
+    at RetryOperation._fn (/Users/caio/Documents/Github/sagrada-gestao-frontend/node_modules/firebase-tools/lib/apiv2.js:333:77)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+[error] 
+[error] Error: Failed to get Firebase project sagrada-gestao. Please make sure the project exists and your account has permission to access it.

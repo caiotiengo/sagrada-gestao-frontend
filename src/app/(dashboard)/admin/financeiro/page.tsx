@@ -297,12 +297,32 @@ function MensalidadesTab() {
     setMonth(now.getMonth())
   }
 
+  /**
+   * Parses a masked "MM/YYYY" or partial string into ISO "YYYY-MM".
+   * Returns empty string if not a valid 6-digit input.
+   */
+  const parseMonthMask = (masked: string): string => {
+    const digits = masked.replace(/\D/g, '').slice(0, 6)
+    if (digits.length !== 6) return ''
+    return `${digits.slice(2, 6)}-${digits.slice(0, 2)}`
+  }
+
+  /**
+   * Masked onChange handler for MM/YYYY inputs.
+   */
+  const handleMonthMaskChange = (setter: (v: string) => void) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    const digits = e.target.value.replace(/\D/g, '').slice(0, 6)
+    const masked = digits.length >= 3 ? `${digits.slice(0, 2)}/${digits.slice(2)}` : digits
+    setter(masked)
+  }
+
   const handleCreateBulk = () => {
-    if (!houseId || !bulkMonth || !bulkAmount || !bulkDueDate) return
+    const referenceMonthIso = parseMonthMask(bulkMonth)
+    if (!houseId || !referenceMonthIso || !bulkAmount || !bulkDueDate) return
     createBulk.mutate(
       {
         houseId,
-        referenceMonth: bulkMonth,
+        referenceMonth: referenceMonthIso,
         amount: bulkAmount,
         dueDate: bulkDueDate,
       },
@@ -419,11 +439,14 @@ function MensalidadesTab() {
                 </select>
               </div>
               <div className="space-y-2">
-                <Label>Mês de referência</Label>
+                <Label htmlFor="single-month">Mês de referência (MM/AAAA)</Label>
                 <Input
-                  type="month"
+                  id="single-month"
+                  inputMode="numeric"
+                  maxLength={7}
+                  placeholder="03/2026"
                   value={singleMonth}
-                  onChange={(e) => setSingleMonth(e.target.value)}
+                  onChange={handleMonthMaskChange(setSingleMonth)}
                 />
               </div>
               <div className="space-y-2">
@@ -469,13 +492,14 @@ function MensalidadesTab() {
             <DialogFooter>
               <Button variant="outline" onClick={() => setSingleDialogOpen(false)}>Cancelar</Button>
               <Button
-                disabled={createRecurring.isPending || !singleMemberId || !singleMonth || !singleAmount || !singleDueDay}
+                disabled={createRecurring.isPending || !singleMemberId || !parseMonthMask(singleMonth) || !singleAmount || !singleDueDay}
                 onClick={() => {
-                  if (!houseId) return
+                  const startMonthIso = parseMonthMask(singleMonth)
+                  if (!houseId || !startMonthIso) return
                   createRecurring.mutate({
                     houseId,
                     memberId: singleMemberId,
-                    startMonth: singleMonth,
+                    startMonth: startMonthIso,
                     amount: singleAmount,
                     dueDay: singleDueDay,
                     months: singleRecurring ? singleMonths : 1,
@@ -514,17 +538,8 @@ function MensalidadesTab() {
                   inputMode="numeric"
                   maxLength={7}
                   placeholder="03/2026"
-                  value={bulkMonth.includes('-') ? `${bulkMonth.slice(5)}/${bulkMonth.slice(0, 4)}` : bulkMonth}
-                  onChange={(e) => {
-                    const digits = e.target.value.replace(/\D/g, '').slice(0, 6)
-                    const masked = digits.length >= 3 ? `${digits.slice(0, 2)}/${digits.slice(2)}` : digits
-                    e.target.value = masked
-                    if (digits.length === 6) {
-                      setBulkMonth(`${digits.slice(2, 6)}-${digits.slice(0, 2)}`)
-                    } else {
-                      setBulkMonth('')
-                    }
-                  }}
+                  value={bulkMonth}
+                  onChange={handleMonthMaskChange(setBulkMonth)}
                 />
               </div>
               <div className="space-y-2">
@@ -555,7 +570,7 @@ function MensalidadesTab() {
                 onClick={handleCreateBulk}
                 disabled={
                   createBulk.isPending ||
-                  !bulkMonth ||
+                  !parseMonthMask(bulkMonth) ||
                   !bulkAmount ||
                   !bulkDueDate
                 }
