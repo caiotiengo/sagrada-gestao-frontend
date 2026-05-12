@@ -194,8 +194,11 @@ export function useDeleteSale() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sales'] })
       queryClient.invalidateQueries({ queryKey: ['sales-summary'] })
+      queryClient.invalidateQueries({ queryKey: ['store-items'] })
+      queryClient.invalidateQueries({ queryKey: ['debts'] })
+      queryClient.invalidateQueries({ queryKey: ['financial-statement'] })
       queryClient.invalidateQueries({ queryKey: ['dashboard'] })
-      toast.success('Venda excluída com sucesso')
+      toast.success('Venda excluída — estoque devolvido')
     },
     onError: () => {
       toast.error('Erro ao excluir venda')
