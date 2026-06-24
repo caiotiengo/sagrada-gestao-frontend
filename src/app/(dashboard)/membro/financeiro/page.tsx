@@ -108,10 +108,14 @@ export default function MemberFinancePage() {
     isLoading: summaryLoading,
   } = useLegacyMyFinancialSummary()
 
-  // New unified ledger-based statement
+  // New unified ledger-based statement.
+  // Always scope to the logged-in member: this is the *personal* finance screen,
+  // so even users with caixa permission see only their own totals here.
+  // The house-wide view lives in /admin/financeiro.
   const { data: statement, isLoading: statementLoading } = useFinancialStatement({
     page: historyPage,
     limit: 30,
+    memberId,
   })
 
   const fees: MonthlyFeeItem[] = feesData?.data ?? []

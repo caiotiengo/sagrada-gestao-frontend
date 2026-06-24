@@ -90,7 +90,7 @@ export const ROLE_LABELS: Record<string, string> = {
 }
 
 export const PERMISSION_LABELS: Record<string, string> = {
-  canManageCashier: 'Gerenciar Caixa',
+  canManageCashier: 'Tesoureiro',
   canRegisterSales: 'Gerenciar Vendas',
   canRegisterInternalPayments: 'Gerenciar Pagamentos',
   canManageMembers: 'Gerenciar Membros',
