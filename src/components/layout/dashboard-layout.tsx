@@ -98,7 +98,7 @@ const memberNavItems: NavEntry[] = [
 
 // Admin pages accessible to members with specific permissions
 const permissionNavItems: NavItem[] = [
-  { label: 'Gerenciar Caixa', href: ROUTES.ADMIN_FINANCE, icon: DollarSign, permission: 'canManageCashier' },
+  { label: 'Tesoureiro', href: ROUTES.ADMIN_FINANCE, icon: DollarSign, permission: 'canManageCashier' },
   { label: 'Gerenciar Membros', href: ROUTES.MEMBERS_LIST, icon: Users, permission: 'canManageMembers' },
   { label: 'Gerenciar Calendário', href: ROUTES.ADMIN_CALENDAR, icon: CalendarDays, permission: 'canManageCalendar' },
   { label: 'Gerenciar Listas', href: ROUTES.ADMIN_CAMPAIGNS, icon: List, permission: 'canManageCampaigns' },
