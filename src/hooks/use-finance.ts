@@ -294,6 +294,8 @@ export function useLegacyMyFinancialSummary(referenceMonth?: string) {
 /** @deprecated Use `useFinancialStatement` from `@/hooks/use-ledger` with memberId param instead. */
 export function useLegacyMemberFinancialSummary(memberId: string) {
   const houseId = useAuthStore((s) => s.currentHouseId())
+  // getMemberFinancialSummary exige canManageCashier no back
+  const canView = useAuthStore((s) => s.hasPermission('canManageCashier'))
 
   return useQuery({
     queryKey: ['legacy-member-financial-summary', houseId, memberId],
@@ -302,7 +304,7 @@ export function useLegacyMemberFinancialSummary(memberId: string) {
         houseId: houseId!,
         memberId,
       }),
-    enabled: !!houseId && !!memberId,
+    enabled: !!houseId && !!memberId && canView,
   })
 }
 

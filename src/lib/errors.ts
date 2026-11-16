@@ -19,6 +19,14 @@ const GENERIC_CODES = new Set([
 
 const VALIDATION_PREFIX = 'Dados inválidos: '
 
+/** Erros do Firebase Auth que valem uma mensagem específica. */
+const AUTH_MESSAGES: Record<string, string> = {
+  'auth/weak-password': 'Senha fraca: use pelo menos 8 caracteres.',
+  'auth/invalid-email': 'E-mail inválido.',
+  'auth/too-many-requests': 'Muitas tentativas. Aguarde alguns minutos e tente de novo.',
+  'auth/network-request-failed': 'Sem conexão. Verifique a internet e tente de novo.',
+}
+
 interface MaybeFirebaseError {
   code?: string
   message?: string
@@ -40,6 +48,7 @@ export function getErrorMessage(error: unknown, fallback: string): string {
   const err = (error ?? {}) as MaybeFirebaseError
   const code = err.code ?? ''
   const message = (err.message ?? '').trim()
+  if (AUTH_MESSAGES[code]) return AUTH_MESSAGES[code]
   if (!code.startsWith('functions/')) return fallback
   if (GENERIC_CODES.has(code) || !message || message.toLowerCase() === code.replace('functions/', '')) {
     return fallback

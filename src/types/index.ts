@@ -529,6 +529,14 @@ export interface ShoppingDebtItem {
   createdAt: string
 }
 
+export interface MyRecentFeePayment {
+  id: string
+  referenceMonth: string
+  amount: number
+  paidAt: string | null
+  paymentMethod: PaymentMethod | null
+}
+
 export interface MyFinancialSummary {
   pendingFees: MonthlyFeeItem[]
   currentMonthFee: MonthlyFeeItem | null
@@ -536,7 +544,8 @@ export interface MyFinancialSummary {
   storeTab: SaleItem[]
   quotas: QuotaItem[]
   shoppingDebts: ShoppingDebtItem[]
-  recentPayments: PaymentItem[]
+  /** Últimas mensalidades pagas pelo membro. */
+  recentPayments: MyRecentFeePayment[]
   recentPurchases: SaleItem[]
   referenceMonth: string
   totals: {

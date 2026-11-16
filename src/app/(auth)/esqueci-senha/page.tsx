@@ -42,7 +42,7 @@ export default function ForgotPasswordPage() {
         </h2>
         <p className="text-sm text-muted-foreground">
           {isSuccess
-            ? 'Verifique sua caixa de entrada para redefinir sua senha.'
+            ? 'Se houver uma conta com este e-mail, enviamos um link para redefinir a senha. Verifique sua caixa de entrada.'
             : 'Informe seu email e enviaremos um link de recuperação.'}
         </p>
       </div>

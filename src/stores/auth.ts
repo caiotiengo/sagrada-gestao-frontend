@@ -94,6 +94,21 @@ function loadStoredHouse(): HouseMembership | null {
   }
 }
 
+/**
+ * Sessão salva no navegador (perfil + casa atual), para decidir a rota inicial
+ * de quem já está logado sem esperar o callable de login.
+ */
+export function getStoredHomeRoute(): 'admin' | 'member' | null {
+  const stored = loadStoredProfile()
+  if (!stored) return null
+  const storedHouse = loadStoredHouse()
+  const house =
+    (storedHouse && stored.profile.houses.find((h) => h.houseId === storedHouse.houseId)) ??
+    stored.profile.houses[0]
+  if (!house) return null
+  return house.role === 'admin' ? 'admin' : 'member'
+}
+
 export const useAuthStore = create<AuthState>((set, get) => ({
   firebaseUser: null,
   profile: null,

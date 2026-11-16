@@ -1,6 +1,5 @@
-import { createUserWithEmailAndPassword } from 'firebase/auth'
-import { auth } from '@/lib/firebase'
 import { callFunction } from '@/lib/callable'
+import { withRegistrationAccount } from '@/lib/auth-account'
 import type {
   ValidateInviteRequest,
   ValidateInviteResponse,
@@ -27,14 +26,12 @@ export const invitesService = {
   ): Promise<RegisterByInviteResponse> => {
     const { email, password, ...payload } = data
 
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password)
-
-    // Ensure the ID token is ready before calling the cloud function
-    await userCredential.user.getIdToken()
-
-    return callFunction<RegisterByInviteRequest, RegisterByInviteResponse>(
-      'registerByInvite',
-      payload
+    // Cria (ou reaproveita) a conta do Auth; se o callable falhar, desfaz.
+    return withRegistrationAccount(email, password, () =>
+      callFunction<RegisterByInviteRequest, RegisterByInviteResponse>(
+        'registerByInvite',
+        payload
+      )
     )
   },
 

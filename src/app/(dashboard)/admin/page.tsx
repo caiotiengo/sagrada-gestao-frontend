@@ -19,7 +19,8 @@ import {
 } from 'lucide-react'
 import { useDashboardSummary } from '@/hooks/use-dashboard'
 import { useAuthStore } from '@/stores/auth'
-import { useLegacyFinancialStatement } from '@/hooks/use-finance'
+import { useFinancialStatement } from '@/hooks/use-ledger'
+import { SOURCE_LABELS } from '@/lib/ledger-labels'
 import { ROUTES } from '@/constants'
 import { CardSkeleton } from '@/components/feedback/card-skeleton'
 import { ErrorState } from '@/components/feedback/error-state'
@@ -40,8 +41,10 @@ const quickActions = [
 
 export default function AdminHomePage() {
   const { profile } = useAuthStore()
-  const { data: statementData, isLoading, isError, refetch } = useLegacyFinancialStatement(1)
-  const { data: dashboardSummary } = useDashboardSummary()
+  // Saldo, receitas e pendências vêm do dashboard (ledger, líquido de estornos);
+  // últimas movimentações do extrato unificado (mesma fonte).
+  const { data: dashboardSummary, isLoading, isError, refetch } = useDashboardSummary()
+  const { data: statementData, isLoading: isLoadingStatement } = useFinancialStatement({ page: 1, limit: 12 })
 
   if (isError) {
     return (
@@ -73,31 +76,31 @@ export default function AdminHomePage() {
           <CardSkeleton />
           <CardSkeleton />
         </div>
-      ) : statementData?.summary ? (
+      ) : dashboardSummary ? (
         <Card className="mb-8 overflow-hidden border-0 bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-lg">
           <CardContent className="p-5">
             <div className="flex items-center gap-2">
               <p className="text-xs font-medium text-primary-foreground/70">Saldo</p>
-              {statementData.summary.balance < 0 && (
+              {dashboardSummary.balance < 0 && (
                 <span className="rounded-full bg-red-500 px-2 py-0.5 text-[0.625rem] font-semibold text-white">
                   Negativo
                 </span>
               )}
             </div>
             <p className="mt-1 text-2xl font-bold tracking-tight">
-              {formatCurrency(statementData.summary.balance)}
+              {formatCurrency(dashboardSummary.balance)}
             </p>
             <div className="mt-4 flex flex-wrap items-center gap-2">
               <div className="flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1.5">
                 <ArrowDownLeft className="size-3.5" />
                 <span className="text-xs font-medium">
-                  {formatCurrency(statementData.summary.totalIncome)} receitas
+                  {formatCurrency(dashboardSummary.revenue.total)} receitas
                 </span>
               </div>
               <div className="flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1.5">
                 <ArrowUpRight className="size-3.5" />
                 <span className="text-xs font-medium">
-                  {formatCurrency(statementData.summary.totalExpense)} despesas
+                  {formatCurrency(dashboardSummary.expenses.total)} despesas
                 </span>
               </div>
             </div>
@@ -135,9 +138,16 @@ export default function AdminHomePage() {
               )}
               {dashboardSummary.pending.salesAmount > 0 && (
                 <div className="rounded-md bg-muted/40 px-2 py-1.5">
-                  <p className="text-[0.65rem] uppercase tracking-wide text-muted-foreground">Loja (fiado)</p>
+                  <p className="text-[0.65rem] uppercase tracking-wide text-muted-foreground">Vendas a receber</p>
                   <p className="text-sm font-semibold">{formatCurrency(dashboardSummary.pending.salesAmount)}</p>
                   <p className="text-[0.65rem] text-muted-foreground">{dashboardSummary.pending.salesCount} {dashboardSummary.pending.salesCount === 1 ? 'item' : 'itens'}</p>
+                </div>
+              )}
+              {(dashboardSummary.pending.quotasAmount ?? 0) > 0 && (
+                <div className="rounded-md bg-muted/40 px-2 py-1.5">
+                  <p className="text-[0.65rem] uppercase tracking-wide text-muted-foreground">Cotas de listas</p>
+                  <p className="text-sm font-semibold">{formatCurrency(dashboardSummary.pending.quotasAmount)}</p>
+                  <p className="text-[0.65rem] text-muted-foreground">{dashboardSummary.pending.quotasCount} {dashboardSummary.pending.quotasCount === 1 ? 'item' : 'itens'}</p>
                 </div>
               )}
               {dashboardSummary.pending.shoppingAmount > 0 && (
@@ -148,6 +158,12 @@ export default function AdminHomePage() {
                 </div>
               )}
             </div>
+            {(dashboardSummary.pending.upcomingFeesAmount ?? 0) > 0 && (
+              <p className="mt-2 text-xs text-muted-foreground">
+                Fora do total: {formatCurrency(dashboardSummary.pending.upcomingFeesAmount)} em{' '}
+                {dashboardSummary.pending.upcomingFeesCount} mensalidade(s) de meses futuros.
+              </p>
+            )}
           </CardContent>
         </Card>
       )}
@@ -166,7 +182,7 @@ export default function AdminHomePage() {
                 { key: 'raffles', label: 'Rifas', icon: Ticket },
                 { key: 'campaigns', label: 'Campanhas', icon: List },
                 { key: 'shopping', label: 'Trabalhos', icon: Hammer },
-                { key: 'payments', label: 'Avulsos', icon: DollarSign },
+                { key: 'payments', label: 'Avulsos e dívidas', icon: DollarSign },
               ].map(({ key, label }) => {
                 const amount = dashboardSummary.revenue![key as keyof typeof dashboardSummary.revenue] as number
                 if (!amount || amount === 0) return null
@@ -220,7 +236,7 @@ export default function AdminHomePage() {
           </Link>
         </div>
 
-        {isLoading ? (
+        {isLoadingStatement ? (
           <div className="space-y-3">
             {Array.from({ length: 5 }).map((_, i) => (
               <div key={i} className="flex items-center gap-3">
@@ -234,22 +250,20 @@ export default function AdminHomePage() {
             ))}
           </div>
         ) : (() => {
-          const platformEntries = (statementData?.data ?? []).slice(0, 12).map((entry) => ({
-            id: entry.id,
-            type: entry.type as 'income' | 'expense',
-            description: entry.description,
-            sourceLabel: entry.sourceLabel,
-            date: entry.date,
-            amount: Math.abs(entry.amount),
-          }))
-
-          const parseDate = (d: string | null) => {
-            if (!d) return Date.now()
-            if (d.length === 10 && d.includes('-')) return new Date(d + 'T12:00:00').getTime()
-            return new Date(d).getTime() || Date.now()
-          }
-
-          const allEntries = [...platformEntries].sort((a, b) => parseDate(b.date) - parseDate(a.date)).slice(0, 12)
+          const allEntries = (statementData?.data ?? []).slice(0, 12).map((entry) => {
+            // Estorno de crédito é saída; estorno de débito é entrada.
+            const type: 'income' | 'expense' = entry.direction === 'credit' ? 'income' : 'expense'
+            return {
+              id: entry.id,
+              type,
+              description: entry.description,
+              sourceLabel: entry.isReversal
+                ? `Estorno · ${SOURCE_LABELS[entry.source] ?? entry.source}`
+                : SOURCE_LABELS[entry.source] ?? entry.source,
+              date: entry.occurredAt || entry.createdAt,
+              amount: Math.abs(entry.amount),
+            }
+          })
 
           return allEntries.length > 0 ? (
             <Card>

@@ -3,17 +3,16 @@ import { functions, auth } from './firebase'
 import { trackError } from './analytics'
 
 /**
- * Refresh Firebase ID token and retry once on auth errors.
+ * Refresh Firebase ID token and retry once when the session expired.
  */
 async function withTokenRefresh<T>(attempt: () => Promise<T>): Promise<T> {
   try {
     return await attempt()
   } catch (error: unknown) {
     const code = (error as { code?: string })?.code
-    if (
-      code === 'functions/unauthenticated' ||
-      code === 'functions/permission-denied'
-    ) {
+    // Só sessão expirada vale um novo token. permission-denied é regra de
+    // negócio (sem permissão) e repetir só duplica a chamada.
+    if (code === 'functions/unauthenticated') {
       // Force-refresh the token and retry once
       if (auth.currentUser) {
         await auth.currentUser.getIdToken(true)

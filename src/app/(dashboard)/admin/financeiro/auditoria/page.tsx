@@ -224,7 +224,7 @@ export default function LedgerAuditPage() {
         <div className="space-y-2">
           {entries.map((entry) => {
             const isReversed = entry.status === 'reversed'
-            const isReversal = !!entry.reverses
+            const isReversal = entry.isReversal || !!entry.reverses
             const isCredit = entry.direction === 'credit'
             return (
               <Card
@@ -256,7 +256,7 @@ export default function LedgerAuditPage() {
                         </Badge>
                       </div>
                       <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
-                        <span>{formatDate(entry.createdAt)}</span>
+                        <span>{formatDate(entry.occurredAt || entry.createdAt)}</span>
                         <span>ID: {entry.id.slice(0, 8)}…</span>
                         <span>Origem: {entry.sourceId.slice(0, 10)}…</span>
                         {entry.reverses && (
@@ -340,7 +340,7 @@ export default function LedgerAuditPage() {
                   {reverseTarget.direction === 'credit' ? '+' : '-'}
                   {formatCurrency(reverseTarget.amount)}
                 </span>
-                <span>{formatDate(reverseTarget.createdAt)}</span>
+                <span>{formatDate(reverseTarget.occurredAt || reverseTarget.createdAt)}</span>
               </div>
             </div>
           )}

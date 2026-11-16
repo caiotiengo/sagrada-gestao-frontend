@@ -2,10 +2,11 @@ import {
   signInWithEmailAndPassword,
   signOut,
   sendPasswordResetEmail,
-  createUserWithEmailAndPassword,
 } from 'firebase/auth'
 import { auth } from '@/lib/firebase'
 import { callFunction } from '@/lib/callable'
+import { getErrorCode } from '@/lib/errors'
+import { RegistrationError, withRegistrationAccount } from '@/lib/auth-account'
 import { identifyUser, trackLogin, trackSignUp, trackLogout } from '@/lib/analytics'
 import type {
   LoginResponse,
@@ -21,7 +22,25 @@ export const authService = {
    */
   login: async (email: string, password: string): Promise<LoginResponse> => {
     await signInWithEmailAndPassword(auth, email, password)
-    const data = await callFunction<Record<string, never>, LoginResponse>('login', {})
+    let data: LoginResponse
+    try {
+      data = await callFunction<Record<string, never>, LoginResponse>('login', {})
+    } catch (error) {
+      // Conta existe no Auth mas sem perfil (cadastro que não terminou)
+      await signOut(auth).catch(() => undefined)
+      if (getErrorCode(error) === 'functions/not-found') {
+        throw new RegistrationError(
+          'Seu cadastro não foi concluído. Abra de novo o link de convite (ou o cadastro da casa) e use este mesmo e-mail e senha.',
+        )
+      }
+      throw error
+    }
+    if (!data.houses?.length) {
+      await signOut(auth).catch(() => undefined)
+      throw new RegistrationError(
+        'Sua conta não está vinculada a nenhuma casa ativa. Peça um novo convite à sua casa.',
+      )
+    }
     identifyUser(data.uid, { role: data.houses?.[0]?.role || 'unknown' })
     trackLogin('email')
     return data
@@ -29,7 +48,8 @@ export const authService = {
 
   /**
    * Register primary admin + create house.
-   * Creates Firebase Auth user first, then calls the cloud function.
+   * Creates (or signs into) the Firebase Auth user, then calls the cloud
+   * function; on failure the account created here is deleted.
    * Email/password are used only for createUserWithEmailAndPassword —
    * the callable gets the UID from the auth token.
    */
@@ -38,27 +58,30 @@ export const authService = {
   ): Promise<RegisterHouseResponse> => {
     const { email, password, ...payload } = data
 
-    // Create Firebase Auth user first
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password)
-
-    // Ensure the ID token is ready before calling the cloud function
-    await userCredential.user.getIdToken()
-
-    // Call the cloud function (Firebase SDK sends the auth token automatically)
-    const result = await callFunction<RegisterHouseRequest, RegisterHouseResponse>(
-      'registerHouse',
-      payload
-    )
-    identifyUser(userCredential.user.uid, { role: 'admin' })
-    trackSignUp('email')
-    return result
+    // Cria (ou reaproveita) a conta do Auth; se o callable falhar, desfaz.
+    return withRegistrationAccount(email, password, async (user) => {
+      const result = await callFunction<RegisterHouseRequest, RegisterHouseResponse>(
+        'registerHouse',
+        payload
+      )
+      identifyUser(user.uid, { role: 'admin' })
+      trackSignUp('email')
+      return result
+    })
   },
 
   /**
    * Request password reset email.
    */
   requestPasswordReset: async (data: RequestPasswordResetRequest): Promise<void> => {
-    await sendPasswordResetEmail(auth, data.email)
+    try {
+      await sendPasswordResetEmail(auth, data.email)
+    } catch (error) {
+      // Não revela se o e-mail tem conta: "não encontrado" responde igual ao sucesso.
+      const code = getErrorCode(error)
+      if (code === 'auth/user-not-found' || code === 'auth/invalid-credential') return
+      throw error
+    }
   },
 
   /**

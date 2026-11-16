@@ -20,7 +20,9 @@ import {
 } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth'
 import { useLegacyMyFinancialSummary } from '@/hooks/use-finance'
-import { ROLE_LABELS, ROUTES } from '@/constants'
+import { useFinancialStatement } from '@/hooks/use-ledger'
+import { PAYMENT_METHOD_LABELS, ROLE_LABELS, ROUTES } from '@/constants'
+import { formatCompetence } from '@/utils/dates'
 import { Card, CardContent } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
@@ -39,23 +41,28 @@ const quickActions = [
 
 export default function MemberHomePage() {
   const { profile, currentHouse } = useAuthStore()
-  const { data: financialSummary, isLoading: isLoadingSummary } = useLegacyMyFinancialSummary()
+  const { data: financialSummary, isLoading: isLoadingItems } = useLegacyMyFinancialSummary()
+  // Totais pela mesma fonte de /membro/financeiro: extrato unificado (ledger)
+  // do próprio membro. Mesma query key da 1ª página de lá (cache compartilhado).
+  const memberId = currentHouse?.memberId
+  const { data: statement, isLoading: isLoadingStatement } = useFinancialStatement({
+    page: 1,
+    limit: 30,
+    memberId,
+  })
+  const isLoadingSummary = isLoadingItems || isLoadingStatement
 
   const firstName = profile?.fullName?.split(' ')[0] ?? 'Membro'
   const roleLabel = currentHouse?.role ? ROLE_LABELS[currentHouse.role] ?? currentHouse.role : ''
-  const totals = financialSummary?.totals ?? {
-    pendingFeesTotal: 0,
-    overdueFeesTotal: 0,
-    totalDebt: 0,
-    storeTabTotal: 0,
-    totalQuotasPending: 0,
-    totalShoppingPending: 0,
-    totalOwed: 0,
-    totalFeesPaid: 0,
-    totalDebtsPaid: 0,
-    totalPurchasesPaid: 0,
-    totalQuotasPaid: 0,
-    totalPaid: 0,
+  const byType = statement?.pending.byType
+  const totals = {
+    pendingFeesTotal: byType?.fees.amount ?? 0,
+    totalDebt: byType?.debts.amount ?? 0,
+    storeTabTotal: byType?.sales.amount ?? 0,
+    totalQuotasPending: byType?.quotas.amount ?? 0,
+    totalShoppingPending: byType?.shopping.amount ?? 0,
+    totalOwed: statement?.pending.amount ?? 0,
+    totalPaid: statement?.balance.revenue ?? 0,
   }
 
   const pendingFees = financialSummary?.pendingFees ?? []
@@ -241,7 +248,7 @@ export default function MemberHomePage() {
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium">Mensalidade</p>
                     <p className="text-xs text-muted-foreground">
-                      Ref. {fee.referenceMonth} · Vence {formatDate(fee.dueDate)}
+                      Ref. {formatCompetence(fee.referenceMonth)} · Vence {formatDate(fee.dueDate)}
                     </p>
                   </div>
                   <span className="shrink-0 text-sm font-semibold tabular-nums text-amber-600 dark:text-amber-400">
@@ -338,36 +345,28 @@ export default function MemberHomePage() {
                 </Link>
               ))}
 
-              {/* Últimos pagamentos */}
+              {/* Últimas mensalidades pagas */}
               {recentPayments.slice(0, 5).map((payment) => (
                 <Link
                   key={payment.id}
-                  href={ROUTES.MEMBER_FINANCE}
+                  href={`${ROUTES.MEMBER_FINANCE}?tab=historico`}
                   className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/50"
                 >
-                  <div className={`flex size-9 shrink-0 items-center justify-center rounded-full ${
-                    payment.type === 'income'
-                      ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400'
-                      : 'bg-red-100 text-red-600 dark:bg-red-950 dark:text-red-400'
-                  }`}>
-                    {payment.type === 'income' ? (
-                      <ArrowDownLeft className="size-4" />
-                    ) : (
-                      <Receipt className="size-4" />
-                    )}
+                  <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400">
+                    <Receipt className="size-4" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium">{payment.description}</p>
+                    <p className="truncate text-sm font-medium">
+                      Mensalidade {formatCompetence(payment.referenceMonth)}
+                    </p>
                     <p className="text-xs text-muted-foreground">
-                      {payment.category}{payment.paidAt ? ` · ${formatDate(payment.paidAt)}` : ''}
+                      Paga
+                      {payment.paymentMethod ? ` · ${PAYMENT_METHOD_LABELS[payment.paymentMethod] ?? payment.paymentMethod}` : ''}
+                      {payment.paidAt ? ` · ${formatDate(payment.paidAt)}` : ''}
                     </p>
                   </div>
-                  <span className={`shrink-0 text-sm font-semibold tabular-nums ${
-                    payment.type === 'income'
-                      ? 'text-emerald-600 dark:text-emerald-400'
-                      : 'text-red-600 dark:text-red-400'
-                  }`}>
-                    {payment.type === 'income' ? '+' : '-'}{formatCurrency(Math.abs(payment.amount))}
+                  <span className="shrink-0 text-sm font-semibold tabular-nums text-emerald-600 dark:text-emerald-400">
+                    {formatCurrency(Math.abs(payment.amount))}
                   </span>
                 </Link>
               ))}

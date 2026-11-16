@@ -7,7 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Loader2, Shield, Users, CalendarDays, BarChart3 } from 'lucide-react'
 
 import { loginSchema, type LoginFormData } from '@/schemas/auth'
-import { useLogin } from '@/hooks/use-auth'
+import { useLogin, useRedirectIfAuthenticated } from '@/hooks/use-auth'
 import { ROUTES, APP_NAME } from '@/constants'
 import { FormField } from '@/components/forms/form-field'
 import { PasswordInput } from '@/components/forms/password-input'
@@ -54,6 +54,8 @@ export default function LoginPage() {
     return () => clearInterval(interval)
   }, [])
   const { mutate: login, isPending } = useLogin()
+  // Já logado: vai direto para a home (não mostra o formulário de novo)
+  useRedirectIfAuthenticated()
 
   const {
     register,

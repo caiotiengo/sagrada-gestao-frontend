@@ -1,8 +1,11 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
-import { useAuthStore } from '@/stores/auth'
+import { onAuthStateChanged } from 'firebase/auth'
+import { auth } from '@/lib/firebase'
+import { getStoredHomeRoute, useAuthStore } from '@/stores/auth'
 import { authService } from '@/services/auth'
 import type { RegisterHouseRequest } from '@/types'
 import { ROUTES } from '@/constants'
@@ -12,11 +15,14 @@ import { getErrorMessage } from '@/lib/errors'
 export function useLogin() {
   const { setProfile } = useAuthStore()
   const router = useRouter()
+  const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: (data: { email: string; password: string }) =>
       authService.login(data.email, data.password),
     onSuccess: (response) => {
+      // Perfil recém-buscado: o layout não precisa pedir de novo
+      queryClient.setQueryData(['profile'], response)
       setProfile(response)
 
       // Route based on the selected house (first one).
@@ -78,11 +84,20 @@ export function useProfile() {
     queryKey: ['profile'],
     queryFn: async () => {
       const data = await authService.getProfile()
+      if (!data.houses?.length) {
+        // Membro removido/inativado: encerra a sessão em vez de abrir telas sem casa
+        toast.error('Sua conta não está vinculada a nenhuma casa ativa.')
+        await authService.logout()
+        throw new Error('Sem casa ativa')
+      }
       setProfile(data)
       return data
     },
     enabled: isAuthenticated,
     staleTime: isProfileStale ? 0 : 5 * 60 * 1000,
+    // Volta para a aba -> confere papel/permissões de novo
+    refetchOnWindowFocus: true,
+    retry: false,
   })
 }
 
@@ -103,4 +118,32 @@ export function useLogout() {
       router.replace(ROUTES.LOGIN)
     },
   })
+}
+
+/**
+ * Em telas públicas de entrada ("/" e "/login"): quem já tem sessão vai direto
+ * para a home da área certa. Devolve `checking` enquanto o Firebase resolve a
+ * sessão e `false` quando não há sessão (mostra a tela normalmente).
+ */
+export function useRedirectIfAuthenticated(fallback?: string) {
+  const router = useRouter()
+  const [checking, setChecking] = useState(true)
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      const home = user ? getStoredHomeRoute() : null
+      if (home) {
+        router.replace(home === 'admin' ? ROUTES.ADMIN_HOME : ROUTES.MEMBER_HOME)
+        return
+      }
+      if (fallback) {
+        router.replace(fallback)
+        return
+      }
+      setChecking(false)
+    })
+    return () => unsubscribe()
+  }, [router, fallback])
+
+  return checking
 }

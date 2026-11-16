@@ -15,7 +15,8 @@ import {
 import { useMonthlyFees, useDebts, useLegacyMyFinancialSummary } from '@/hooks/use-finance'
 import { useFinancialStatement } from '@/hooks/use-ledger'
 import { useAuthStore } from '@/stores/auth'
-import { FEE_STATUS_LABELS } from '@/constants'
+import { FEE_STATUS_LABELS, PAYMENT_METHOD_LABELS } from '@/constants'
+import { MONTH_NAMES, currentYearMonthBRT, formatCompetence } from '@/utils/dates'
 import type { MonthlyFeeItem, DebtItem, ShoppingDebtItem, QuotaItem, SaleItem, FeeStatus } from '@/types'
 import { formatCurrency, formatDate } from '@/utils'
 import { SOURCE_LABELS, channelLabel } from '@/lib/ledger-labels'
@@ -32,10 +33,6 @@ import { LoadingState } from '@/components/feedback/loading-state'
 import { EmptyState } from '@/components/feedback/empty-state'
 import { ErrorState } from '@/components/feedback/error-state'
 
-const MONTH_NAMES = [
-  'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
-  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
-]
 
 function statusBadgeClasses(status: FeeStatus) {
   switch (status) {
@@ -77,9 +74,9 @@ export default function MemberFinancePage() {
   const memberId = useAuthStore((s) => s.currentHouse?.memberId)
   const [historyPage, setHistoryPage] = useState(1)
 
-  const now = new Date()
-  const [year, setYear] = useState(now.getFullYear())
-  const [month, setMonth] = useState(now.getMonth())
+  const now = currentYearMonthBRT()
+  const [year, setYear] = useState(now.year)
+  const [month, setMonth] = useState(now.month)
 
   const selectedMonth = formatYearMonth(year, month)
 
@@ -124,7 +121,7 @@ export default function MemberFinancePage() {
   const quotas: QuotaItem[] = (financialSummary?.quotas ?? []).filter((q) => q.status !== 'paid')
   const storeTab: SaleItem[] = financialSummary?.storeTab ?? []
 
-  const currentMonth = formatYearMonth(now.getFullYear(), now.getMonth())
+  const currentMonth = formatYearMonth(now.year, now.month)
 
   // Totals from ledger (authoritative source).
   // Fallback to client-side calculation while statement loads.
@@ -173,8 +170,8 @@ export default function MemberFinancePage() {
     else setMonth((m) => m + 1)
   }
   const goToToday = () => {
-    setYear(now.getFullYear())
-    setMonth(now.getMonth())
+    setYear(now.year)
+    setMonth(now.month)
   }
 
   const isLoading = feesLoading || debtsLoading || summaryLoading || statementLoading
@@ -195,7 +192,7 @@ export default function MemberFinancePage() {
           Financeiro
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Acompanhe suas mensalidades e debitos
+          Acompanhe suas mensalidades e débitos
         </p>
       </div>
 
@@ -274,7 +271,7 @@ export default function MemberFinancePage() {
       <Tabs defaultValue={initialTab}>
         <TabsList>
           <TabsTrigger value="mensalidades">Mensalidades</TabsTrigger>
-          <TabsTrigger value="debitos">Debitos</TabsTrigger>
+          <TabsTrigger value="debitos">Débitos</TabsTrigger>
           <TabsTrigger value="historico">Histórico</TabsTrigger>
         </TabsList>
 
@@ -318,7 +315,7 @@ export default function MemberFinancePage() {
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-medium">
-                            {fee.referenceMonth}
+                            {formatCompetence(fee.referenceMonth)}
                           </span>
                           <Badge
                             variant="outline"
@@ -336,7 +333,7 @@ export default function MemberFinancePage() {
                             <span>Pago em: {formatDate(fee.paidAt)}</span>
                           )}
                           {fee.paymentMethod && (
-                            <span>{fee.paymentMethod}</span>
+                            <span>{PAYMENT_METHOD_LABELS[fee.paymentMethod] ?? fee.paymentMethod}</span>
                           )}
                         </div>
                       </div>
@@ -355,15 +352,15 @@ export default function MemberFinancePage() {
         <TabsContent value="debitos">
           {debtsError ? (
             <ErrorState
-              title="Erro ao carregar debitos"
-              message="Nao foi possivel carregar seus debitos."
+              title="Erro ao carregar débitos"
+              message="Não foi possível carregar seus débitos."
               onRetry={() => refetchDebts()}
             />
           ) : debts.length === 0 && shoppingDebts.length === 0 && quotas.length === 0 && storeTab.length === 0 ? (
             <EmptyState
               icon={DollarSign}
               title="Nenhum debito"
-              description="Voce nao possui debitos registrados."
+              description="Você não possui débitos registrados."
             />
           ) : (
             <div className="space-y-2">
@@ -483,7 +480,7 @@ export default function MemberFinancePage() {
                 {statement.data.map((entry) => {
                   const isCredit = entry.direction === 'credit'
                   const isReversed = entry.status === 'reversed'
-                  const isReversal = !!entry.reverses
+                  const isReversal = entry.isReversal || !!entry.reverses
                   return (
                     <Card
                       key={entry.id}
@@ -524,7 +521,7 @@ export default function MemberFinancePage() {
                               )}
                             </div>
                             <div className="mt-1 text-xs text-muted-foreground">
-                              {formatDate(entry.createdAt)}
+                              {formatDate(entry.occurredAt || entry.createdAt)}
                             </div>
                           </div>
                           <span
