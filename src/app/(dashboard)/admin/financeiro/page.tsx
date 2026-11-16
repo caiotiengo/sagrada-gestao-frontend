@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { useQuery } from '@tanstack/react-query'
 import Link from 'next/link'
 import {
   DollarSign,
@@ -45,7 +44,7 @@ import {
   useDeletePaymentTag,
   useCreateRecurringMonthlyFee,
 } from '@/hooks/use-finance'
-import { useMembers, useAllMembers } from '@/hooks/use-members'
+import { useAllMembers } from '@/hooks/use-members'
 import { useAuthStore } from '@/stores/auth'
 import {
   FEE_STATUS_LABELS,
@@ -894,7 +893,6 @@ function PagamentosTab() {
   const deleteTag = useDeletePaymentTag()
 
   const payments = data?.data ?? []
-  const totalPages = data?.pagination?.totalPages ?? 1
   const [paymentSearch, setPaymentSearch] = useState('')
 
   const filteredPayments = useMemo(() => {
@@ -1349,13 +1347,13 @@ function DividasTab() {
   const payDebt = usePayDebt()
   const deleteDebt = useDeleteDebt()
 
-  const members = membersData?.data ?? []
+  const members = useMemo(() => membersData?.data ?? [], [membersData])
   const memberItems = useMemo(() =>
     Object.fromEntries(members.map((m) => [m.id, m.fullName])),
     [members],
   )
 
-  const debts = data?.data ?? []
+  const debts = useMemo(() => data?.data ?? [], [data])
   const totalPages = data?.pagination?.totalPages ?? 1
   const selectedDebt = debts.find((d) => d.id === selectedDebtId) ?? null
   const payExceeds = !!selectedDebt && payAmount > selectedDebt.remainingAmount

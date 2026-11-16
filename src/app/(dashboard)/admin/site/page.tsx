@@ -137,28 +137,28 @@ export default function AdminSitePage() {
 
   // Initialize form from fetched data
   const [initialized, setInitialized] = useState(false)
-  useEffect(() => {
-    if (houseData?.siteConfig && !initialized) {
-      const c = houseData.siteConfig
-      setSiteEnabled(c.siteEnabled)
-      setSubdomain(c.subdomain ?? '')
-      setSiteTitle(c.siteTitle ?? '')
-      setTemplate(c.template ?? 'classic')
-      setPrimaryColor(c.primaryColor ?? '#4f46e5')
-      setSecondaryColor(c.secondaryColor ?? '#d97706')
-      setLogoUrl(c.logoUrl ?? '')
-      setFaviconUrl(c.faviconUrl ?? '')
-      setHeroImageUrl(c.heroImageUrl ?? '')
-      setAboutText(c.aboutText ?? '')
-      setInstagramUrl(c.instagramUrl ?? '')
-      setFacebookUrl(c.facebookUrl ?? '')
-      setYoutubeUrl(c.youtubeUrl ?? '')
-      setWhatsappNumber(c.whatsappNumber ?? '')
-      setInitialized(true)
-    } else if (houseData && !houseData.siteConfig && !initialized) {
-      setInitialized(true)
-    }
-  }, [houseData, initialized])
+  // Inicializa o formulário com os dados carregados (ajuste de estado no render,
+  // sem efeito: roda uma vez quando os dados chegam)
+  if (houseData?.siteConfig && !initialized) {
+    const c = houseData.siteConfig
+    setSiteEnabled(c.siteEnabled)
+    setSubdomain(c.subdomain ?? '')
+    setSiteTitle(c.siteTitle ?? '')
+    setTemplate(c.template ?? 'classic')
+    setPrimaryColor(c.primaryColor ?? '#4f46e5')
+    setSecondaryColor(c.secondaryColor ?? '#d97706')
+    setLogoUrl(c.logoUrl ?? '')
+    setFaviconUrl(c.faviconUrl ?? '')
+    setHeroImageUrl(c.heroImageUrl ?? '')
+    setAboutText(c.aboutText ?? '')
+    setInstagramUrl(c.instagramUrl ?? '')
+    setFacebookUrl(c.facebookUrl ?? '')
+    setYoutubeUrl(c.youtubeUrl ?? '')
+    setWhatsappNumber(c.whatsappNumber ?? '')
+    setInitialized(true)
+  } else if (houseData && !houseData.siteConfig && !initialized) {
+    setInitialized(true)
+  }
 
   const siteUrl = subdomain ? `https://${subdomain}.${SITE_DOMAIN}` : ''
   const [serverErrors, setServerErrors] = useState<Partial<Record<SiteField, string>>>({})

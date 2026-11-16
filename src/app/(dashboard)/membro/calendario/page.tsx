@@ -159,7 +159,7 @@ export default function MemberCalendarPage() {
       ) : (
         <EmptyState
           icon={CalendarDays}
-          title="Nenhum evento neste mes"
+          title="Nenhum evento neste mês"
           description={`Nenhum evento encontrado em ${MONTH_NAMES[month]} ${year}.`}
         />
       )}

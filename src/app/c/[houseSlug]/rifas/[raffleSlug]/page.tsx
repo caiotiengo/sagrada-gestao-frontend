@@ -189,7 +189,7 @@ export default function PublicRafflePage({ params }: PageProps) {
           </div>
           <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{raffle.title}</h1>
           <p className="text-muted-foreground leading-relaxed">{raffle.description}</p>
-          <p className="text-sm font-medium">Valor por numero: <span className="text-primary">{formatCurrency(raffle.numberPrice)}</span></p>
+          <p className="text-sm font-medium">Valor por número: <span className="text-primary">{formatCurrency(raffle.numberPrice)}</span></p>
         </div>
 
         {raffle.prizeDescription && (

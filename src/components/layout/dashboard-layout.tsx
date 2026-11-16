@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
@@ -14,13 +14,11 @@ import {
   DollarSign,
   CalendarDays,
   UserCheck,
-  Heart,
   List,
   Ticket,
   ShoppingBag,
   ShoppingCart,
   StickyNote,
-  Store,
   UtensilsCrossed,
   Globe,
 } from 'lucide-react'
@@ -151,31 +149,16 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   })
   const navItems: NavEntry[] = isAdmin ? adminNavItems : filteredMemberNavItems
 
-  // Auto-expand group if current path matches a child
-  useEffect(() => {
-    const items = isAdmin ? adminNavItems : filteredMemberNavItems
-    for (const entry of items) {
-      if (isNavGroup(entry)) {
-        const hasActiveChild = entry.children.some((child) => pathname.startsWith(child.href))
-        if (hasActiveChild) {
-          setExpandedGroups((prev) =>
-            prev.includes(entry.label) ? prev : [...prev, entry.label],
-          )
-        }
-      }
-    }
-  }, [pathname, isAdmin])
+  // Grupo com a rota atual fica aberto; os demais seguem o clique do usuário
+  const isGroupExpanded = (group: NavGroup) =>
+    expandedGroups.includes(group.label) ||
+    group.children.some((child) => pathname.startsWith(child.href))
   const roleLabel = currentHouse?.role ? ROLE_LABELS[currentHouse.role] ?? currentHouse.role : ''
 
   const handleLogout = () => {
     if (logout.isPending) return
     logout.mutate()
   }
-
-  // Close mobile menu on route change
-  useEffect(() => {
-    setMobileMenuOpen(false)
-  }, [pathname])
 
   const isActiveRoute = (href: string) => {
     if (href === ROUTES.ADMIN_HOME || href === ROUTES.MEMBER_HOME) {
@@ -195,6 +178,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     return (
       <Link
         href={item.href}
+        // Fecha o menu mobile ao navegar
+        onClick={() => setMobileMenuOpen(false)}
         className={cn(
           'group flex items-center gap-3 rounded-lg px-3 text-[0.8125rem] font-medium transition-all duration-150',
           mobile ? 'justify-between py-2.5' : 'py-2',
@@ -213,7 +198,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   }
 
   const NavGroupToggle = ({ group, mobile = false }: { group: NavGroup; mobile?: boolean }) => {
-    const isExpanded = expandedGroups.includes(group.label)
+    const isExpanded = isGroupExpanded(group)
     const hasActiveChild = group.children.some((child) => isActiveRoute(child.href))
 
     return (

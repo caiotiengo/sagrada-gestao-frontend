@@ -160,7 +160,7 @@ export default function MemberRegistrationPage() {
               </div>
 
               <FormField
-                label="Tipo sanguineo"
+                label="Tipo sanguíneo"
                 name="bloodType"
                 error={errors.bloodType}
               >
@@ -198,7 +198,7 @@ export default function MemberRegistrationPage() {
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <FormField
-                  label="Contato de emergencia"
+                  label="Contato de emergência"
                   name="emergencyContactName"
                   error={errors.emergencyContactName}
                 >
@@ -210,7 +210,7 @@ export default function MemberRegistrationPage() {
                 </FormField>
 
                 <FormField
-                  label="Telefone de emergencia"
+                  label="Telefone de emergência"
                   name="emergencyContactPhone"
                   error={errors.emergencyContactPhone}
                 >
@@ -273,7 +273,7 @@ export default function MemberRegistrationPage() {
             </form>
 
             <p className="mt-6 text-center text-sm text-muted-foreground">
-              Ja possui conta?{' '}
+              Já possui conta?{' '}
               <Link
                 href={ROUTES.LOGIN}
                 className="font-medium text-primary hover:underline"

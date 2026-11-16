@@ -21,7 +21,6 @@ import { useAuthStore } from '@/stores/auth'
 import {
   useStoreItems,
   useCreateStoreItem,
-  useUpdateStoreItem,
   useDeleteStoreItem,
   useDeleteSale,
   useRegisterSaleBatch,
@@ -154,7 +153,6 @@ export function StorePageContent({ category }: StorePageContentProps) {
   const [newPrice, setNewPrice] = useState(0)
   const [newStock, setNewStock] = useState('')
   const createMutation = useCreateStoreItem()
-  const updateMutation = useUpdateStoreItem()
   const deleteMutation = useDeleteStoreItem()
 
   // Stock adjust dialog state

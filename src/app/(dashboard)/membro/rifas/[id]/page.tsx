@@ -237,7 +237,7 @@ export default function MemberRaffleDetailPage() {
 
                 {totalSelected > 0 && (
                   <div className="rounded-lg bg-primary/5 p-3 text-sm">
-                    <p className="font-medium">{totalSelected} numero{totalSelected > 1 ? 's' : ''} selecionado{totalSelected > 1 ? 's' : ''}</p>
+                    <p className="font-medium">{totalSelected} número{totalSelected > 1 ? 's' : ''} selecionado{totalSelected > 1 ? 's' : ''}</p>
                     <p className="mt-0.5 text-xs text-muted-foreground">
                       Números: {selectedNumbers.sort((a, b) => a - b).map((n) => String(n).padStart(2, '0')).join(', ')}
                     </p>

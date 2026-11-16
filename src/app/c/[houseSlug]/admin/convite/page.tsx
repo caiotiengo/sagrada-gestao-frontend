@@ -179,7 +179,7 @@ export default function AdminInviteRegistrationPage() {
             </form>
 
             <p className="mt-6 text-center text-sm text-muted-foreground">
-              Ja possui conta?{' '}
+              Já possui conta?{' '}
               <Link
                 href={ROUTES.LOGIN}
                 className="font-medium text-primary hover:underline"

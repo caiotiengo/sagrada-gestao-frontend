@@ -10,7 +10,6 @@ import {
   XCircle,
   UserPlus,
   MoreVertical,
-  Search,
 } from 'lucide-react'
 import { useInvites, useCreateInvite, useRevokeInvite } from '@/hooks/use-invites'
 import { useAuthStore } from '@/stores/auth'
@@ -31,7 +30,6 @@ import { EmptyState } from '@/components/feedback/empty-state'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
-import { Separator } from '@/components/ui/separator'
 import {
   Dialog,
   DialogClose,

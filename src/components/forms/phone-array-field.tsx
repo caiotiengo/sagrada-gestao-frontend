@@ -4,6 +4,7 @@ import { Plus, Trash2 } from 'lucide-react'
 import {
   useFieldArray,
   type Control,
+  type FieldError,
   type FieldErrors,
 } from 'react-hook-form'
 
@@ -34,7 +35,7 @@ export function PhoneArrayField({
   })
 
   const fieldErrors = errors?.[name] as
-    | Record<string, { value?: { message?: string } }>
+    | Record<string, { value?: FieldError }>
     | undefined
 
   return (
@@ -67,7 +68,7 @@ export function PhoneArrayField({
             <FormField
               label={`Telefone ${index + 1}`}
               name={`${name}.${index}.value`}
-              error={error as any}
+              error={error}
               className="flex-1"
             >
               <MaskedInput

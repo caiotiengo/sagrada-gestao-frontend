@@ -186,7 +186,7 @@ export default function FinanceHealthPage() {
               </div>
             </div>
             <p className="text-xs text-muted-foreground">
-              Clique em "Recalcular saldos" para recompor {' '}
+              Clique em &ldquo;Recalcular saldos&rdquo; para recompor {' '}
               <code className="text-xs">houseSummaries</code>{' '}
               a partir do ledger. Se a divergência persistir, abra a{' '}
               <Link href={ROUTES.ADMIN_FINANCE_AUDIT} className="text-primary hover:underline">

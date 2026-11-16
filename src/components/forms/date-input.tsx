@@ -34,7 +34,7 @@ function displayToIso(display: string): string {
  * Applies DD/MM/AAAA mask to raw digits.
  */
 function maskDate(digits: string): string {
-  let d = digits.slice(0, 8)
+  const d = digits.slice(0, 8)
   if (d.length >= 5) return `${d.slice(0, 2)}/${d.slice(2, 4)}/${d.slice(4)}`
   if (d.length >= 3) return `${d.slice(0, 2)}/${d.slice(2)}`
   return d

@@ -12,7 +12,6 @@ import {
   Calendar,
 } from 'lucide-react'
 import { useSiteContext } from '@/components/site/site-provider'
-import { Button } from '@/components/ui/button'
 
 const NAV_ITEMS = [
   { label: 'Início', href: '/' },

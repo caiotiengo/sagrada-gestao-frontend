@@ -556,7 +556,7 @@ export default function CalendarPage() {
       ) : (
         <EmptyState
           icon={CalendarDays}
-          title="Nenhum evento neste mes"
+          title="Nenhum evento neste mês"
           description={`Nenhum evento encontrado em ${MONTH_NAMES[month]} ${year}.`}
           action={{
             label: 'Criar Evento',

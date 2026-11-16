@@ -15,7 +15,6 @@ import {
   TrendingDown,
   ListChecks,
   Store,
-  ShoppingCart,
   Briefcase,
 } from 'lucide-react'
 import { useMember } from '@/hooks/use-members'
@@ -45,7 +44,6 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { membersService } from '@/services/members'
 import { toast } from 'sonner'
 import { getErrorMessage } from '@/lib/errors'
-import { invalidateFinance } from '@/lib/invalidate'
 
 export default function MemberDetailPage() {
   const params = useParams()

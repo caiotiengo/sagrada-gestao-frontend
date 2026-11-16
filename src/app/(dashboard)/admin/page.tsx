@@ -15,7 +15,6 @@ import {
   ArrowRight,
   Hammer,
   AlertTriangle,
-  ShieldCheck,
 } from 'lucide-react'
 import { useDashboardSummary } from '@/hooks/use-dashboard'
 import { useAuthStore } from '@/stores/auth'

@@ -297,7 +297,7 @@ export default function MemberFinancePage() {
           {feesError ? (
             <ErrorState
               title="Erro ao carregar mensalidades"
-              message="Nao foi possivel carregar suas mensalidades."
+              message="Não foi possível carregar suas mensalidades."
               onRetry={() => refetchFees()}
             />
           ) : fees.length === 0 ? (
@@ -359,7 +359,7 @@ export default function MemberFinancePage() {
           ) : debts.length === 0 && shoppingDebts.length === 0 && quotas.length === 0 && storeTab.length === 0 ? (
             <EmptyState
               icon={DollarSign}
-              title="Nenhum debito"
+              title="Nenhum débito"
               description="Você não possui débitos registrados."
             />
           ) : (
