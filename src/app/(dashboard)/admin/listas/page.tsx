@@ -5,7 +5,7 @@ import Link from 'next/link'
 import {
   Plus, Megaphone, Eye, EyeOff, Copy, Ban, MoreVertical, ExternalLink,
   Search, Hammer, Gamepad2, Users, Pencil, Heart, Archive, Trash2,
-  CheckCircle, Loader2, DollarSign, ClipboardList, ChevronDown, Check, UserPlus,
+  CheckCircle, Loader2, DollarSign, ClipboardList, ChevronDown, Check,
 } from 'lucide-react'
 import { useCampaigns, useCreateCampaign, useUpdateCampaign, useDeleteCampaign } from '@/hooks/use-campaigns'
 import {
@@ -174,7 +174,7 @@ function CampaignsTab() {
   const deleteCampaign = useDeleteCampaign()
   const { data: membersData } = useAllMembers()
 
-  const campaigns = data?.data ?? []
+  const campaigns = useMemo(() => data?.data ?? [], [data])
   const totalPages = data?.pagination.totalPages ?? 1
   const members = membersData?.data ?? []
 

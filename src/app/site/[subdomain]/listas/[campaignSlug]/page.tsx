@@ -23,22 +23,23 @@ import { MaskedInput } from '@/components/forms/masked-input'
 import { Textarea } from '@/components/ui/textarea'
 import { Progress } from '@/components/ui/progress'
 import { DuplicateConfirmDialog } from '@/components/feedback/duplicate-confirm-dialog'
+import { PublicNotFound, isNotFoundError } from '@/components/feedback/public-not-found'
 
 export default function SiteCampaignPage() {
   const { house } = useSiteContext()
   const params = useParams()
   const campaignSlug = params.campaignSlug as string
 
-  const { data: campaign, isLoading, isError, refetch } = usePublicCampaign(house.slug, campaignSlug)
+  const { data: campaign, isLoading, isError, error, refetch } = usePublicCampaign(house.slug, campaignSlug)
   const { mutateAsync: contributeAsync, isPending } = useCampaignContribute()
-  const [duplicateInfo, setDuplicateInfo] = useState<{ donorName: string; amount: number; formData: CampaignContributionFormData } | null>(null)
+  const [duplicateInfo, setDuplicateInfo] = useState<{ donorName: string; amount: number; } | null>(null)
 
   const { register, handleSubmit, reset, control, formState: { errors } } = useForm<CampaignContributionFormData>({
     resolver: zodResolver(campaignContributionSchema),
     defaultValues: { amount: 0, donorName: '', donorPhone: '', donorEmail: '', message: '' },
   })
 
-  async function submitContribution(data: CampaignContributionFormData, forceCreate = false) {
+  async function submitContribution(data: CampaignContributionFormData) {
     if (!campaign) return
     try {
       const result = await contributeAsync({
@@ -48,13 +49,11 @@ export default function SiteCampaignPage() {
         donorPhone: data.donorPhone,
         amount: data.amount,
         message: data.message || undefined,
-        forceCreate,
       })
       if (result.duplicate) {
         setDuplicateInfo({
           donorName: result.existingDonorName || data.donorName,
           amount: result.existingAmount || data.amount,
-          formData: data,
         })
         return
       }
@@ -76,6 +75,21 @@ export default function SiteCampaignPage() {
       </SiteInnerLayout>
     )
   }
+
+  if (isError && isNotFoundError(error)) {
+
+    return (
+
+      <SiteInnerLayout title="Lista">
+
+        <PublicNotFound what="Lista" />
+
+      </SiteInnerLayout>
+
+    )
+
+  }
+
 
   if (isError || !campaign) {
     return (
@@ -199,7 +213,7 @@ export default function SiteCampaignPage() {
                     </FormField>
 
                     <FormField label="Mensagem (opcional)" name="message" error={errors.message} description="Máximo 200 caracteres">
-                      <Textarea id="message" rows={3} maxLength={200} placeholder="Deixe uma mensagem de apoio..." {...register('message')} />
+                      <Textarea id="message" rows={3} maxLength={500} placeholder="Deixe uma mensagem de apoio..." {...register('message')} />
                     </FormField>
 
                     <Button type="submit" size="lg" disabled={isPending} className="w-full">
@@ -216,13 +230,6 @@ export default function SiteCampaignPage() {
       <DuplicateConfirmDialog
         open={!!duplicateInfo}
         onClose={() => setDuplicateInfo(null)}
-        onConfirm={() => {
-          if (duplicateInfo) {
-            setDuplicateInfo(null)
-            submitContribution(duplicateInfo.formData, true)
-          }
-        }}
-        isPending={isPending}
         donorName={duplicateInfo?.donorName}
         amount={duplicateInfo?.amount}
       />

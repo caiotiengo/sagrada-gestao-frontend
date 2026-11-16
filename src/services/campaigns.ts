@@ -1,5 +1,6 @@
 import { callFunction } from '@/lib/callable'
 import type {
+  PayQuotaResponse,
   CreateCampaignRequest,
   CampaignItem,
   UpdateCampaignRequest,
@@ -31,7 +32,7 @@ export const campaignsService = {
     callFunction<AssignQuotaRequest, QuotaItem>('assignQuota', data),
 
   payQuota: (data: PayQuotaRequest) =>
-    callFunction<PayQuotaRequest, QuotaItem>('payQuota', data),
+    callFunction<PayQuotaRequest, PayQuotaResponse>('payQuota', data),
 
   registerExternalContribution: (data: RegisterExternalContributionRequest) =>
     callFunction<RegisterExternalContributionRequest, { message: string }>('registerExternalContribution', data),

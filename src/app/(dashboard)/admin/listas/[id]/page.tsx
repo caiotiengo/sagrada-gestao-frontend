@@ -16,9 +16,11 @@ import {
 } from '@/hooks/use-campaigns'
 import { useAllMembers } from '@/hooks/use-members'
 import { useAuthStore } from '@/stores/auth'
-import { ROUTES } from '@/constants'
-import { formatCurrency, formatDate } from '@/utils'
-import type { CampaignStatus, CampaignContributionItem } from '@/types'
+import { PAYMENT_METHOD_LABELS, ROUTES } from '@/constants'
+import { formatCurrency, formatDate, formatPhone } from '@/utils'
+import { todayBRT } from '@/utils/dates'
+import type { CampaignStatus, CampaignContributionItem, PaymentMethod } from '@/types'
+import { DateInput } from '@/components/forms/date-input'
 import { LoadingState } from '@/components/feedback/loading-state'
 import { ErrorState } from '@/components/feedback/error-state'
 import { EmptyState } from '@/components/feedback/empty-state'
@@ -95,6 +97,8 @@ export default function CampaignDetailPage() {
 
   // Pay quota form
   const [payAmount, setPayAmount] = useState(0)
+  const [payMethod, setPayMethod] = useState<PaymentMethod>('pix')
+  const [payPaidAt, setPayPaidAt] = useState(todayBRT())
 
   // External contribution form
   const [donorName, setDonorName] = useState('')
@@ -112,9 +116,9 @@ export default function CampaignDetailPage() {
   const registerContribution = useRegisterExternalContribution()
 
   const campaign = campaignsData?.data?.find((c) => c.id === campaignId)
-  const quotas = quotasData?.data ?? []
+  const quotas = useMemo(() => quotasData?.data ?? [], [quotasData])
   const quotaTotalPages = quotasData?.pagination?.totalPages ?? 1
-  const contributions = contribData?.data ?? []
+  const contributions = useMemo(() => contribData?.data ?? [], [contribData])
   const contribTotalPages = contribData?.pagination?.totalPages ?? 1
   const members = membersData?.data ?? []
 
@@ -157,6 +161,16 @@ export default function CampaignDetailPage() {
       ? Math.min(100, Math.round((campaign.currentAmount / campaign.goalAmount) * 100))
       : 0
 
+  // Lista cancelada não recebe pagamentos nem contribuições; cota nova só em lista ativa.
+  const isCancelled = campaign.status === 'cancelled'
+  const canReceive = canManage && !isCancelled
+  const canAssign = canManage && campaign.status === 'active'
+  const payExceeds = payAmount > selectedQuotaRemaining
+  const payPaidAtInvalid = !payPaidAt || payPaidAt > todayBRT()
+  const donorPhoneDigits = donorPhone.replace(/\D/g, '')
+  const donorPhoneInvalid = !!donorPhoneDigits && ![10, 11].includes(donorPhoneDigits.length)
+  const contributionMessageTooLong = contributionMessage.trim().length > 500
+
   const handleAssignQuota = () => {
     if (!houseId || !assignMemberId || !assignAmount) return
     assignQuota.mutate(
@@ -172,21 +186,23 @@ export default function CampaignDetailPage() {
   }
 
   const handlePayQuota = () => {
-    if (!houseId || !selectedQuotaId || !payAmount) return
+    if (!houseId || !selectedQuotaId || !payAmount || payExceeds || payPaidAtInvalid) return
     payQuota.mutate(
-      { houseId, quotaId: selectedQuotaId, amount: payAmount },
+      { houseId, quotaId: selectedQuotaId, amount: payAmount, paymentMethod: payMethod, paidAt: payPaidAt },
       {
         onSuccess: () => {
           setPayDialogOpen(false)
           setSelectedQuotaId('')
           setPayAmount(0)
+          setPayMethod('pix')
+          setPayPaidAt(todayBRT())
         },
       },
     )
   }
 
   const handleRegisterContribution = () => {
-    if (!houseId || !donorName.trim() || !contributionAmount) return
+    if (!houseId || !donorName.trim() || !contributionAmount || donorPhoneInvalid || contributionMessageTooLong) return
     registerContribution.mutate(
       {
         houseId,
@@ -245,7 +261,7 @@ export default function CampaignDetailPage() {
           </div>
 
           <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-            <span>Inicio: {formatDate(campaign.startDate)}</span>
+            <span>Início: {formatDate(campaign.startDate)}</span>
             {campaign.endDate && <span>Fim: {formatDate(campaign.endDate)}</span>}
           </div>
         </CardContent>
@@ -301,7 +317,7 @@ export default function CampaignDetailPage() {
             ) : filteredContributions.length > 0 ? (
               <div className="space-y-2">
                 {filteredContributions.map((item) => (
-                  <ContributionCard key={item.id} item={item} canManage={canManage} />
+                  <ContributionCard key={item.id} item={item} canManage={canReceive} />
                 ))}
               </div>
             ) : (
@@ -344,7 +360,7 @@ export default function CampaignDetailPage() {
         <TabsContent value="cotas">
           <div className="space-y-3">
             {/* Assign Quota Button + Dialog */}
-            {canManage && <Dialog open={assignDialogOpen} onOpenChange={(open) => { setAssignDialogOpen(open); if (!open) { setAssignMemberId(''); setAssignAmount(0) } }}>
+            {canAssign && <Dialog open={assignDialogOpen} onOpenChange={(open) => { setAssignDialogOpen(open); if (!open) { setAssignMemberId(''); setAssignAmount(0) } }}>
               <DialogTrigger render={<Button size="sm" className="gap-2" />}>
                 <Plus className="size-4" />
                 Atribuir Cota
@@ -442,7 +458,7 @@ export default function CampaignDetailPage() {
                           </div>
                         </div>
 
-                        {canManage && quota.status !== 'paid' && (
+                        {canReceive && quota.status !== 'paid' && (
                           <Button
                             variant="outline"
                             size="sm"
@@ -523,8 +539,13 @@ export default function CampaignDetailPage() {
                 <Input
                   placeholder="(00) 00000-0000"
                   value={donorPhone}
-                  onChange={(e) => setDonorPhone(e.target.value)}
+                  inputMode="tel"
+                  aria-invalid={donorPhoneInvalid}
+                  onChange={(e) => setDonorPhone(formatPhone(e.target.value))}
                 />
+                {donorPhoneInvalid && (
+                  <p className="text-xs text-destructive">Telefone com DDD: 10 ou 11 dígitos</p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -540,13 +561,14 @@ export default function CampaignDetailPage() {
                 <Input
                   placeholder="Mensagem opcional"
                   value={contributionMessage}
+                  maxLength={500}
                   onChange={(e) => setContributionMessage(e.target.value)}
                 />
               </div>
 
               <Button
                 onClick={handleRegisterContribution}
-                disabled={registerContribution.isPending || !donorName.trim() || !contributionAmount}
+                disabled={registerContribution.isPending || !donorName.trim() || !contributionAmount || donorPhoneInvalid || contributionMessageTooLong || isCancelled}
                 className="gap-2"
               >
                 <HandCoins className="size-4" />
@@ -573,7 +595,35 @@ export default function CampaignDetailPage() {
               <CurrencyInput
                 value={payAmount}
                 onValueChange={setPayAmount}
+                aria-invalid={payExceeds}
               />
+              {payExceeds && (
+                <p className="text-xs text-destructive">
+                  Valor acima do restante ({formatCurrency(selectedQuotaRemaining)})
+                </p>
+              )}
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-2">
+                <label className="text-sm font-medium" htmlFor="quota-pay-method">Forma de pagamento</label>
+                <select
+                  id="quota-pay-method"
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+                  value={payMethod}
+                  onChange={(e) => setPayMethod(e.target.value as PaymentMethod)}
+                >
+                  {Object.entries(PAYMENT_METHOD_LABELS).map(([key, label]) => (
+                    <option key={key} value={key}>{label}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium" htmlFor="quota-paid-at">Data do pagamento</label>
+                <DateInput id="quota-paid-at" value={payPaidAt} onValueChange={setPayPaidAt} />
+                {payPaidAt > todayBRT() && (
+                  <p className="text-xs text-destructive">Não pode ser no futuro</p>
+                )}
+              </div>
             </div>
           </div>
 
@@ -583,7 +633,7 @@ export default function CampaignDetailPage() {
             </DialogClose>
             <Button
               onClick={handlePayQuota}
-              disabled={payQuota.isPending || !payAmount || Number(payAmount) <= 0}
+              disabled={payQuota.isPending || !payAmount || Number(payAmount) <= 0 || payExceeds || payPaidAtInvalid}
             >
               {payQuota.isPending ? 'Registrando...' : 'Confirmar Pagamento'}
             </Button>
@@ -635,7 +685,7 @@ function ContributionCard({ item, canManage }: { item: CampaignContributionItem;
             {item.phone && (
               <div className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
                 <Phone className="size-3" />
-                <span>{item.phone}</span>
+                <span>{formatPhone(item.phone)}</span>
               </div>
             )}
           </div>
@@ -680,7 +730,7 @@ function ContributionCard({ item, canManage }: { item: CampaignContributionItem;
 
         {/* Message */}
         {item.message && (
-          <p className="text-xs italic text-muted-foreground">"{item.message}"</p>
+          <p className="text-xs italic text-muted-foreground">&ldquo;{item.message}&rdquo;</p>
         )}
 
         {/* Delete Contribution AlertDialog */}

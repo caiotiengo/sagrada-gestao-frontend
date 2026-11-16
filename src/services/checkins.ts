@@ -1,5 +1,7 @@
 import { callFunction } from '@/lib/callable'
 import type {
+  RegisterCheckinResponse,
+  RegisterBulkCheckinResponse,
   RegisterCheckinRequest,
   CheckinItem,
   RegisterBulkCheckinRequest,
@@ -11,10 +13,10 @@ import type {
 
 export const checkinsService = {
   registerCheckin: (data: RegisterCheckinRequest) =>
-    callFunction<RegisterCheckinRequest, CheckinItem>('registerCheckin', data),
+    callFunction<RegisterCheckinRequest, RegisterCheckinResponse>('registerCheckin', data),
 
   registerBulkCheckin: (data: RegisterBulkCheckinRequest) =>
-    callFunction<RegisterBulkCheckinRequest, { registered: number }>('registerBulkCheckin', data),
+    callFunction<RegisterBulkCheckinRequest, RegisterBulkCheckinResponse>('registerBulkCheckin', data),
 
   listCheckins: (data: ListCheckinsRequest) =>
     callFunction<ListCheckinsRequest, PaginatedResponse<CheckinItem>>('listCheckins', data),

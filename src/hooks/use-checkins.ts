@@ -36,9 +36,13 @@ export function useRegisterCheckin() {
   return useMutation({
     mutationFn: (data: RegisterCheckinRequest) =>
       checkinsService.registerCheckin(data),
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['checkins'] })
-      toast.success('Check-in registrado')
+      if (result?.alreadyRegistered) {
+        toast.info('Este membro já tinha check-in registrado')
+      } else {
+        toast.success('Check-in registrado')
+      }
     },
     onError: (error) => {
       toast.error(getErrorMessage(error, 'Erro ao registrar check-in'))
@@ -52,9 +56,17 @@ export function useRegisterBulkCheckin() {
   return useMutation({
     mutationFn: (data: RegisterBulkCheckinRequest) =>
       checkinsService.registerBulkCheckin(data),
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['checkins'] })
-      toast.success('Check-ins registrados em lote')
+      const registered = result?.registered ?? result?.count
+      if (registered === undefined) {
+        toast.success('Check-ins registrados em lote')
+        return
+      }
+      const parts = [`${registered} registrado(s)`]
+      if (result.alreadyRegistered) parts.push(`${result.alreadyRegistered} já tinha(m) check-in`)
+      if (result.ignored) parts.push(`${result.ignored} ignorado(s) (não são membros ativos)`)
+      toast.success(`Check-ins: ${parts.join(', ')}`)
     },
     onError: (error) => {
       toast.error(getErrorMessage(error, 'Erro ao registrar check-ins em lote'))

@@ -3,6 +3,7 @@
 import { useState, useMemo, useCallback } from 'react'
 import { ClipboardCheck, Plus, Search, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useCheckins, useRegisterBulkCheckin } from '@/hooks/use-checkins'
+import { currentYearMonthBRT } from '@/utils/dates'
 import { useAllMembers } from '@/hooks/use-members'
 import { useAuthStore } from '@/stores/auth'
 import { CHECKIN_TYPE_LABELS } from '@/constants'
@@ -51,26 +52,27 @@ const MONTH_NAMES = [
 function getMonthRange(year: number, month: number, day?: number) {
   if (day) {
     const d = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-    return { startDate: d, endDate: d }
+    // Fim como horário de parede BRT: funciona com e sem o `bound: "end"` do back
+    return { startDate: d, endDate: `${d}T23:59` }
   }
   const startDate = `${year}-${String(month).padStart(2, '0')}-01`
-  const lastDay = new Date(year, month, 0).getDate()
-  const endDate = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
+  const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate()
+  const endDate = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}T23:59`
   return { startDate, endDate }
 }
 
 function getDaysInMonth(year: number, month: number) {
-  return new Date(year, month, 0).getDate()
+  return new Date(Date.UTC(year, month, 0)).getUTCDate()
 }
 
 export default function AdminCheckinsPage() {
   const houseId = useAuthStore((s) => s.currentHouseId())
 
-  const now = new Date()
+  const now = currentYearMonthBRT()
   const [page, setPage] = useState(1)
   const [filterType, setFilterType] = useState<CheckinType | undefined>(undefined)
-  const [filterYear, setFilterYear] = useState(now.getFullYear())
-  const [filterMonth, setFilterMonth] = useState(now.getMonth() + 1)
+  const [filterYear, setFilterYear] = useState(now.year)
+  const [filterMonth, setFilterMonth] = useState(now.month + 1)
   const [filterDay, setFilterDay] = useState<number | undefined>(undefined)
   const [nameSearch, setNameSearch] = useState('')
 
@@ -105,10 +107,10 @@ export default function AdminCheckinsPage() {
   // Load all members (page 1 with large implicit limit) for name mapping and dialog
   const { data: membersData } = useAllMembers()
 
-  const checkins = data?.data ?? []
+  const checkins = useMemo(() => data?.data ?? [], [data])
   const totalPages = data?.pagination.totalPages ?? 1
 
-  const members = membersData?.data ?? []
+  const members = useMemo(() => membersData?.data ?? [], [membersData])
   const memberMap = useMemo(() => {
     const map = new Map<string, string>()
     for (const m of members) {

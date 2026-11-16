@@ -34,6 +34,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Progress } from '@/components/ui/progress'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { DuplicateConfirmDialog } from '@/components/feedback/duplicate-confirm-dialog'
+import { PublicNotFound, isNotFoundError } from '@/components/feedback/public-not-found'
 
 interface PageProps {
   params: Promise<{
@@ -49,12 +50,13 @@ export default function PublicCampaignPage({ params }: PageProps) {
     data: campaign,
     isLoading,
     isError,
+    error,
     refetch,
   } = usePublicCampaign(houseSlug, campaignSlug)
 
   const { mutateAsync: contributeAsync, isPending } = useCampaignContribute()
 
-  const [duplicateInfo, setDuplicateInfo] = useState<{ donorName: string; amount: number; formData: CampaignContributionFormData } | null>(null)
+  const [duplicateInfo, setDuplicateInfo] = useState<{ donorName: string; amount: number; } | null>(null)
   const [contributionSuccess, setContributionSuccess] = useState(false)
 
   const {
@@ -75,7 +77,7 @@ export default function PublicCampaignPage({ params }: PageProps) {
     },
   })
 
-  async function submitContribution(data: CampaignContributionFormData, forceCreate = false) {
+  async function submitContribution(data: CampaignContributionFormData) {
     if (!campaign) return
     try {
       const result = await contributeAsync({
@@ -85,14 +87,12 @@ export default function PublicCampaignPage({ params }: PageProps) {
         donorPhone: data.donorPhone,
         amount: data.amount,
         message: data.message || undefined,
-        forceCreate,
       })
 
       if (result.duplicate) {
         setDuplicateInfo({
           donorName: result.existingDonorName || data.donorName,
           amount: result.existingAmount || data.amount,
-          formData: data,
         })
         return
       }
@@ -117,12 +117,27 @@ export default function PublicCampaignPage({ params }: PageProps) {
     )
   }
 
+  if (isError && isNotFoundError(error)) {
+
+    return (
+
+      <PublicLayout>
+
+        <PublicNotFound what="Lista" />
+
+      </PublicLayout>
+
+    )
+
+  }
+
+
   if (isError || !campaign) {
     return (
       <PublicLayout>
         <ErrorState
-          title="Lista nao encontrada"
-          message="Nao foi possivel carregar os dados da lista."
+          title="Lista não encontrada"
+          message="Não foi possível carregar os dados da lista."
           onRetry={refetch}
         />
       </PublicLayout>
@@ -178,7 +193,7 @@ export default function PublicCampaignPage({ params }: PageProps) {
             <CheckCircle2 className="size-5 shrink-0 text-green-600 dark:text-green-400" />
             <div className="min-w-0 text-sm">
               <p className="font-semibold text-green-900 dark:text-green-100">
-                Lista concluida!
+                Lista concluída!
               </p>
               <p className="text-green-800 dark:text-green-200">
                 Esta lista foi encerrada. Obrigado a todos que contribuiram!
@@ -194,7 +209,7 @@ export default function PublicCampaignPage({ params }: PageProps) {
                 Lista cancelada
               </p>
               <p className="text-muted-foreground">
-                Esta lista foi cancelada e nao aceita novas contribuicoes.
+                Esta lista foi cancelada e não aceita novas contribuições.
               </p>
             </div>
           </div>
@@ -260,7 +275,7 @@ export default function PublicCampaignPage({ params }: PageProps) {
                       <div>
                         <p className="font-semibold">Lista encerrada</p>
                         <p className="mt-1 text-sm text-muted-foreground">
-                          Esta lista foi concluida e nao aceita novas contribuicoes.
+                          Esta lista foi concluída e não aceita novas contribuições.
                         </p>
                       </div>
                     </>
@@ -270,7 +285,7 @@ export default function PublicCampaignPage({ params }: PageProps) {
                       <div>
                         <p className="font-semibold">Lista cancelada</p>
                         <p className="mt-1 text-sm text-muted-foreground">
-                          Esta lista foi cancelada e nao aceita novas contribuicoes.
+                          Esta lista foi cancelada e não aceita novas contribuições.
                         </p>
                       </div>
                     </>
@@ -285,7 +300,7 @@ export default function PublicCampaignPage({ params }: PageProps) {
                     Contribuir
                   </CardTitle>
                   <CardDescription>
-                    Registre sua contribuicao. O administrador confirmará o pagamento.
+                    Registre sua contribuição. O administrador confirmará o pagamento.
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -366,12 +381,12 @@ export default function PublicCampaignPage({ params }: PageProps) {
                       label="Mensagem (opcional)"
                       name="message"
                       error={errors.message}
-                      description="Maximo 200 caracteres"
+                      description="Máximo de 500 caracteres"
                     >
                       <Textarea
                         id="message"
                         rows={3}
-                        maxLength={200}
+                        maxLength={500}
                         placeholder="Deixe uma mensagem de apoio..."
                         {...register('message')}
                       />
@@ -406,14 +421,6 @@ export default function PublicCampaignPage({ params }: PageProps) {
       <DuplicateConfirmDialog
         open={!!duplicateInfo}
         onClose={() => setDuplicateInfo(null)}
-        onConfirm={() => {
-          if (duplicateInfo) {
-            const formData = duplicateInfo.formData
-            setDuplicateInfo(null)
-            submitContribution(formData, true)
-          }
-        }}
-        isPending={isPending}
         donorName={duplicateInfo?.donorName}
         amount={duplicateInfo?.amount}
       />
