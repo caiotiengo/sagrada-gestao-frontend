@@ -5,6 +5,10 @@ import type {
   UpdateEventRequest,
   ListEventsRequest,
   DeleteEventRequest,
+  RsvpEventRequest,
+  RsvpEventResponse,
+  ListEventAttendeesRequest,
+  EventAttendee,
   PaginatedResponse,
 } from '@/types'
 
@@ -20,4 +24,13 @@ export const calendarService = {
 
   deleteEvent: (data: DeleteEventRequest) =>
     callFunction<DeleteEventRequest, { message: string }>('deleteEvent', data),
+
+  confirmAttendance: (data: RsvpEventRequest) =>
+    callFunction<RsvpEventRequest, RsvpEventResponse>('confirmAttendance', data),
+
+  cancelAttendance: (data: RsvpEventRequest) =>
+    callFunction<RsvpEventRequest, RsvpEventResponse>('cancelAttendance', data),
+
+  listEventAttendees: (data: ListEventAttendeesRequest) =>
+    callFunction<ListEventAttendeesRequest, PaginatedResponse<EventAttendee>>('listEventAttendees', data),
 }

@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '@/stores/auth'
 import { membersService } from '@/services/members'
-import type { UpdateMemberPermissionsRequest, UserRole } from '@/types'
+import type { SetMemberActiveRequest, UpdateMemberPermissionsRequest, UserRole } from '@/types'
 import { toast } from 'sonner'
 import { getErrorMessage } from '@/lib/errors'
 
@@ -70,6 +70,29 @@ export function useUpdateMemberPermissions() {
     },
     onError: (error) => {
       toast.error(getErrorMessage(error, 'Erro ao atualizar permissões'))
+    },
+  })
+}
+
+/** Desativa (isActive=false) ou reativa. O histórico financeiro fica intacto. */
+export function useSetMemberActive() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ active, ...data }: SetMemberActiveRequest & { active: boolean }) =>
+      active ? membersService.reactivateMember(data) : membersService.deactivateMember(data),
+    onSuccess: (res, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['member', variables.houseId, variables.memberId] })
+      queryClient.invalidateQueries({ queryKey: ['members'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] })
+      toast.success(
+        res.changed
+          ? (res.isActive ? 'Membro reativado' : 'Membro desativado')
+          : (res.isActive ? 'Membro já estava ativo' : 'Membro já estava desativado'),
+      )
+    },
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Erro ao alterar o status do membro'))
     },
   })
 }

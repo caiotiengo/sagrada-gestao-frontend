@@ -27,15 +27,30 @@ export function useNotifications(page = 1, isRead?: boolean) {
   })
 }
 
+/** Contador de não lidas (só o total da 1ª página com isRead=false). Atualiza a cada minuto. */
+export function useUnreadNotificationsCount() {
+  const houseId = useAuthStore((s) => s.currentHouseId())
+
+  return useQuery({
+    queryKey: ['notifications', houseId, 'unread-count'],
+    queryFn: () =>
+      notificationsService.listNotifications({ houseId: houseId!, page: 1, limit: 1, isRead: false }),
+    select: (data) => data.pagination.total,
+    enabled: !!houseId,
+    refetchInterval: 60_000,
+    refetchOnWindowFocus: true,
+  })
+}
+
 export function useSendNotification() {
   const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: (data: SendNotificationRequest) =>
       notificationsService.sendNotification(data),
-    onSuccess: () => {
+    onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] })
-      toast.success('Notificação enviada')
+      toast.success(`Notificação enviada para ${res.sent} membro${res.sent === 1 ? '' : 's'}`)
     },
     onError: (error) => {
       toast.error(getErrorMessage(error, 'Erro ao enviar notificação'))
@@ -64,9 +79,9 @@ export function useMarkAllNotificationsRead() {
   return useMutation({
     mutationFn: (data: MarkAllNotificationsReadRequest) =>
       notificationsService.markAllNotificationsRead(data),
-    onSuccess: () => {
+    onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] })
-      toast.success('Todas as notificações marcadas como lidas')
+      toast.success(res.marked === 0 ? 'Nada para marcar' : 'Todas as notificações marcadas como lidas')
     },
     onError: (error) => {
       toast.error(getErrorMessage(error, 'Erro ao marcar notificações como lidas'))

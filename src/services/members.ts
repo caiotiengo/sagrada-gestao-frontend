@@ -5,6 +5,8 @@ import type {
   GetMemberDetailsRequest,
   MemberDetails,
   UpdateMemberPermissionsRequest,
+  SetMemberActiveRequest,
+  SetMemberActiveResponse,
   PaginatedResponse,
 } from '@/types'
 
@@ -17,4 +19,10 @@ export const membersService = {
 
   updateMemberPermissions: (data: UpdateMemberPermissionsRequest) =>
     callFunction<UpdateMemberPermissionsRequest, { message: string }>('updateMemberPermissions', data),
+
+  deactivateMember: (data: SetMemberActiveRequest) =>
+    callFunction<SetMemberActiveRequest, SetMemberActiveResponse>('deactivateMember', data),
+
+  reactivateMember: (data: SetMemberActiveRequest) =>
+    callFunction<SetMemberActiveRequest, SetMemberActiveResponse>('reactivateMember', data),
 }

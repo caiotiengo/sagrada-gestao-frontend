@@ -4,6 +4,9 @@ import type {
   MonthlyFeeItem,
   CreateBulkMonthlyFeesRequest,
   CreateBulkMonthlyFeesResponse,
+  DeleteBulkMonthlyFeesRequest,
+  DeleteBulkMonthlyFeesResponse,
+  UpdateDebtRequest,
   ListMonthlyFeesRequest,
   UpdateMonthlyFeeRequest,
   PayMonthlyFeeRequest,
@@ -63,6 +66,12 @@ export const financeService = {
 
   payDebt: (data: PayDebtRequest) =>
     callFunction<PayDebtRequest, PayDebtResponse>('payDebt', data),
+
+  updateDebt: (data: UpdateDebtRequest) =>
+    callFunction<UpdateDebtRequest, { debtId: string; updated: boolean; fields: string[] }>('updateDebt', data),
+
+  deleteBulkMonthlyFees: (data: DeleteBulkMonthlyFeesRequest) =>
+    callFunction<DeleteBulkMonthlyFeesRequest, DeleteBulkMonthlyFeesResponse>('deleteBulkMonthlyFees', data),
 
   deleteDebt: (data: DeleteDebtRequest) =>
     callFunction<DeleteDebtRequest, { message: string }>('deleteDebt', data),

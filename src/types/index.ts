@@ -174,6 +174,21 @@ export interface MemberItem {
   photoUrl: string | null
   joinedAt: string
   createdAt: string
+  /** Fundador da casa (não pode ser desativado). */
+  isOwner?: boolean
+  deactivatedAt?: string | null
+}
+
+export interface SetMemberActiveRequest {
+  houseId: string
+  memberId: string
+  reason?: string
+}
+
+export interface SetMemberActiveResponse {
+  memberId: string
+  isActive: boolean
+  changed: boolean
 }
 
 export interface GetMemberDetailsRequest {
@@ -285,6 +300,19 @@ export interface CreateBulkMonthlyFeesRequest {
   referenceMonth: string
   amount: number
   dueDate: string
+}
+
+export interface DeleteBulkMonthlyFeesRequest {
+  houseId: string
+  feeIds?: string[]
+  memberId?: string
+  referenceMonth?: string
+  status?: FeeStatus
+}
+
+export interface DeleteBulkMonthlyFeesResponse {
+  deleted: number
+  feeIds: string[]
 }
 
 export interface CreateBulkMonthlyFeesResponse {
@@ -423,6 +451,16 @@ export interface ListDebtsRequest {
   status?: FeeStatus
   page?: number
   limit?: number
+}
+
+export interface UpdateDebtRequest {
+  houseId: string
+  debtId: string
+  description?: string
+  /** null remove o vencimento. */
+  dueDate?: string | null
+  /** Só aceito enquanto a dívida não tem pagamento. */
+  amount?: number
 }
 
 export interface DebtItem {
@@ -651,6 +689,35 @@ export interface EventItem {
   isPublic: boolean
   isActive: boolean
   createdAt: string
+  /** Confirmados (contador denormalizado no evento). */
+  attendeesCount?: number
+  /** O usuário logado confirmou presença. */
+  isAttending?: boolean
+}
+
+export interface RsvpEventRequest {
+  houseId: string
+  eventId: string
+}
+
+export interface RsvpEventResponse {
+  eventId: string
+  confirmed: boolean
+  attendeesCount: number
+}
+
+export interface ListEventAttendeesRequest {
+  houseId: string
+  eventId: string
+  page?: number
+  limit?: number
+}
+
+export interface EventAttendee {
+  userId: string
+  memberId: string
+  fullName: string | null
+  confirmedAt: string | null
 }
 
 export interface PublicEventItem {
@@ -1375,7 +1442,7 @@ export interface SendNotificationRequest {
   title: string
   body: string
   targetUserIds?: string[]
-  targetRole?: string
+  targetRole?: UserRole
   type?: string
   referenceId?: string
   referenceType?: string
@@ -1653,4 +1720,161 @@ export interface PaginationInfo {
 export interface PaginatedResponse<T> {
   data: T[]
   pagination: PaginationInfo
+}
+
+// ---- Avisos (mural) ----
+
+export interface NoticeItem {
+  id: string
+  title: string
+  body: string
+  pinned: boolean
+  expiresAt: string | null
+  createdBy: string
+  createdByMemberId?: string
+  createdAt: string | null
+  updatedAt?: string | null
+}
+
+export interface CreateNoticeRequest {
+  houseId: string
+  title: string
+  body: string
+  pinned?: boolean
+  /** Data pura (YYYY-MM-DD) = vale até o fim do dia em Brasília. */
+  expiresAt?: string
+}
+
+export interface UpdateNoticeRequest {
+  houseId: string
+  noticeId: string
+  title?: string
+  body?: string
+  pinned?: boolean
+  /** null remove a validade. */
+  expiresAt?: string | null
+}
+
+export interface ListNoticesRequest {
+  houseId: string
+  includeExpired?: boolean
+  page?: number
+  limit?: number
+}
+
+export interface DeleteNoticeRequest {
+  houseId: string
+  noticeId: string
+}
+
+export type CommunityFeedType = 'event' | 'campaign' | 'fundraising' | 'notice'
+
+export interface CommunityFeedItem {
+  id: string
+  type: CommunityFeedType
+  title: string
+  description: string
+  createdAt: string
+  date: string | null
+  location: string | null
+  goalAmount: number | null
+  raisedAmount: number | null
+  attendees: number | null
+  imageUrl: string | null
+  pinned: boolean
+  tags: string[]
+  metadata: Record<string, unknown>
+}
+
+export interface GetCommunityFeedRequest {
+  houseId: string
+  filter?: 'all' | CommunityFeedType
+  limit?: number
+}
+
+export interface CommunityFeed {
+  items: CommunityFeedItem[]
+  total: number
+}
+
+// ---- Me (visão pessoal) ----
+
+export interface MyMonthlyFee {
+  id: string
+  amount: number
+  status: 'pending' | 'paid' | 'overdue' | 'cancelled'
+  referenceMonth: string
+  dueDate: string | null
+  /** Dias civis em BRT: 0 = vence hoje, negativo = atrasada. */
+  daysUntilDue: number | null
+  paidAt: string | null
+  paymentMethod: string | null
+}
+
+export interface MyDashboard {
+  monthlyFee: MyMonthlyFee | null
+  totalContributedYear: number
+  totalContributedMonth: number
+  donationsCount: number
+  donationsAmount: number
+  upcomingEventsCount: number
+}
+
+// ---- Cobranças entre membros ----
+
+export type MemberChargeStatus = 'pending' | 'accepted' | 'rejected' | 'paid' | 'cancelled'
+export type MemberChargeCategory = 'loan' | 'purchase' | 'service' | 'shared_expense' | 'other'
+export type MemberChargePaymentMethod = 'pix' | 'cash' | 'card' | 'transfer' | 'internal' | 'other'
+
+export interface MemberCharge {
+  id: string
+  houseId: string
+  creatorMemberId: string
+  creatorUserId: string
+  creatorName: string
+  targetType: 'member' | 'house'
+  targetMemberId: string | null
+  targetUserId: string | null
+  targetName: string | null
+  description: string
+  amount: number
+  category: MemberChargeCategory
+  status: MemberChargeStatus
+  acceptedAt: string | null
+  rejectedAt: string | null
+  rejectionReason: string | null
+  paidAt: string | null
+  paymentMethod: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export interface CreateMemberChargeRequest {
+  houseId: string
+  targetType: 'member' | 'house'
+  targetMemberIds?: string[]
+  description: string
+  amount: number
+  category?: MemberChargeCategory
+}
+
+export interface ListMemberChargesRequest {
+  houseId: string
+  filter?: 'all' | 'created' | 'received' | 'house'
+  status?: 'all' | MemberChargeStatus
+  page?: number
+  limit?: number
+}
+
+export interface MemberChargeActionRequest {
+  houseId: string
+  chargeId: string
+}
+
+export interface RejectMemberChargeRequest extends MemberChargeActionRequest {
+  reason?: string
+}
+
+export interface PayMemberChargeRequest extends MemberChargeActionRequest {
+  paymentMethod: MemberChargePaymentMethod
 }

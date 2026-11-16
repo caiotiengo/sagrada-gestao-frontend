@@ -21,17 +21,18 @@ import { toast } from 'sonner'
 import { invalidateFinance } from '@/lib/invalidate'
 import { getErrorMessage } from '@/lib/errors'
 
-export function useStoreItems(page = 1, category?: StoreCategory) {
+export function useStoreItems(page = 1, category?: StoreCategory, isActive = true) {
   const houseId = useAuthStore((s) => s.currentHouseId())
 
   return useQuery({
-    queryKey: ['store-items', houseId, page, category],
+    queryKey: ['store-items', houseId, page, category, isActive],
     queryFn: () =>
       storeService.listStoreItems({
         houseId: houseId!,
         page,
         limit: 20,
         category,
+        isActive,
       }),
     enabled: !!houseId,
     refetchInterval: 30_000,

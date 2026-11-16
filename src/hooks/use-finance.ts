@@ -14,6 +14,8 @@ import type {
   CreateDebtRequest,
   PayDebtRequest,
   DeleteDebtRequest,
+  UpdateDebtRequest,
+  DeleteBulkMonthlyFeesRequest,
   FeeStatus,
   PaymentType,
   ListFinancialStatementRequest,
@@ -227,6 +229,42 @@ export function usePayDebt() {
     },
     onError: (error) => {
       toast.error(getErrorMessage(error, 'Erro ao registrar pagamento de débito'))
+    },
+  })
+}
+
+export function useUpdateDebt() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (data: UpdateDebtRequest) =>
+      financeService.updateDebt(data),
+    onSuccess: (res) => {
+      invalidateFinance(queryClient)
+      toast.success(res.updated ? 'Dívida atualizada' : 'Nada para alterar')
+    },
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Erro ao atualizar dívida'))
+    },
+  })
+}
+
+export function useDeleteBulkMonthlyFees() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (data: DeleteBulkMonthlyFeesRequest) =>
+      financeService.deleteBulkMonthlyFees(data),
+    onSuccess: (res) => {
+      invalidateFinance(queryClient)
+      toast.success(
+        res.deleted === 0
+          ? 'Nenhuma mensalidade encontrada para excluir'
+          : `${res.deleted} mensalidade${res.deleted === 1 ? '' : 's'} excluída${res.deleted === 1 ? '' : 's'}`,
+      )
+    },
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Erro ao excluir mensalidades'))
     },
   })
 }

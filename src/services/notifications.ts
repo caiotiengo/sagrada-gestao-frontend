@@ -11,7 +11,7 @@ import type {
 
 export const notificationsService = {
   sendNotification: (data: SendNotificationRequest) =>
-    callFunction<SendNotificationRequest, { message: string }>('sendNotification', data),
+    callFunction<SendNotificationRequest, { sent: number; type: string }>('sendNotification', data),
 
   listNotifications: (data: ListNotificationsRequest) =>
     callFunction<ListNotificationsRequest, PaginatedResponse<NotificationItem>>('listNotifications', data),
@@ -20,7 +20,7 @@ export const notificationsService = {
     callFunction<MarkNotificationReadRequest, { message: string }>('markNotificationRead', data),
 
   markAllNotificationsRead: (data: MarkAllNotificationsReadRequest) =>
-    callFunction<MarkAllNotificationsReadRequest, { message: string }>('markAllNotificationsRead', data),
+    callFunction<MarkAllNotificationsReadRequest, { marked: number }>('markAllNotificationsRead', data),
 
   registerFcmToken: (data: RegisterFcmTokenRequest) =>
     callFunction<RegisterFcmTokenRequest, { message: string }>('registerFcmToken', data),

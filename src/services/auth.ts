@@ -38,7 +38,7 @@ export const authService = {
     if (!data.houses?.length) {
       await signOut(auth).catch(() => undefined)
       throw new RegistrationError(
-        'Sua conta não está vinculada a nenhuma casa ativa. Peça um novo convite à sua casa.',
+        'Sua conta não está vinculada a nenhuma casa ativa. Se o seu acesso foi desativado, peça à liderança da casa para reativá-lo.',
       )
     }
     identifyUser(data.uid, { role: data.houses?.[0]?.role || 'unknown' })
