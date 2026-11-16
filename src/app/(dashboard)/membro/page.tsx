@@ -17,7 +17,15 @@ import {
   Receipt,
   ListChecks,
   Briefcase,
+  Megaphone,
+  HandCoins,
+  CalendarCheck,
+  MapPin,
 } from 'lucide-react'
+import { useMyDashboard } from '@/hooks/use-me'
+import { useCommunityFeed } from '@/hooks/use-notices'
+import { NoticesWidget } from '@/components/notices/notices-widget'
+import { formatDateTime } from '@/utils/dates'
 import { useAuthStore } from '@/stores/auth'
 import { useLegacyMyFinancialSummary } from '@/hooks/use-finance'
 import { useFinancialStatement } from '@/hooks/use-ledger'
@@ -37,7 +45,120 @@ const quickActions = [
   { label: 'Cantina', href: ROUTES.MEMBER_STORE, icon: Store, color: 'bg-orange-100 text-orange-600 dark:bg-orange-950 dark:text-orange-400', permission: 'canRegisterSales' },
   { label: 'Compras', href: ROUTES.MEMBER_SHOPPING, icon: ShoppingCart, color: 'bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400' },
   { label: 'Notas', href: ROUTES.MEMBER_NOTES, icon: StickyNote, color: 'bg-sky-100 text-sky-600 dark:bg-sky-950 dark:text-sky-400' },
+  { label: 'Mural', href: ROUTES.MEMBER_NOTICES, icon: Megaphone, color: 'bg-rose-100 text-rose-600 dark:bg-rose-950 dark:text-rose-400' },
+  { label: 'Cobranças', href: ROUTES.MEMBER_CHARGES, icon: HandCoins, color: 'bg-lime-100 text-lime-700 dark:bg-lime-950 dark:text-lime-400' },
 ] as const
+
+/** "vence hoje", "vence em 3 dias", "atrasada há 2 dias" (dias civis BRT, calculados no back). */
+function dueLabel(days: number | null, status: string): string {
+  if (status === 'paid') return 'Paga'
+  if (days === null) return 'Sem vencimento'
+  if (days === 0) return 'Vence hoje'
+  if (days > 0) return `Vence em ${days} dia${days === 1 ? '' : 's'}`
+  const late = Math.abs(days)
+  return `Atrasada há ${late} dia${late === 1 ? '' : 's'}`
+}
+
+function MyDashboardStats() {
+  const { data, isLoading, isError } = useMyDashboard()
+  if (isError) return null
+  if (isLoading || !data) {
+    return (
+      <div className="mb-8 grid grid-cols-1 gap-3 sm:grid-cols-3">
+        {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-20 rounded-xl" />)}
+      </div>
+    )
+  }
+  const fee = data.monthlyFee
+  const year = new Intl.DateTimeFormat('pt-BR', { timeZone: 'America/Sao_Paulo', year: 'numeric' }).format(new Date())
+  return (
+    <div className="mb-8 grid grid-cols-1 gap-3 sm:grid-cols-3" data-testid="my-dashboard">
+      <Link href={`${ROUTES.MEMBER_FINANCE}?tab=mensalidades`}>
+        <Card className="h-full transition-colors hover:bg-muted/40">
+          <CardContent className="p-4">
+            <p className="text-xs text-muted-foreground">Próxima mensalidade</p>
+            {fee ? (
+              <>
+                <p className="mt-1 text-lg font-semibold tabular-nums">{formatCurrency(fee.amount)}</p>
+                <p className={`text-xs ${fee.status === 'overdue' ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground'}`}>
+                  {formatCompetence(fee.referenceMonth)} · {dueLabel(fee.daysUntilDue, fee.status)}
+                </p>
+              </>
+            ) : (
+              <p className="mt-1 text-sm text-muted-foreground">Nenhuma mensalidade</p>
+            )}
+          </CardContent>
+        </Card>
+      </Link>
+      <Card>
+        <CardContent className="p-4">
+          <p className="text-xs text-muted-foreground">Contribuído em {year}</p>
+          <p className="mt-1 text-lg font-semibold tabular-nums">{formatCurrency(data.totalContributedYear)}</p>
+          <p className="text-xs text-muted-foreground">
+            Este mês: {formatCurrency(data.totalContributedMonth)}
+            {data.donationsCount > 0 ? ` · ${data.donationsCount} doaç${data.donationsCount === 1 ? 'ão' : 'ões'}` : ''}
+          </p>
+        </CardContent>
+      </Card>
+      <Link href={ROUTES.MEMBER_CALENDAR}>
+        <Card className="h-full transition-colors hover:bg-muted/40">
+          <CardContent className="p-4">
+            <p className="text-xs text-muted-foreground">Presenças confirmadas</p>
+            <p className="mt-1 flex items-center gap-1.5 text-lg font-semibold tabular-nums">
+              <CalendarCheck className="size-4 text-primary" />
+              {data.upcomingEventsCount}
+            </p>
+            <p className="text-xs text-muted-foreground">em eventos futuros</p>
+          </CardContent>
+        </Card>
+      </Link>
+    </div>
+  )
+}
+
+/** Próximos eventos da casa (getCommunityFeed, filtro evento). */
+function UpcomingEvents() {
+  const { data, isLoading, isError } = useCommunityFeed('event', 3)
+  const events = data?.items ?? []
+  if (isError || (!isLoading && events.length === 0)) return null
+  return (
+    <section className="mt-8">
+      <div className="mb-4 flex items-center justify-between">
+        <h2 className="text-sm font-semibold text-foreground">Próximos eventos</h2>
+        <Link href={ROUTES.MEMBER_CALENDAR} className="flex items-center gap-1 text-xs font-medium text-primary hover:underline">
+          Calendário
+          <ArrowRight className="size-3" />
+        </Link>
+      </div>
+      {isLoading ? (
+        <Skeleton className="h-20 w-full rounded-xl" />
+      ) : (
+        <Card>
+          <CardContent className="divide-y p-0">
+            {events.map((e) => (
+              <Link key={e.id} href={ROUTES.MEMBER_CALENDAR} className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/50">
+                <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400">
+                  <CalendarDays className="size-4" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium">{e.title}</p>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {e.date ? formatDateTime(e.date) : ''}
+                    {e.location ? ` · ` : ''}
+                    {e.location && <><MapPin className="mb-0.5 inline size-3" /> {e.location}</>}
+                  </p>
+                </div>
+                <span className="shrink-0 text-xs text-muted-foreground">
+                  {e.attendees ?? 0} confirmado{(e.attendees ?? 0) === 1 ? '' : 's'}
+                </span>
+              </Link>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+    </section>
+  )
+}
 
 export default function MemberHomePage() {
   const { profile, currentHouse } = useAuthStore()
@@ -170,12 +291,14 @@ export default function MemberHomePage() {
         </Card>
       )}
 
+      <MyDashboardStats />
+
       {/* Quick Actions */}
       <div>
         <h2 className="mb-4 text-sm font-semibold text-foreground">
           Acesso Rápido
         </h2>
-        <div className="grid grid-cols-4 gap-3 sm:grid-cols-4 lg:grid-cols-7">
+        <div className="grid grid-cols-4 gap-3 sm:grid-cols-5 lg:grid-cols-9">
           {quickActions
             .filter((action) => {
               const required = (action as { permission?: string }).permission
@@ -203,6 +326,10 @@ export default function MemberHomePage() {
             })}
         </div>
       </div>
+
+      <NoticesWidget href={ROUTES.MEMBER_NOTICES} />
+
+      <UpcomingEvents />
 
       {/* Movimentações */}
       <div className="mt-8">

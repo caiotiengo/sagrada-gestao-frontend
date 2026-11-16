@@ -21,7 +21,11 @@ import {
   StickyNote,
   UtensilsCrossed,
   Globe,
+  Megaphone,
+  Send,
+  HandCoins,
 } from 'lucide-react'
+import { NotificationBell } from '@/components/notifications/notification-bell'
 import { useAuthStore } from '@/stores/auth'
 import { useLogout } from '@/hooks/use-auth'
 import { APP_NAME, ROLE_LABELS, ROUTES } from '@/constants'
@@ -74,12 +78,17 @@ const adminNavItems: NavEntry[] = [
       { label: 'Cantina', href: ROUTES.ADMIN_CANTEEN, icon: UtensilsCrossed },
     ],
   },
+  { label: 'Avisos', href: ROUTES.ADMIN_NOTICES, icon: Megaphone },
+  { label: 'Notificações', href: ROUTES.ADMIN_NOTIFICATIONS, icon: Send },
+  { label: 'Cobranças', href: ROUTES.ADMIN_MEMBER_CHARGES, icon: HandCoins },
   { label: 'Site', href: ROUTES.ADMIN_SITE, icon: Globe },
 ]
 
 const memberNavItems: NavEntry[] = [
   { label: 'Home', href: ROUTES.MEMBER_HOME, icon: Home },
+  { label: 'Mural', href: ROUTES.MEMBER_NOTICES, icon: Megaphone },
   { label: 'Financeiro', href: ROUTES.MEMBER_FINANCE, icon: DollarSign },
+  { label: 'Cobranças', href: ROUTES.MEMBER_CHARGES, icon: HandCoins },
   { label: 'Calendário', href: ROUTES.MEMBER_CALENDAR, icon: CalendarDays },
   { label: 'Listas', href: ROUTES.MEMBER_CAMPAIGNS, icon: List },
   { label: 'Rifas', href: ROUTES.MEMBER_RAFFLES, icon: Ticket },
@@ -99,6 +108,7 @@ const memberNavItems: NavEntry[] = [
 const permissionNavItems: NavItem[] = [
   { label: 'Tesoureiro', href: ROUTES.ADMIN_FINANCE, icon: DollarSign, permission: 'canManageCashier' },
   { label: 'Gerenciar Membros', href: ROUTES.MEMBERS_LIST, icon: Users, permission: 'canManageMembers' },
+  { label: 'Gerenciar Avisos', href: ROUTES.ADMIN_NOTICES, icon: Megaphone, permission: 'canManageMembers' },
   { label: 'Gerenciar Calendário', href: ROUTES.ADMIN_CALENDAR, icon: CalendarDays, permission: 'canManageCalendar' },
   { label: 'Gerenciar Listas', href: ROUTES.ADMIN_CAMPAIGNS, icon: List, permission: 'canManageCampaigns' },
   { label: 'Gerenciar Rifas', href: ROUTES.ADMIN_RAFFLES, icon: Ticket, permission: 'canManageRaffles' },
@@ -266,9 +276,10 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               <path d="M2 12l10 5 10-5" />
             </svg>
           </div>
-          <span className="text-sm font-semibold tracking-tight text-sidebar-foreground">
+          <span className="flex-1 truncate text-sm font-semibold tracking-tight text-sidebar-foreground">
             {APP_NAME}
           </span>
+          <NotificationBell className="-mr-1.5 text-sidebar-foreground/70" />
         </div>
 
         <Separator />
@@ -405,12 +416,15 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
           <span className="text-sm font-semibold tracking-tight text-foreground">{APP_NAME}</span>
 
+          <div className="flex items-center gap-1">
+          <NotificationBell />
           <Avatar size="default">
             {profile?.photoUrl && <AvatarImage src={profile.photoUrl} alt={profile?.fullName} />}
             <AvatarFallback>
               {profile?.fullName ? getInitials(profile.fullName) : '?'}
             </AvatarFallback>
           </Avatar>
+          </div>
         </header>
 
         {/* Page Content */}

@@ -12,7 +12,7 @@ import { LoadingState } from '@/components/feedback/loading-state'
 // Map permissions to the admin routes they unlock for members
 const permissionRouteMap: Record<string, string[]> = {
   canManageCashier: ['/admin/financeiro'],
-  canManageMembers: ['/admin/membros'],
+  canManageMembers: ['/admin/membros', '/admin/avisos'],
   canManageCalendar: ['/admin/calendario'],
   canManageCampaigns: ['/admin/listas'],
   canManageRaffles: ['/admin/rifas'],

@@ -32,6 +32,9 @@ export const ROUTES = {
   ADMIN_STORE: '/admin/loja',
   ADMIN_CANTEEN: '/admin/cantina',
   ADMIN_SITE: '/admin/site',
+  ADMIN_NOTICES: '/admin/avisos',
+  ADMIN_NOTIFICATIONS: '/admin/notificacoes',
+  ADMIN_MEMBER_CHARGES: '/admin/cobrancas',
 
   // Member Dashboard
   MEMBER_HOME: '/membro',
@@ -44,6 +47,8 @@ export const ROUTES = {
   MEMBER_LOJA: '/membro/loja',
   MEMBER_STORE: '/membro/cantina',
   MEMBER_NOTES: '/membro/notas',
+  MEMBER_NOTICES: '/membro/avisos',
+  MEMBER_CHARGES: '/membro/cobrancas',
 
   // Public house pages
   PUBLIC_HOUSE: (slug: string) => `/c/${slug}`,
