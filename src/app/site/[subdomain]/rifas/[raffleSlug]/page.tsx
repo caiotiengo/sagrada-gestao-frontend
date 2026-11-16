@@ -10,7 +10,8 @@ import { Calendar, Info, Loader2, Ticket, Trophy } from 'lucide-react'
 import { raffleReservationSchema, type RaffleReservationFormData } from '@/schemas/campaign'
 import { useSiteContext } from '@/components/site/site-provider'
 import { usePublicRaffle, useRaffleReservation } from '@/hooks/use-public'
-import { formatCurrency, formatDate } from '@/utils'
+import { formatCurrency, formatDate, formatDateTime } from '@/utils'
+import { PublicNotFound, isNotFoundError } from '@/components/feedback/public-not-found'
 import { SiteInnerLayout } from '@/components/site/site-inner-layout'
 import { LoadingState } from '@/components/feedback/loading-state'
 import { ErrorState } from '@/components/feedback/error-state'
@@ -28,10 +29,11 @@ export default function SiteRafflePage() {
   const params = useParams()
   const raffleSlug = params.raffleSlug as string
 
-  const { data: raffle, isLoading, isError, refetch } = usePublicRaffle(house.slug, raffleSlug)
+  const { data: raffle, isLoading, isError, error, refetch } = usePublicRaffle(house.slug, raffleSlug)
   const { mutateAsync: reserveAsync, isPending } = useRaffleReservation()
   const [selectedNumbers, setSelectedNumbers] = useState<number[]>([])
-  const [duplicateInfo, setDuplicateInfo] = useState<{ buyerName: string; numbers: number[]; amount: number; formData: RaffleReservationFormData } | null>(null)
+  const [duplicateInfo, setDuplicateInfo] = useState<{ buyerName: string; numbers: number[]; amount: number } | null>(null)
+  const [reservationExpiresAt, setReservationExpiresAt] = useState<string | null>(null)
 
   const { register, handleSubmit, setValue, reset, formState: { errors } } = useForm<RaffleReservationFormData>({
     resolver: zodResolver(raffleReservationSchema),
@@ -55,7 +57,7 @@ export default function SiteRafflePage() {
     [soldNumbersSet, setValue],
   )
 
-  async function submitReservation(data: RaffleReservationFormData, forceCreate = false) {
+  async function submitReservation(data: RaffleReservationFormData) {
     if (!raffle) return
     try {
       const result = await reserveAsync({
@@ -64,19 +66,19 @@ export default function SiteRafflePage() {
         numbers: data.numbers,
         buyerName: data.buyerName,
         buyerPhone: data.buyerPhone,
-        forceCreate,
       })
       if (result.duplicate) {
+        // Reserva igual feita há pouco: o back não cria outra (sem "forçar").
         setDuplicateInfo({
           buyerName: result.existingBuyerName || data.buyerName,
           numbers: result.existingNumbers || data.numbers,
           amount: result.existingAmount || 0,
-          formData: data,
         })
         return
       }
       reset()
       setSelectedNumbers([])
+      setReservationExpiresAt(result.expiresAt ?? null)
       refetch()
     } catch {
       // error toast handled by hook
@@ -95,10 +97,18 @@ export default function SiteRafflePage() {
     )
   }
 
+  if (isError && isNotFoundError(error)) {
+    return (
+      <SiteInnerLayout title="Rifa">
+        <PublicNotFound what="Rifa" />
+      </SiteInnerLayout>
+    )
+  }
+
   if (isError || !raffle) {
     return (
       <SiteInnerLayout title="Rifa">
-        <ErrorState title="Rifa não encontrada" message="Não foi possível carregar os dados da rifa." onRetry={refetch} />
+        <ErrorState title="Erro ao carregar a rifa" message="Não foi possível carregar os dados da rifa." onRetry={refetch} />
       </SiteInnerLayout>
     )
   }
@@ -274,10 +284,18 @@ export default function SiteRafflePage() {
                     <Ticket className="size-4 text-[var(--site-primary)]" />
                     Reservar
                   </CardTitle>
-                  <CardDescription>Preencha seus dados para reservar</CardDescription>
+                  <CardDescription>
+                    Preencha seus dados para reservar.
+                    {raffle.reservationTtlHours ? ` Sem pagamento, a reserva expira em ${raffle.reservationTtlHours}h.` : ''}
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+                    {reservationExpiresAt && (
+                      <p className="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800">
+                        Reserva feita! Sem pagamento, ela expira em {formatDateTime(reservationExpiresAt)}.
+                      </p>
+                    )}
                     {totalSelected > 0 && (
                       <div className="rounded-lg bg-[var(--site-primary)]/5 p-3 text-sm">
                         <p className="font-medium">{totalSelected} número{totalSelected > 1 ? 's' : ''}</p>
@@ -311,13 +329,6 @@ export default function SiteRafflePage() {
       <DuplicateConfirmDialog
         open={!!duplicateInfo}
         onClose={() => setDuplicateInfo(null)}
-        onConfirm={() => {
-          if (duplicateInfo) {
-            setDuplicateInfo(null)
-            submitReservation(duplicateInfo.formData, true)
-          }
-        }}
-        isPending={isPending}
         donorName={duplicateInfo?.buyerName}
         amount={duplicateInfo?.amount}
         description={`números ${duplicateInfo?.numbers.join(', ')}`}

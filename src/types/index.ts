@@ -726,6 +726,23 @@ export interface ListCheckinsRequest {
   limit?: number
 }
 
+export interface RegisterCheckinResponse {
+  checkinId: string
+  memberId: string
+  type: CheckinType
+  /** fix/campaigns: true quando o membro já tinha check-in (nada novo gravado). */
+  alreadyRegistered?: boolean
+}
+
+export interface RegisterBulkCheckinResponse {
+  /** fix/campaigns: contagens do lote. Back antigo devolve `count`. */
+  registered?: number
+  alreadyRegistered?: number
+  ignored?: number
+  count?: number
+  type?: CheckinType
+}
+
 export interface CheckinItem {
   id: string
   memberId: string
@@ -819,6 +836,16 @@ export interface PayQuotaRequest {
   houseId: string
   quotaId: string
   amount: number
+  paymentMethod?: PaymentMethod
+  /** "YYYY-MM-DD" (dia civil BRT), não pode ser futura. */
+  paidAt?: string
+}
+
+export interface PayQuotaResponse {
+  quotaId: string
+  paidAmount: number
+  status: 'pending' | 'partial' | 'paid'
+  paymentId?: string
 }
 
 export interface RegisterExternalContributionRequest {
@@ -869,7 +896,8 @@ export interface UpdateRaffleRequest {
   isPublic?: boolean
   imageUrl?: string
   drawDate?: string
-  status?: RaffleStatus
+  /** "drawn" só via drawRaffle; drawn/cancelled são finais; selling→draft só sem vendas. */
+  status?: Exclude<RaffleStatus, 'drawn'>
 }
 
 export interface ListRafflesRequest {
@@ -897,10 +925,21 @@ export interface RaffleItem {
   createdAt: string
 }
 
+export interface RaffleDrawAudit {
+  algorithm?: string
+  seed: string
+  eligibleCount: number
+  eligibleHash: string
+  winnerIndex: number
+}
+
 export interface RaffleDetails extends RaffleItem {
   winnerNumber: number | null
   winnerName: string | null
-  numbers: { number: number; buyerName: string; isPaid: boolean }[]
+  numbers: { number: number; buyerName: string; isPaid: boolean; reservationId?: string | null }[]
+  /** fix/campaigns: dados de auditoria do sorteio. */
+  draw?: RaffleDrawAudit | null
+  drawnAt?: string | null
 }
 
 export interface ReserveRaffleNumbersRequest {
@@ -913,7 +952,10 @@ export interface ReserveRaffleNumbersRequest {
 }
 
 export interface ReserveRaffleNumbersResponse {
-  reservationId: string
+  /** null quando é duplicata (fix/campaigns). */
+  reservationId: string | null
+  /** fix/campaigns: quando a reserva pendente expira. */
+  expiresAt?: string | null
   numbers: number[]
   totalAmount: number
   buyerName: string
@@ -929,7 +971,6 @@ export interface PublicReserveRaffleNumbersRequest {
   numbers: number[]
   buyerName: string
   buyerPhone: string
-  forceCreate?: boolean
 }
 
 export interface PublicRegisterContributionRequest {
@@ -939,11 +980,11 @@ export interface PublicRegisterContributionRequest {
   donorPhone: string
   amount: number
   message?: string
-  forceCreate?: boolean
 }
 
 export interface PublicRegisterContributionResponse {
-  contributionId: string
+  /** null quando é duplicata (fix/campaigns). */
+  contributionId: string | null
   amount: number
   duplicate?: boolean
   existingAmount?: number
@@ -961,16 +1002,29 @@ export interface ListRaffleReservationsRequest {
 export interface RaffleReservationItem {
   id: string
   buyerName: string
-  buyerPhone: string
+  buyerPhone: string | null
   numbers: number[]
   totalAmount: number
   isPaid: boolean
+  /** fix/campaigns */
+  source?: 'internal' | 'public' | null
+  expiresAt?: string | null
   createdAt: string
 }
 
 export interface ConfirmRafflePaymentRequest {
   houseId: string
   reservationId: string
+  paymentMethod?: PaymentMethod
+  /** "YYYY-MM-DD" (dia civil BRT), não pode ser futura. */
+  paidAt?: string
+}
+
+export interface DeleteRaffleReservationResponse {
+  reservationId: string
+  deleted: boolean
+  /** fix/campaigns: valor estornado do caixa (reserva paga), ou null. */
+  reversed?: number | null
 }
 
 export interface DrawRaffleRequest {
@@ -981,8 +1035,10 @@ export interface DrawRaffleRequest {
 export interface DrawRaffleResponse {
   raffleId: string
   winnerNumber: number
-  winnerName: string
+  winnerName: string | null
   status: 'drawn'
+  /** fix/campaigns */
+  draw?: RaffleDrawAudit
 }
 
 export interface DeleteRaffleRequest {
@@ -1433,6 +1489,8 @@ export interface PublicRaffle {
   drawDate: string | null
   winnerNumber: number | null
   takenNumbers: { number: number; available: false }[]
+  /** fix/campaigns: horas até a reserva pública pendente expirar. */
+  reservationTtlHours?: number
   house: {
     name: string
     slug: string

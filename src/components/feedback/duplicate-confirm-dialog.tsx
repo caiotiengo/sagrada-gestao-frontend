@@ -15,7 +15,8 @@ import {
 interface DuplicateConfirmDialogProps {
   open: boolean
   onClose: () => void
-  onConfirm: () => void
+  /** Sem onConfirm o diálogo só informa (o back não aceita forçar o registro). */
+  onConfirm?: () => void
   isPending?: boolean
   donorName?: string
   amount?: number
@@ -41,16 +42,24 @@ export function DuplicateConfirmDialog({
             {amount ? ` no valor de ${formatCurrency(amount)}` : ''}
             {description ? ` (${description})` : ''}.
             <br /><br />
-            Deseja registrar novamente mesmo assim?
+            {onConfirm
+              ? 'Deseja registrar novamente mesmo assim?'
+              : 'Ele já foi recebido, não é preciso enviar de novo. Se quiser outro registro, aguarde alguns minutos.'}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel onClick={onClose}>
-            Não, cancelar
-          </AlertDialogCancel>
-          <AlertDialogAction onClick={onConfirm} disabled={isPending}>
-            {isPending ? 'Enviando...' : 'Sim, registrar'}
-          </AlertDialogAction>
+          {onConfirm ? (
+            <>
+              <AlertDialogCancel onClick={onClose}>
+                Não, cancelar
+              </AlertDialogCancel>
+              <AlertDialogAction onClick={onConfirm} disabled={isPending}>
+                {isPending ? 'Enviando...' : 'Sim, registrar'}
+              </AlertDialogAction>
+            </>
+          ) : (
+            <AlertDialogAction onClick={onClose}>Entendi</AlertDialogAction>
+          )}
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

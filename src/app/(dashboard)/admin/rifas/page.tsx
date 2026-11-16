@@ -2,8 +2,9 @@
 
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { Ticket, Plus, Share2, Trophy, Dices, Ban, MoreVertical, Search } from 'lucide-react'
-import { useRaffles, useCreateRaffle, useDrawRaffle, useDeleteRaffle } from '@/hooks/use-raffles'
+import { useRaffles, useCreateRaffle, useDeleteRaffle } from '@/hooks/use-raffles'
 import { useAuthStore } from '@/stores/auth'
 import { ROUTES } from '@/constants'
 import { toast } from 'sonner'
@@ -80,7 +81,7 @@ export default function AdminRafflesPage() {
   const { data, isLoading, isError, refetch } = useRaffles(page)
   const createRaffle = useCreateRaffle()
 
-  const raffles = data?.data ?? []
+  const raffles = useMemo(() => data?.data ?? [], [data])
   const totalPages = data?.pagination.totalPages ?? 1
 
   const [search, setSearch] = useState('')
@@ -364,10 +365,8 @@ function RaffleCard({
   canManage?: boolean
   onDrawSuccess?: () => void
 }) {
-  const drawRaffle = useDrawRaffle()
+  const router = useRouter()
   const deleteRaffle = useDeleteRaffle()
-  const [drawResult, setDrawResult] = useState<{ winnerNumber: number; winnerName: string } | null>(null)
-  const [drawAlertOpen, setDrawAlertOpen] = useState(false)
   const [cancelAlertOpen, setCancelAlertOpen] = useState(false)
 
   const progress =
@@ -380,19 +379,6 @@ function RaffleCard({
     const link = `${window.location.origin}${ROUTES.PUBLIC_RAFFLE(houseSlug, raffle.slug)}`
     navigator.clipboard.writeText(link)
     toast.success('Link copiado!')
-  }
-
-  const handleDraw = () => {
-    if (!houseId) return
-    drawRaffle.mutate(
-      { houseId, raffleId: raffle.id },
-      {
-        onSuccess: (data) => {
-          setDrawResult({ winnerNumber: data.winnerNumber, winnerName: data.winnerName })
-          onDrawSuccess?.()
-        },
-      },
-    )
   }
 
   return (
@@ -410,7 +396,7 @@ function RaffleCard({
             <Badge variant={STATUS_VARIANTS[raffle.status]} className="shrink-0">
               {STATUS_LABELS[raffle.status]}
             </Badge>
-            {canManage && raffle.status !== 'cancelled' && (
+            {canManage && raffle.status !== 'cancelled' && (raffle.status !== 'drawn' || (raffle.isPublic && !!houseSlug && !!raffle.slug)) && (
               <DropdownMenu>
                 <DropdownMenuTrigger
                   render={
@@ -426,13 +412,14 @@ function RaffleCard({
                       Compartilhar
                     </DropdownMenuItem>
                   )}
-                  {raffle.soldNumbers > 0 && (raffle.status === 'selling' || raffle.status === 'drawn') && (
-                    <DropdownMenuItem onClick={() => setDrawAlertOpen(true)}>
+                  {/* Sorteio único, entre números pagos: feito no detalhe, que mostra quantos concorrem */}
+                  {raffle.soldNumbers > 0 && raffle.status === 'selling' && (
+                    <DropdownMenuItem onClick={() => router.push(ROUTES.ADMIN_RAFFLE_DETAIL(raffle.id))}>
                       <Dices className="size-4" />
-                      {raffle.status === 'drawn' || drawResult ? 'Sortear novamente' : 'Sortear'}
+                      Sortear
                     </DropdownMenuItem>
                   )}
-                  {(raffle.status !== 'drawn' && !drawResult) && (
+                  {raffle.status !== 'drawn' && (
                     <>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem variant="destructive" onClick={() => setCancelAlertOpen(true)}>
@@ -448,15 +435,15 @@ function RaffleCard({
         </div>
 
         {/* Winner result */}
-        {(raffle.status === 'drawn' || drawResult) && (
+        {raffle.status === 'drawn' && (
           <div className="flex items-center gap-2.5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 dark:border-amber-900 dark:bg-amber-950/30">
             <Trophy className="size-4 shrink-0 text-amber-500" />
             <div className="min-w-0 text-xs sm:text-sm">
               <span className="font-semibold text-amber-900 dark:text-amber-100">
-                Nº {String(drawResult?.winnerNumber ?? raffle.winnerNumber ?? 0).padStart(2, '0')}
+                Nº {String(raffle.winnerNumber ?? 0).padStart(2, '0')}
               </span>
               <span className="text-amber-800 dark:text-amber-200">
-                {' — '}{drawResult?.winnerName ?? raffle.winnerName ?? ''}
+                {' — '}{raffle.winnerName ?? ''}
               </span>
             </div>
           </div>
@@ -482,31 +469,6 @@ function RaffleCard({
           {raffle.drawDate && <span>Sorteio: {formatDate(raffle.drawDate)}</span>}
           <span>Criada: {formatDate(raffle.createdAt)}</span>
         </div>
-
-        {/* Draw Alert Dialog (controlled) */}
-        <AlertDialog open={drawAlertOpen} onOpenChange={setDrawAlertOpen}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>
-                {raffle.status === 'drawn' || drawResult ? 'Refazer sorteio?' : 'Realizar sorteio?'}
-              </AlertDialogTitle>
-              <AlertDialogDescription>
-                {raffle.status === 'drawn' || drawResult
-                  ? 'Um novo número será sorteado, substituindo o ganhador atual. Esta ação não pode ser desfeita.'
-                  : 'O sorteio será realizado entre os números reservados. Esta ação não pode ser desfeita.'}
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={handleDraw}
-                disabled={drawRaffle.isPending}
-              >
-                {drawRaffle.isPending ? 'Sorteando...' : 'Confirmar sorteio'}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
 
         {/* Cancel Alert Dialog (controlled) */}
         <AlertDialog open={cancelAlertOpen} onOpenChange={setCancelAlertOpen}>

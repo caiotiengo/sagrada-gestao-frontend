@@ -14,7 +14,8 @@ import {
   usePublicRaffle,
   useRaffleReservation,
 } from '@/hooks/use-public'
-import { formatCurrency, formatDate } from '@/utils'
+import { formatCurrency, formatDate, formatDateTime } from '@/utils'
+import { PublicNotFound, isNotFoundError } from '@/components/feedback/public-not-found'
 import { PublicLayout } from '@/components/layout/public-layout'
 import { LoadingState } from '@/components/feedback/loading-state'
 import { ErrorState } from '@/components/feedback/error-state'
@@ -48,14 +49,16 @@ export default function PublicRafflePage({ params }: PageProps) {
     data: raffle,
     isLoading,
     isError,
+    error,
     refetch,
   } = usePublicRaffle(houseSlug, raffleSlug)
 
   const { mutateAsync: reserveAsync, isPending } = useRaffleReservation()
 
   const [selectedNumbers, setSelectedNumbers] = useState<number[]>([])
-  const [duplicateInfo, setDuplicateInfo] = useState<{ buyerName: string; numbers: number[]; amount: number; formData: RaffleReservationFormData } | null>(null)
+  const [duplicateInfo, setDuplicateInfo] = useState<{ buyerName: string; numbers: number[]; amount: number } | null>(null)
   const [reservationSuccess, setReservationSuccess] = useState(false)
+  const [reservationExpiresAt, setReservationExpiresAt] = useState<string | null>(null)
 
   const {
     register,
@@ -91,7 +94,7 @@ export default function PublicRafflePage({ params }: PageProps) {
     [soldNumbersSet, setValue, isPending],
   )
 
-  async function submitReservation(data: RaffleReservationFormData, forceCreate = false) {
+  async function submitReservation(data: RaffleReservationFormData) {
     if (!raffle) return
     try {
       const result = await reserveAsync({
@@ -99,19 +102,19 @@ export default function PublicRafflePage({ params }: PageProps) {
         numbers: data.numbers,
         buyerName: data.buyerName,
         buyerPhone: data.buyerPhone,
-        forceCreate,
       })
       if (result.duplicate) {
+        // Reserva igual feita há pouco: o back não cria outra (sem "forçar").
         setDuplicateInfo({
           buyerName: result.existingBuyerName || data.buyerName,
           numbers: result.existingNumbers || data.numbers,
           amount: result.existingAmount || 0,
-          formData: data,
         })
         return
       }
       reset()
       setSelectedNumbers([])
+      setReservationExpiresAt(result.expiresAt ?? null)
       setReservationSuccess(true)
       refetch()
     } catch { /* hook handles toast */ }
@@ -125,8 +128,12 @@ export default function PublicRafflePage({ params }: PageProps) {
     return <PublicLayout><LoadingState message="Carregando rifa..." /></PublicLayout>
   }
 
+  if (isError && isNotFoundError(error)) {
+    return <PublicLayout><PublicNotFound what="Rifa" /></PublicLayout>
+  }
+
   if (isError || !raffle) {
-    return <PublicLayout><ErrorState title="Rifa nao encontrada" message="Nao foi possivel carregar os dados da rifa." onRetry={refetch} /></PublicLayout>
+    return <PublicLayout><ErrorState title="Erro ao carregar a rifa" message="Não foi possível carregar os dados da rifa." onRetry={refetch} /></PublicLayout>
   }
 
   const totalSelected = selectedNumbers.length
@@ -160,8 +167,8 @@ export default function PublicRafflePage({ params }: PageProps) {
           <div className="mb-6 flex items-center gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-900 dark:bg-amber-950/30">
             <Trophy className="size-5 shrink-0 text-amber-500" />
             <div className="min-w-0 text-sm">
-              <p className="font-semibold text-amber-900 dark:text-amber-100">Esta rifa ja foi sorteada!</p>
-              {raffle.winnerNumber != null && <p className="text-amber-800 dark:text-amber-200">Numero ganhador: {String(raffle.winnerNumber).padStart(2, '0')}</p>}
+              <p className="font-semibold text-amber-900 dark:text-amber-100">Esta rifa já foi sorteada!</p>
+              {raffle.winnerNumber != null && <p className="text-amber-800 dark:text-amber-200">Número ganhador: {String(raffle.winnerNumber).padStart(2, '0')}</p>}
             </div>
           </div>
         )}
@@ -170,7 +177,7 @@ export default function PublicRafflePage({ params }: PageProps) {
             <Info className="size-5 shrink-0 text-destructive" />
             <div className="min-w-0 text-sm">
               <p className="font-semibold text-destructive">Esta rifa foi cancelada</p>
-              <p className="text-muted-foreground">Nao e mais possivel reservar numeros.</p>
+              <p className="text-muted-foreground">Não é mais possível reservar números.</p>
             </div>
           </div>
         )}
@@ -187,7 +194,7 @@ export default function PublicRafflePage({ params }: PageProps) {
 
         {raffle.prizeDescription && (
           <Card className="mb-6">
-            <CardHeader><CardTitle className="flex items-center gap-2 text-lg"><Trophy className="size-4 text-amber-500" />Premio</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="flex items-center gap-2 text-lg"><Trophy className="size-4 text-amber-500" />Prêmio</CardTitle></CardHeader>
             <CardContent><p className="text-sm text-foreground">{raffle.prizeDescription}</p></CardContent>
           </Card>
         )}
@@ -197,10 +204,10 @@ export default function PublicRafflePage({ params }: PageProps) {
           <div className="space-y-4 lg:col-span-3">
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">{isClosed ? 'Numeros' : 'Escolha seus numeros'}</CardTitle>
+                <CardTitle className="text-lg">{isClosed ? 'Números' : 'Escolha seus números'}</CardTitle>
                 {!isClosed && (
                   <CardDescription>
-                    Toque nos numeros para seleciona-los.{' '}
+                    Toque nos números para selecioná-los.{' '}
                     {totalSelected > 0 && <span className="font-medium text-primary">{totalSelected} selecionado{totalSelected > 1 ? 's' : ''} — {formatCurrency(totalPrice)}</span>}
                   </CardDescription>
                 )}
@@ -228,7 +235,7 @@ export default function PublicRafflePage({ params }: PageProps) {
                   })}
                 </div>
                 <div className="mt-4 flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
-                  <div className="flex items-center gap-1.5"><span className="size-3 rounded-sm border border-border bg-background" />Disponivel</div>
+                  <div className="flex items-center gap-1.5"><span className="size-3 rounded-sm border border-border bg-background" />Disponível</div>
                   {!isClosed && <div className="flex items-center gap-1.5"><span className="size-3 rounded-sm bg-primary" />Selecionado</div>}
                   <div className="flex items-center gap-1.5"><span className="size-3 rounded-sm bg-muted" />Vendido</div>
                   {raffle.status === 'drawn' && <div className="flex items-center gap-1.5"><span className="size-3 rounded-sm border-2 border-amber-400 bg-amber-100 dark:bg-amber-900/40" />Ganhador</div>}
@@ -249,6 +256,11 @@ export default function PublicRafflePage({ params }: PageProps) {
                     <p className="mt-1 text-sm text-muted-foreground">
                       O administrador entrará em contato para confirmar o pagamento.
                     </p>
+                    {reservationExpiresAt && (
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        Sem pagamento, a reserva expira em {formatDateTime(reservationExpiresAt)}.
+                      </p>
+                    )}
                   </div>
                   <Button variant="outline" onClick={() => setReservationSuccess(false)}>
                     Fazer outra reserva
@@ -259,7 +271,7 @@ export default function PublicRafflePage({ params }: PageProps) {
               <Card>
                 <CardContent className="flex flex-col items-center gap-3 py-8 text-center">
                   {raffle.status === 'drawn' ? (
-                    <><Trophy className="size-8 text-amber-500" /><div><p className="font-semibold">Rifa encerrada</p><p className="mt-1 text-sm text-muted-foreground">Esta rifa ja foi sorteada.</p></div></>
+                    <><Trophy className="size-8 text-amber-500" /><div><p className="font-semibold">Rifa encerrada</p><p className="mt-1 text-sm text-muted-foreground">Esta rifa já foi sorteada.</p></div></>
                   ) : (
                     <><Info className="size-8 text-destructive" /><div><p className="font-semibold">Rifa cancelada</p><p className="mt-1 text-sm text-muted-foreground">Esta rifa foi cancelada.</p></div></>
                   )}
@@ -269,13 +281,16 @@ export default function PublicRafflePage({ params }: PageProps) {
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-lg"><Ticket className="size-4 text-primary" />Reservar números</CardTitle>
-                  <CardDescription>Preencha seus dados para reservar. O administrador confirmará o pagamento.</CardDescription>
+                  <CardDescription>
+                    Preencha seus dados para reservar. O administrador confirmará o pagamento.
+                    {raffle.reservationTtlHours ? ` Sem pagamento, a reserva expira em ${raffle.reservationTtlHours}h.` : ''}
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                     {totalSelected > 0 && (
                       <div className="rounded-lg bg-primary/5 p-3 text-sm">
-                        <p className="font-medium">{totalSelected} numero{totalSelected > 1 ? 's' : ''}</p>
+                        <p className="font-medium">{totalSelected} número{totalSelected > 1 ? 's' : ''}</p>
                         <p className="text-muted-foreground">Total: {formatCurrency(totalPrice)}</p>
                       </div>
                     )}
@@ -310,17 +325,9 @@ export default function PublicRafflePage({ params }: PageProps) {
       <DuplicateConfirmDialog
         open={!!duplicateInfo}
         onClose={() => setDuplicateInfo(null)}
-        onConfirm={() => {
-          if (duplicateInfo) {
-            const formData = duplicateInfo.formData
-            setDuplicateInfo(null)
-            submitReservation(formData, true)
-          }
-        }}
-        isPending={isPending}
         donorName={duplicateInfo?.buyerName}
         amount={duplicateInfo?.amount}
-        description={`numeros ${duplicateInfo?.numbers.join(', ')}`}
+        description={`números ${duplicateInfo?.numbers.join(', ')}`}
       />
     </PublicLayout>
   )

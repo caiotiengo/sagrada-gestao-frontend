@@ -1,5 +1,6 @@
 import { callFunction } from '@/lib/callable'
 import type {
+  DeleteRaffleReservationResponse,
   CreateRaffleRequest,
   RaffleItem,
   UpdateRaffleRequest,
@@ -46,5 +47,5 @@ export const rafflesService = {
     callFunction<DeleteRaffleRequest, { message: string }>('deleteRaffle', data),
 
   deleteRaffleReservation: (data: DeleteRaffleReservationRequest) =>
-    callFunction<DeleteRaffleReservationRequest, { reservationId: string; deleted: true }>('deleteRaffleReservation', data),
+    callFunction<DeleteRaffleReservationRequest, DeleteRaffleReservationResponse>('deleteRaffleReservation', data),
 }

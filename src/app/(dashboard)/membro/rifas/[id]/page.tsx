@@ -3,6 +3,7 @@
 import { useCallback, useMemo, useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
+import { toast } from 'sonner'
 import {
   ArrowLeft,
   Calendar,
@@ -46,6 +47,8 @@ const STATUS_VARIANTS: Record<RaffleStatus, 'default' | 'secondary' | 'destructi
   cancelled: 'destructive',
 }
 
+const MAX_NUMBERS_PER_RESERVATION = 50
+
 export default function MemberRaffleDetailPage() {
   const params = useParams()
   const raffleId = params.id as string
@@ -67,14 +70,24 @@ export default function MemberRaffleDetailPage() {
   const toggleNumber = useCallback(
     (num: number) => {
       if (soldNumbersSet.has(num) || isPending) return
-      setSelectedNumbers((prev) =>
-        prev.includes(num) ? prev.filter((n) => n !== num) : [...prev, num],
-      )
+      setSelectedNumbers((prev) => {
+        if (prev.includes(num)) return prev.filter((n) => n !== num)
+        // Reserva interna: até 50 números por vez (regra do back)
+        if (prev.length >= MAX_NUMBERS_PER_RESERVATION) {
+          toast.error(`Máximo de ${MAX_NUMBERS_PER_RESERVATION} números por reserva`)
+          return prev
+        }
+        return [...prev, num]
+      })
     },
     [soldNumbersSet, isPending],
   )
 
   function handleReserve() {
+    if (!profile?.phone) {
+      toast.error('Cadastre um telefone no seu perfil para reservar números')
+      return
+    }
     if (!raffle || !houseId || selectedNumbers.length === 0) return
     reserve(
       {
@@ -90,7 +103,7 @@ export default function MemberRaffleDetailPage() {
   }
 
   if (isLoading) return <LoadingState message="Carregando detalhes da rifa..." />
-  if (isError || !raffle) return <ErrorState title="Erro ao carregar rifa" message="Nao foi possivel carregar os detalhes desta rifa." onRetry={() => refetch()} />
+  if (isError || !raffle) return <ErrorState title="Erro ao carregar rifa" message="Não foi possível carregar os detalhes desta rifa." onRetry={() => refetch()} />
 
   const progress = raffle.totalNumbers > 0 ? Math.round((raffle.soldNumbers / raffle.totalNumbers) * 100) : 0
   const totalSelected = selectedNumbers.length
@@ -115,8 +128,8 @@ export default function MemberRaffleDetailPage() {
       <Card>
         <CardContent className="space-y-4 p-4">
           <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
-            <div><span className="text-muted-foreground">Preco por numero: </span><span className="font-medium">{formatCurrency(raffle.numberPrice)}</span></div>
-            <div><span className="text-muted-foreground">Numeros: </span><span className="font-medium">{raffle.soldNumbers}/{raffle.totalNumbers}</span></div>
+            <div><span className="text-muted-foreground">Preço por número: </span><span className="font-medium">{formatCurrency(raffle.numberPrice)}</span></div>
+            <div><span className="text-muted-foreground">Números: </span><span className="font-medium">{raffle.soldNumbers}/{raffle.totalNumbers}</span></div>
             <div><span className="text-muted-foreground">Progresso: </span><span className="font-medium">{progress}%</span></div>
             {raffle.drawDate && (
               <div className="flex items-center gap-1.5">
@@ -132,7 +145,7 @@ export default function MemberRaffleDetailPage() {
 
       {raffle.prizeDescription && (
         <Card>
-          <CardHeader><CardTitle className="flex items-center gap-2 text-lg"><Trophy className="size-4 text-amber-500" />Premio</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="flex items-center gap-2 text-lg"><Trophy className="size-4 text-amber-500" />Prêmio</CardTitle></CardHeader>
           <CardContent><p className="text-sm text-foreground">{raffle.prizeDescription}</p></CardContent>
         </Card>
       )}
@@ -141,7 +154,7 @@ export default function MemberRaffleDetailPage() {
         <div className="flex items-center gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-900 dark:bg-amber-950/30">
           <Trophy className="size-5 shrink-0 text-amber-500" />
           <div className="min-w-0 text-sm">
-            <p className="font-semibold text-amber-900 dark:text-amber-100">Numero ganhador: {String(raffle.winnerNumber).padStart(2, '0')}</p>
+            <p className="font-semibold text-amber-900 dark:text-amber-100">Número ganhador: {String(raffle.winnerNumber).padStart(2, '0')}</p>
             {raffle.winnerName && <p className="text-amber-800 dark:text-amber-200">{raffle.winnerName}</p>}
           </div>
         </div>
@@ -158,10 +171,10 @@ export default function MemberRaffleDetailPage() {
         <div className="lg:col-span-3">
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">{isSelling ? 'Escolha seus numeros' : 'Numeros'}</CardTitle>
+              <CardTitle className="text-lg">{isSelling ? 'Escolha seus números' : 'Números'}</CardTitle>
               {isSelling && (
                 <CardDescription>
-                  Toque nos numeros para seleciona-los.{' '}
+                  Toque nos números para selecioná-los.{' '}
                   {totalSelected > 0 && <span className="font-medium text-primary">{totalSelected} selecionado{totalSelected > 1 ? 's' : ''} — {formatCurrency(totalPrice)}</span>}
                 </CardDescription>
               )}
@@ -189,7 +202,7 @@ export default function MemberRaffleDetailPage() {
                 })}
               </div>
               <div className="mt-4 flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
-                <div className="flex items-center gap-1.5"><span className="size-3 rounded-sm border border-border bg-background" />Disponivel</div>
+                <div className="flex items-center gap-1.5"><span className="size-3 rounded-sm border border-border bg-background" />Disponível</div>
                 {isSelling && <div className="flex items-center gap-1.5"><span className="size-3 rounded-sm bg-primary" />Selecionado</div>}
                 <div className="flex items-center gap-1.5"><span className="size-3 rounded-sm bg-muted" />Vendido</div>
                 {raffle.status === 'drawn' && <div className="flex items-center gap-1.5"><span className="size-3 rounded-sm border-2 border-amber-400 bg-amber-100 dark:bg-amber-900/40" />Ganhador</div>}
@@ -226,7 +239,7 @@ export default function MemberRaffleDetailPage() {
                   <div className="rounded-lg bg-primary/5 p-3 text-sm">
                     <p className="font-medium">{totalSelected} numero{totalSelected > 1 ? 's' : ''} selecionado{totalSelected > 1 ? 's' : ''}</p>
                     <p className="mt-0.5 text-xs text-muted-foreground">
-                      Numeros: {selectedNumbers.sort((a, b) => a - b).map((n) => String(n).padStart(2, '0')).join(', ')}
+                      Números: {selectedNumbers.sort((a, b) => a - b).map((n) => String(n).padStart(2, '0')).join(', ')}
                     </p>
                     <p className="mt-1 text-base font-semibold text-primary">Total: {formatCurrency(totalPrice)}</p>
                   </div>

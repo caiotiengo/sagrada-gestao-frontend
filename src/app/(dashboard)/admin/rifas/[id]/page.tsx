@@ -13,16 +13,19 @@ import {
 } from '@/hooks/use-raffles'
 import { useAuthStore } from '@/stores/auth'
 import { ROUTES } from '@/constants'
-import { formatCurrency, formatDate } from '@/utils'
+import { formatCurrency, formatDate, formatDateTime, formatPhone } from '@/utils'
+import { todayBRT } from '@/utils/dates'
+import { PAYMENT_METHOD_LABELS } from '@/constants'
+import { DateInput } from '@/components/forms/date-input'
+import type { PaymentMethod } from '@/types'
 import type { RaffleReservationItem, RaffleStatus } from '@/types'
 import { LoadingState } from '@/components/feedback/loading-state'
 import { ErrorState } from '@/components/feedback/error-state'
 import { EmptyState } from '@/components/feedback/empty-state'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Separator } from '@/components/ui/separator'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import {
   AlertDialog,
@@ -64,7 +67,7 @@ export default function AdminRaffleDetailPage() {
   const [pendingPage, setPendingPage] = useState(1)
   const [paidPage, setPaidPage] = useState(1)
   const [reservationSearch, setReservationSearch] = useState('')
-  const [redrawOpen, setRedrawOpen] = useState(false)
+  const [drawOpen, setDrawOpen] = useState(false)
 
   const { data: raffle, isLoading, isError, refetch } = useRaffleDetails(raffleId)
   const pendingQuery = useRaffleReservations(raffleId, pendingPage, false)
@@ -73,9 +76,9 @@ export default function AdminRaffleDetailPage() {
   const drawRaffle = useDrawRaffle()
   const deleteReservation = useDeleteRaffleReservation()
 
-  const allPendingReservations = pendingQuery.data?.data ?? []
+  const allPendingReservations = useMemo(() => pendingQuery.data?.data ?? [], [pendingQuery.data])
   const pendingTotalPages = pendingQuery.data?.pagination.totalPages ?? 1
-  const allPaidReservations = paidQuery.data?.data ?? []
+  const allPaidReservations = useMemo(() => paidQuery.data?.data ?? [], [paidQuery.data])
   const paidTotalPages = paidQuery.data?.pagination.totalPages ?? 1
 
   const pendingReservations = useMemo(() => {
@@ -83,7 +86,7 @@ export default function AdminRaffleDetailPage() {
     const query = reservationSearch.toLowerCase()
     return allPendingReservations.filter((r) =>
       r.buyerName.toLowerCase().includes(query) ||
-      r.buyerPhone.includes(query),
+      (r.buyerPhone ?? '').includes(query),
     )
   }, [allPendingReservations, reservationSearch])
 
@@ -92,7 +95,7 @@ export default function AdminRaffleDetailPage() {
     const query = reservationSearch.toLowerCase()
     return allPaidReservations.filter((r) =>
       r.buyerName.toLowerCase().includes(query) ||
-      r.buyerPhone.includes(query),
+      (r.buyerPhone ?? '').includes(query),
     )
   }, [allPaidReservations, reservationSearch])
 
@@ -109,6 +112,10 @@ export default function AdminRaffleDetailPage() {
       />
     )
   }
+
+  // Só números pagos entram no sorteio; reservas pendentes ficam de fora.
+  const paidCount = raffle.numbers.filter((n) => n.isPaid).length
+  const pendingCount = raffle.numbers.length - paidCount
 
   const progress =
     raffle.totalNumbers > 0
@@ -149,7 +156,7 @@ export default function AdminRaffleDetailPage() {
               <span className="font-medium">{formatCurrency(raffle.numberPrice)}</span>
             </div>
             <div>
-              <span className="text-muted-foreground">Numeros: </span>
+              <span className="text-muted-foreground">Números: </span>
               <span className="font-medium">
                 {raffle.soldNumbers}/{raffle.totalNumbers}
               </span>
@@ -182,58 +189,83 @@ export default function AdminRaffleDetailPage() {
         </CardContent>
       </Card>
 
+      {/* Sorteio: só uma vez, entre os números pagos */}
+      {canManage && raffle.status === 'selling' && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border px-4 py-3">
+          <div className="text-sm">
+            <p className="font-medium">{paidCount} número(s) pago(s) concorrem ao sorteio</p>
+            {pendingCount > 0 && (
+              <p className="text-muted-foreground">
+                {pendingCount} número(s) reservado(s) sem pagamento ficam de fora
+              </p>
+            )}
+          </div>
+          <AlertDialog open={drawOpen} onOpenChange={setDrawOpen}>
+            <AlertDialogTrigger
+              render={
+                <Button size="sm" className="shrink-0 gap-2" disabled={paidCount === 0}>
+                  <Dices className="size-4" />
+                  Sortear
+                </Button>
+              }
+            />
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Realizar sorteio?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Concorrem {paidCount} número(s) pago(s).
+                  {pendingCount > 0 && ` ${pendingCount} número(s) com pagamento pendente não participam.`}{' '}
+                  O sorteio é feito uma única vez e não pode ser refeito.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => {
+                    if (!houseId) return
+                    drawRaffle.mutate(
+                      { houseId, raffleId },
+                      {
+                        onSettled: () => {
+                          setDrawOpen(false)
+                          refetch()
+                        },
+                      },
+                    )
+                  }}
+                  disabled={drawRaffle.isPending || paidCount === 0}
+                >
+                  {drawRaffle.isPending ? 'Sorteando...' : 'Confirmar sorteio'}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
+      )}
+
       {/* Winner Display */}
       {raffle.status === 'drawn' && raffle.winnerNumber != null && (
-        <div className="flex items-center gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-900 dark:bg-amber-950/30">
-          <Trophy className="size-5 shrink-0 text-amber-500" />
-          <div className="min-w-0 flex-1 text-sm">
-            <p className="font-semibold text-amber-900 dark:text-amber-100">
-              Ganhador: Numero {formatNumber(raffle.winnerNumber)}
-            </p>
-            <p className="text-amber-800 dark:text-amber-200">
-              {raffle.winnerName ?? ''}
-            </p>
+        <div className="space-y-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-900 dark:bg-amber-950/30">
+          <div className="flex items-center gap-3">
+            <Trophy className="size-5 shrink-0 text-amber-500" />
+            <div className="min-w-0 flex-1 text-sm">
+              <p className="font-semibold text-amber-900 dark:text-amber-100">
+                Ganhador: Número {formatNumber(raffle.winnerNumber)}
+              </p>
+              <p className="text-amber-800 dark:text-amber-200">
+                {raffle.winnerName ?? ''}
+              </p>
+            </div>
           </div>
-          {canManage && (
-            <AlertDialog open={redrawOpen} onOpenChange={setRedrawOpen}>
-              <AlertDialogTrigger
-                render={
-                  <Button variant="outline" size="sm" className="shrink-0 gap-2">
-                    <Dices className="size-4" />
-                    Sortear novamente
-                  </Button>
-                }
-              />
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Refazer sorteio?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Um novo número será sorteado, substituindo o ganhador atual.
-                    Esta ação não pode ser desfeita.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={() => {
-                      if (!houseId) return
-                      drawRaffle.mutate(
-                        { houseId, raffleId },
-                        {
-                          onSuccess: () => {
-                            setRedrawOpen(false)
-                            refetch()
-                          },
-                        },
-                      )
-                    }}
-                    disabled={drawRaffle.isPending}
-                  >
-                    {drawRaffle.isPending ? 'Sorteando...' : 'Confirmar sorteio'}
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+          {raffle.draw && (
+            <div className="space-y-0.5 border-t border-amber-200 pt-2 text-xs text-amber-900/80 dark:border-amber-900 dark:text-amber-100/80">
+              <p className="font-medium">Auditoria do sorteio</p>
+              {raffle.drawnAt && <p>Sorteado em: {formatDateTime(raffle.drawnAt)}</p>}
+              <p>Números elegíveis (pagos): {raffle.draw.eligibleCount}</p>
+              <p>Posição sorteada: {raffle.draw.winnerIndex + 1}º da lista de elegíveis</p>
+              <p className="break-all">Semente: <span className="font-mono">{raffle.draw.seed}</span></p>
+              <p className="break-all">Hash dos elegíveis: <span className="font-mono">{raffle.draw.eligibleHash}</span></p>
+            </div>
           )}
         </div>
       )}
@@ -343,6 +375,9 @@ function ReservationCard({
   showConfirm?: boolean
 }) {
   const [deleteAlertOpen, setDeleteAlertOpen] = useState(false)
+  const [method, setMethod] = useState<PaymentMethod>('pix')
+  const [paidAt, setPaidAt] = useState(todayBRT())
+  const paidAtInvalid = !paidAt || paidAt > todayBRT()
 
   return (
     <Card>
@@ -350,10 +385,26 @@ function ReservationCard({
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0 flex-1">
             <p className="font-semibold">{reservation.buyerName}</p>
-            <div className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
-              <Phone className="size-3.5" />
-              <span>{reservation.buyerPhone}</span>
-            </div>
+            {reservation.buyerPhone && (
+              <div className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
+                <Phone className="size-3.5" />
+                <span>{formatPhone(reservation.buyerPhone)}</span>
+              </div>
+            )}
+            {(reservation.source || (!reservation.isPaid && reservation.expiresAt)) && (
+              <div className="mt-1 flex flex-wrap gap-1.5">
+                {reservation.source && (
+                  <Badge variant="outline" className="text-[0.65rem]">
+                    {reservation.source === 'public' ? 'Página pública' : 'Interna'}
+                  </Badge>
+                )}
+                {!reservation.isPaid && reservation.expiresAt && (
+                  <span className="text-xs text-muted-foreground">
+                    expira em {formatDateTime(reservation.expiresAt)}
+                  </span>
+                )}
+              </div>
+            )}
           </div>
           <div className="text-right">
             <p className="font-semibold">{formatCurrency(reservation.totalAmount)}</p>
@@ -393,6 +444,28 @@ function ReservationCard({
                     {reservation.buyerName}? Esta ação não pode ser desfeita.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium" htmlFor={`method-${reservation.id}`}>Forma de pagamento</label>
+                    <select
+                      id={`method-${reservation.id}`}
+                      className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+                      value={method}
+                      onChange={(e) => setMethod(e.target.value as PaymentMethod)}
+                    >
+                      {Object.entries(PAYMENT_METHOD_LABELS).map(([key, label]) => (
+                        <option key={key} value={key}>{label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium" htmlFor={`paid-at-${reservation.id}`}>Data do pagamento</label>
+                    <DateInput id={`paid-at-${reservation.id}`} value={paidAt} onValueChange={setPaidAt} />
+                    {paidAt > todayBRT() && (
+                      <p className="text-xs text-destructive">Não pode ser no futuro</p>
+                    )}
+                  </div>
+                </div>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancelar</AlertDialogCancel>
                   <AlertDialogAction
@@ -401,9 +474,11 @@ function ReservationCard({
                       confirmPayment.mutate({
                         houseId,
                         reservationId: reservation.id,
+                        paymentMethod: method,
+                        paidAt,
                       })
                     }}
-                    disabled={confirmPayment.isPending}
+                    disabled={confirmPayment.isPending || paidAtInvalid}
                   >
                     {confirmPayment.isPending ? 'Confirmando...' : 'Confirmar'}
                   </AlertDialogAction>

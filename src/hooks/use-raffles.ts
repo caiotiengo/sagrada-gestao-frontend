@@ -14,6 +14,7 @@ import type {
   RaffleStatus,
 } from '@/types'
 import { toast } from 'sonner'
+import { formatCurrency } from '@/utils'
 import { invalidateFinance } from '@/lib/invalidate'
 import { getErrorMessage } from '@/lib/errors'
 
@@ -173,11 +174,16 @@ export function useDeleteRaffleReservation() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (data: DeleteRaffleReservationRequest) => rafflesService.deleteRaffleReservation(data),
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['raffle-reservations'] })
       invalidateFinance(queryClient)
       queryClient.invalidateQueries({ queryKey: ['raffles'] })
-      toast.success('Reserva excluída com sucesso')
+      queryClient.invalidateQueries({ queryKey: ['raffle-details'] })
+      toast.success(
+        result?.reversed
+          ? `Reserva excluída e ${formatCurrency(result.reversed)} estornado do caixa`
+          : 'Reserva excluída com sucesso',
+      )
     },
     onError: (error) => {
       toast.error(getErrorMessage(error, 'Erro ao excluir reserva'))
