@@ -14,21 +14,26 @@ const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 }
 
+export const USE_EMULATORS = process.env.NEXT_PUBLIC_USE_EMULATORS === 'true'
+
+const EMULATOR_HOST = process.env.NEXT_PUBLIC_EMULATOR_HOST || 'localhost'
+const AUTH_EMULATOR_PORT = Number(process.env.NEXT_PUBLIC_AUTH_EMULATOR_PORT) || 9099
+const FUNCTIONS_EMULATOR_PORT = Number(process.env.NEXT_PUBLIC_FUNCTIONS_EMULATOR_PORT) || 5001
+
 const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig)
 
 export const auth = getAuth(app)
 export const functions = getFunctions(app, 'southamerica-east1')
 
-// Analytics — only in browser (not SSR)
+// Analytics — only in browser (not SSR) and never against emulators
+// (com emuladores os eventos iriam para o measurementId real).
 let analyticsInstance: Analytics | null = null
 
 export function getAnalyticsInstance(): Analytics | null {
-  if (analyticsInstance) return analyticsInstance
-  if (typeof window === 'undefined') return null
-  return null
+  return analyticsInstance
 }
 
-if (typeof window !== 'undefined') {
+if (typeof window !== 'undefined' && !USE_EMULATORS && firebaseConfig.measurementId) {
   isSupported().then((supported) => {
     if (supported) {
       analyticsInstance = getAnalytics(app)
@@ -36,9 +41,9 @@ if (typeof window !== 'undefined') {
   })
 }
 
-if (process.env.NEXT_PUBLIC_USE_EMULATORS === 'true') {
-  connectAuthEmulator(auth, 'http://localhost:9099', { disableWarnings: true })
-  connectFunctionsEmulator(functions, 'localhost', 5001)
+if (USE_EMULATORS) {
+  connectAuthEmulator(auth, `http://${EMULATOR_HOST}:${AUTH_EMULATOR_PORT}`, { disableWarnings: true })
+  connectFunctionsEmulator(functions, EMULATOR_HOST, FUNCTIONS_EMULATOR_PORT)
 }
 
 export default app
