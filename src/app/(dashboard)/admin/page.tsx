@@ -26,6 +26,7 @@ import { ErrorState } from '@/components/feedback/error-state'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { formatCurrency, formatDate } from '@/utils'
+import { NoticesWidget } from '@/components/notices/notices-widget'
 
 const quickActions = [
   { label: 'Membros', href: ROUTES.MEMBERS_LIST, icon: Users, color: 'bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400' },
@@ -307,6 +308,8 @@ export default function AdminHomePage() {
           )
         })()}
       </div>
+
+      <NoticesWidget href={ROUTES.ADMIN_NOTICES} />
     </div>
   )
 }
