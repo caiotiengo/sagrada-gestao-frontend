@@ -15,7 +15,10 @@ import {
   MoreVertical,
   Search,
   Trash2,
+  Pencil,
 } from 'lucide-react'
+import { EditStoreItemDialog } from '@/components/store/edit-store-item-dialog'
+import { Switch } from '@/components/ui/switch'
 import { toast } from 'sonner'
 import { useAuthStore } from '@/stores/auth'
 import {
@@ -133,7 +136,10 @@ export function StorePageContent({ category }: StorePageContentProps) {
   const labels = LABELS[category]
 
   const [itemPage, setItemPage] = useState(1)
-  const { data: itemsData, isLoading: itemsLoading, isError: itemsError, refetch: refetchItems } = useStoreItems(itemPage, category)
+  // Gestão vê os inativos à parte (o back lista por isActive).
+  const [showInactive, setShowInactive] = useState(false)
+  const [editItem, setEditItem] = useState<StoreItem | null>(null)
+  const { data: itemsData, isLoading: itemsLoading, isError: itemsError, refetch: refetchItems } = useStoreItems(itemPage, category, !showInactive)
 
   const items = itemsData?.data ?? []
   const itemTotalPages = itemsData?.pagination.totalPages ?? 1
@@ -520,6 +526,12 @@ export function StorePageContent({ category }: StorePageContentProps) {
 
         {/* Items Tab */}
         <TabsContent value="items">
+          {canManage && (
+            <label className="mb-3 flex w-fit cursor-pointer items-center gap-2 text-sm text-muted-foreground">
+              <Switch checked={showInactive} onCheckedChange={(v) => { setShowInactive(v); setItemPage(1) }} />
+              Mostrar só itens inativos
+            </label>
+          )}
           {/* Item Search */}
           <div className="relative mb-4">
             <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -598,6 +610,10 @@ export function StorePageContent({ category }: StorePageContentProps) {
                               <MoreVertical className="size-4" />
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => setEditItem(item)}>
+                                <Pencil className="size-4" />
+                                Editar item
+                              </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => openStockDialog(item)}>
                                 <Package className="size-4" />
                                 Ajustar estoque
@@ -900,6 +916,8 @@ export function StorePageContent({ category }: StorePageContentProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <EditStoreItemDialog item={editItem} onClose={() => setEditItem(null)} />
 
       {/* Stock adjust Dialog */}
       <Dialog open={stockDialogOpen} onOpenChange={(open) => { setStockDialogOpen(open); if (!open) { setStockItem(null); setStockValue('') } }}>
