@@ -17,6 +17,7 @@ import {
 import { useAuthStore } from '@/stores/auth'
 import { usePublicHouse } from '@/hooks/use-public'
 import { useUpdateSiteConfig, useCheckSubdomain } from '@/hooks/use-site'
+import { getErrorCode, getErrorFields, getErrorMessage } from '@/lib/errors'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -42,7 +43,47 @@ const TEMPLATES: { value: Template; label: string; description: string }[] = [
   { value: 'minimal', label: 'Minimalista', description: 'Clean e focado no conteúdo' },
 ]
 
-const SITE_DOMAIN = 'sagradagestao.com.br'
+// Domínio base dos sites (mesmo usado pelo middleware para os subdomínios)
+const SITE_DOMAIN = (process.env.NEXT_PUBLIC_BASE_DOMAIN || 'sagradagestao.com.br').replace(/^app\./, '')
+
+type SiteField =
+  | 'subdomain' | 'siteTitle' | 'logoUrl' | 'faviconUrl' | 'heroImageUrl'
+  | 'instagramUrl' | 'facebookUrl' | 'youtubeUrl' | 'whatsappNumber'
+
+const URL_FIELDS: SiteField[] = ['logoUrl', 'faviconUrl', 'heroImageUrl', 'instagramUrl', 'facebookUrl', 'youtubeUrl']
+
+/** Mesmas regras do back (house.schemas): URLs só https, WhatsApp só números. */
+function validateSite(values: Record<SiteField, string>): Partial<Record<SiteField, string>> {
+  const errors: Partial<Record<SiteField, string>> = {}
+  for (const key of URL_FIELDS) {
+    const v = values[key].trim()
+    if (!v) continue
+    if (!/^https:\/\//i.test(v)) {
+      errors[key] = 'A URL deve começar com https://'
+      continue
+    }
+    try {
+      new URL(v)
+    } catch {
+      errors[key] = 'URL inválida'
+    }
+  }
+  const sub = values.subdomain
+  if (sub && (sub.length < 3 || sub.length > 30 || !/^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/.test(sub))) {
+    errors.subdomain = 'Use de 3 a 30 letras minúsculas, números ou hífen (sem hífen no início/fim)'
+  }
+  if (/[<>]/.test(values.siteTitle)) errors.siteTitle = 'Título contém caracteres inválidos'
+  const wa = values.whatsappNumber.replace(/\D/g, '')
+  if (values.whatsappNumber && (!/^[\d\s().+-]*$/.test(values.whatsappNumber) || wa.length < 10 || wa.length > 13)) {
+    errors.whatsappNumber = 'Informe o WhatsApp com DDD, só números'
+  }
+  return errors
+}
+
+function FieldError({ message }: { message?: string }) {
+  if (!message) return null
+  return <p className="text-xs text-destructive">{message}</p>
+}
 
 export default function AdminSitePage() {
   const currentHouse = useAuthStore((s) => s.currentHouse)
@@ -120,10 +161,18 @@ export default function AdminSitePage() {
   }, [houseData, initialized])
 
   const siteUrl = subdomain ? `https://${subdomain}.${SITE_DOMAIN}` : ''
+  const [serverErrors, setServerErrors] = useState<Partial<Record<SiteField, string>>>({})
+  const clientErrors = validateSite({
+    subdomain, siteTitle, logoUrl, faviconUrl, heroImageUrl,
+    instagramUrl, facebookUrl, youtubeUrl, whatsappNumber,
+  })
+  const fieldErrors = { ...serverErrors, ...clientErrors }
+  const hasClientErrors = Object.keys(clientErrors).length > 0
   const [publishingStatus, setPublishingStatus] = useState<'idle' | 'publishing' | 'done'>('idle')
 
   function handleSave() {
-    if (!houseId) return
+    if (!houseId || hasClientErrors) return
+    setServerErrors({})
     setPublishingStatus('publishing')
     updateSiteConfig.mutate(
       {
@@ -142,7 +191,8 @@ export default function AdminSitePage() {
           instagramUrl,
           facebookUrl,
           youtubeUrl,
-          whatsappNumber,
+          // Back grava só dígitos
+          whatsappNumber: whatsappNumber.replace(/\D/g, ''),
         },
       },
       {
@@ -150,8 +200,19 @@ export default function AdminSitePage() {
           setTimeout(() => setPublishingStatus('done'), 3000)
           setTimeout(() => setPublishingStatus('idle'), 10000)
         },
-        onError: () => {
+        onError: (error) => {
           setPublishingStatus('idle')
+          // Erros por campo do back ("siteConfig.instagramUrl: ...") e subdomínio em uso
+          const byPath = getErrorFields(error)
+          const next: Partial<Record<SiteField, string>> = {}
+          for (const [path, msg] of Object.entries(byPath)) {
+            const key = path.replace(/^siteConfig\./, '') as SiteField
+            next[key] = msg
+          }
+          if (getErrorCode(error) === 'functions/already-exists') {
+            next.subdomain = getErrorMessage(error, 'Subdomínio já está em uso')
+          }
+          setServerErrors(next)
         },
       },
     )
@@ -260,6 +321,7 @@ export default function AdminSitePage() {
                   .{SITE_DOMAIN}
                 </span>
               </div>
+              <FieldError message={fieldErrors.subdomain} />
               {showSubdomainStatus && !isCheckingSubdomain && subdomainCheck && (
                 <p
                   className={`text-xs ${
@@ -291,6 +353,7 @@ export default function AdminSitePage() {
                 onChange={(e) => setSiteTitle(e.target.value)}
                 maxLength={100}
               />
+            <FieldError message={fieldErrors.siteTitle} />
               <p className="text-xs text-muted-foreground">
                 Aparece na aba do navegador e nos mecanismos de busca
               </p>
@@ -308,6 +371,7 @@ export default function AdminSitePage() {
                 value={faviconUrl}
                 onChange={(e) => setFaviconUrl(e.target.value)}
               />
+            <FieldError message={fieldErrors.faviconUrl} />
               <p className="text-xs text-muted-foreground">
                 Ícone que aparece na aba do navegador. Use uma imagem quadrada (32x32 ou 64x64).
               </p>
@@ -423,6 +487,7 @@ export default function AdminSitePage() {
                   placeholder="https://exemplo.com/logo.png"
                   type="url"
                 />
+              <FieldError message={fieldErrors.logoUrl} />
                 <p className="text-xs text-muted-foreground">
                   Insira a URL de uma imagem para o logo da casa
                 </p>
@@ -437,6 +502,7 @@ export default function AdminSitePage() {
                   placeholder="https://exemplo.com/hero.jpg"
                   type="url"
                 />
+              <FieldError message={fieldErrors.heroImageUrl} />
                 <p className="text-xs text-muted-foreground">
                   Imagem principal exibida no topo do site
                 </p>
@@ -489,6 +555,7 @@ export default function AdminSitePage() {
                   placeholder="https://instagram.com/suacasa"
                   type="url"
                 />
+              <FieldError message={fieldErrors.instagramUrl} />
               </div>
               <Separator />
               <div className="space-y-2">
@@ -503,6 +570,7 @@ export default function AdminSitePage() {
                   placeholder="https://facebook.com/suacasa"
                   type="url"
                 />
+              <FieldError message={fieldErrors.facebookUrl} />
               </div>
               <Separator />
               <div className="space-y-2">
@@ -517,6 +585,7 @@ export default function AdminSitePage() {
                   placeholder="https://youtube.com/@suacasa"
                   type="url"
                 />
+              <FieldError message={fieldErrors.youtubeUrl} />
               </div>
               <Separator />
               <div className="space-y-2">
@@ -530,6 +599,7 @@ export default function AdminSitePage() {
                   onChange={(e) => setWhatsappNumber(e.target.value)}
                   placeholder="(11) 99999-9999"
                 />
+              <FieldError message={fieldErrors.whatsappNumber} />
                 <p className="text-xs text-muted-foreground">
                   Número de telefone com DDD para contato via WhatsApp
                 </p>
@@ -583,7 +653,7 @@ export default function AdminSitePage() {
         </Button>
         <Button
           onClick={handleSave}
-          disabled={updateSiteConfig.isPending || publishingStatus === 'publishing'}
+          disabled={updateSiteConfig.isPending || publishingStatus === 'publishing' || hasClientErrors}
         >
           {(updateSiteConfig.isPending || publishingStatus === 'publishing') && (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />

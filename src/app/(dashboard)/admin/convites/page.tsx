@@ -126,7 +126,7 @@ export default function InvitesPage() {
       {
         houseId,
         inviteType,
-        maxUses: Number(maxUses) || 1,
+        maxUses: Math.min(1000, Math.max(1, Math.trunc(Number(maxUses)) || 1)),
         expiresInHours: Number(expiresInHours) || 168,
       },
       {
@@ -275,6 +275,7 @@ export default function InvitesPage() {
                         <Select
                           value={expiresInHours}
                           onValueChange={(v) => v && setExpiresInHours(v)}
+                          items={{ '24': '1 dia', '72': '3 dias', '168': '7 dias', '720': '30 dias' }}
                         >
                           <SelectTrigger className="w-full">
                             <SelectValue />
