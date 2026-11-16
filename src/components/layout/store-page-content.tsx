@@ -27,12 +27,15 @@ import {
   useRegisterSaleBatch,
   useSales,
   useUpdateSaleStatus,
+  useAdjustStoreItemStock,
+  useMarkOrderReady,
   useSalesSummary,
 } from '@/hooks/use-store'
 import { useAllMembers } from '@/hooks/use-members'
 import { PAYMENT_METHOD_LABELS, SALE_STATUS_LABELS, SALE_STATUS_VARIANTS, ROUTES } from '@/constants'
 import type { StoreItem, PaymentMethod, SaleStatus, StoreCategory } from '@/types'
 import { formatCurrency, formatDate } from '@/utils'
+import { todayBRT } from '@/utils/dates'
 import { ListSkeleton } from '@/components/feedback/list-skeleton'
 import { ErrorState } from '@/components/feedback/error-state'
 import { EmptyState } from '@/components/feedback/empty-state'
@@ -83,8 +86,22 @@ const SELECT_CLASS =
   'flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring'
 
 function todayString() {
-  const d = new Date()
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  return todayBRT()
+}
+
+/** Variação de estoque pedida no diálogo, ou null se o valor for inválido. */
+function stockDelta(item: StoreItem, mode: 'add' | 'remove' | 'set', value: string): number | null {
+  if (!/^\d+$/.test(value.trim())) return null
+  const n = Number(value)
+  if (!Number.isSafeInteger(n)) return null
+  if (mode === 'add') return n
+  if (mode === 'remove') return n > item.stock ? null : -n
+  return n - item.stock
+}
+
+/** Estoque inicial: inteiro >= 0 obrigatório (vazio viraria 0 e o item não vende). */
+function isValidStock(value: string): boolean {
+  return /^\d+$/.test(value.trim()) && Number(value) <= 1_000_000
 }
 
 type SalesFilterKey = 'all' | 'paid' | 'pending' | 'tab' | 'public'
@@ -143,23 +160,27 @@ export function StorePageContent({ category }: StorePageContentProps) {
   // Stock adjust dialog state
   const [stockDialogOpen, setStockDialogOpen] = useState(false)
   const [stockItem, setStockItem] = useState<StoreItem | null>(null)
-  const [stockMode, setStockMode] = useState<'add' | 'set'>('add')
+  const [stockMode, setStockMode] = useState<'add' | 'remove' | 'set'>('add')
   const [stockValue, setStockValue] = useState('')
+  const [stockReason, setStockReason] = useState('')
+  const adjustStock = useAdjustStoreItemStock()
 
   const openStockDialog = (item: StoreItem) => {
     setStockItem(item)
     setStockMode('add')
     setStockValue('')
+    setStockReason('')
     setStockDialogOpen(true)
   }
 
   const handleSaveStock = () => {
     if (!houseId || !stockItem) return
-    const n = Number(stockValue)
-    if (!Number.isFinite(n) || n < 0) return
-    const nextStock = stockMode === 'add' ? stockItem.stock + n : n
-    updateMutation.mutate(
-      { houseId, itemId: stockItem.id, stock: nextStock },
+    const delta = stockDelta(stockItem, stockMode, stockValue)
+    if (delta === null || delta === 0) return
+    // Entrada/saída relativa (adjustStoreItemStock): não sobrescreve vendas
+    // feitas enquanto o diálogo estava aberto.
+    adjustStock.mutate(
+      { houseId, itemId: stockItem.id, delta, reason: stockReason.trim() || undefined },
       {
         onSuccess: () => {
           setStockDialogOpen(false)
@@ -178,14 +199,14 @@ export function StorePageContent({ category }: StorePageContentProps) {
   }
 
   const handleCreateItem = () => {
-    if (!houseId || !newName.trim() || !newPrice) return
+    if (!houseId || !newName.trim() || !newPrice || !isValidStock(newStock) || /[<>]/.test(newName)) return
     createMutation.mutate(
       {
         houseId,
         name: newName.trim(),
         description: newDescription.trim() || undefined,
         price: newPrice,
-        stock: newStock ? Number(newStock) : undefined,
+        stock: Number(newStock),
         category,
       },
       {
@@ -274,7 +295,8 @@ export function StorePageContent({ category }: StorePageContentProps) {
         items: cart.map((c) => ({ itemId: c.item.id, quantity: c.quantity })),
         buyerName: buyerName || undefined,
         memberId,
-        paymentMethod: salePaymentMethod,
+        // Venda não paga não tem forma de pagamento (senão aparece "PIX" no fiado)
+        paymentMethod: saleIsPaid ? salePaymentMethod : undefined,
         isPaid: saleIsPaid,
       })
       setCart([])
@@ -371,6 +393,7 @@ export function StorePageContent({ category }: StorePageContentProps) {
 
   // Update sale status dialog
   const updateStatusMutation = useUpdateSaleStatus()
+  const markReady = useMarkOrderReady()
   const [statusDialogOpen, setStatusDialogOpen] = useState(false)
   const [statusSaleId, setStatusSaleId] = useState('')
   const [statusValue, setStatusValue] = useState<SaleStatus>('paid')
@@ -459,11 +482,29 @@ export function StorePageContent({ category }: StorePageContentProps) {
               <Input placeholder="Nome do item" value={newName} onChange={(e) => setNewName(e.target.value)} />
               <Input placeholder="Descrição (opcional)" value={newDescription} onChange={(e) => setNewDescription(e.target.value)} />
               <CurrencyInput placeholder="Preço (R$ 0,00)" value={newPrice} onValueChange={setNewPrice} />
-              <Input type="number" placeholder="Estoque inicial (opcional)" min={0} value={newStock} onChange={(e) => setNewStock(e.target.value)} />
+              <div className="space-y-1">
+                <Input
+                  type="number"
+                  placeholder="Estoque inicial *"
+                  min={0}
+                  step={1}
+                  value={newStock}
+                  aria-invalid={newStock !== '' && !isValidStock(newStock)}
+                  onChange={(e) => setNewStock(e.target.value)}
+                />
+                {newStock !== '' && !isValidStock(newStock) ? (
+                  <p className="text-xs text-destructive">Informe um número inteiro, zero ou maior</p>
+                ) : (
+                  <p className="text-xs text-muted-foreground">Obrigatório. Sem estoque o item não aparece para venda.</p>
+                )}
+              </div>
+              {/[<>]/.test(newName) && (
+                <p className="text-xs text-destructive">O nome não pode ter os caracteres &lt; ou &gt;</p>
+              )}
             </div>
             <DialogFooter>
               <DialogClose render={<Button variant="outline" />}>Cancelar</DialogClose>
-              <Button onClick={handleCreateItem} disabled={!newName.trim() || !newPrice || createMutation.isPending}>
+              <Button onClick={handleCreateItem} disabled={!newName.trim() || /[<>]/.test(newName) || !newPrice || !isValidStock(newStock) || createMutation.isPending}>
                 {createMutation.isPending ? 'Criando...' : 'Criar'}
               </Button>
             </DialogFooter>
@@ -675,6 +716,12 @@ export function StorePageContent({ category }: StorePageContentProps) {
               </div>
             </div>
 
+            {(salesFilter === 'public' || salesFilter === 'pending') && (
+              <p className="rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+                Pedidos do link público não confirmados são excluídos automaticamente após 48h.
+              </p>
+            )}
+
             {/* Sales List (grouped by orderNumber) */}
             {salesLoading ? (
               <ListSkeleton rows={5} />
@@ -712,7 +759,7 @@ export function StorePageContent({ category }: StorePageContentProps) {
                                 <Badge variant={SALE_STATUS_VARIANTS[group.status as SaleStatus] ?? 'outline'} className="text-[0.625rem]">
                                   {SALE_STATUS_LABELS[group.status as SaleStatus] ?? group.status}
                                 </Badge>
-                                {group.paymentMethod && (
+                                {group.paymentMethod && group.status === 'paid' && (
                                   <Badge variant="outline" className="text-[0.625rem]">
                                     {PAYMENT_METHOD_LABELS[group.paymentMethod as PaymentMethod] ?? group.paymentMethod}
                                   </Badge>
@@ -747,6 +794,8 @@ export function StorePageContent({ category }: StorePageContentProps) {
                                 <p className="truncate font-medium">{sale.itemName ?? 'Item'}</p>
                                 <p className="text-[0.65rem] text-muted-foreground">
                                   {sale.quantity}x {formatCurrency(sale.unitPrice)}
+                                  {sale.paidViaDebtPaymentId ? ' · quitado pelo Financeiro' : ''}
+                                  {sale.isReady && sale.status === 'pending' ? ' · pronto para retirada' : ''}
                                 </p>
                               </div>
                               <span className="w-20 text-right text-sm font-semibold tabular-nums">{formatCurrency(sale.totalPrice)}</span>
@@ -756,29 +805,39 @@ export function StorePageContent({ category }: StorePageContentProps) {
                                     <MoreVertical className="size-3.5" />
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent align="end">
-                                    {sale.status !== 'paid' && (
+                                    {sale.paidViaDebtPaymentId && (
+                                      <DropdownMenuItem disabled>
+                                        <CheckCircle2 className="size-4" />
+                                        Quitado pelo Financeiro
+                                      </DropdownMenuItem>
+                                    )}
+                                    {sale.status !== 'paid' && !sale.paidViaDebtPaymentId && (
                                       <DropdownMenuItem onClick={() => openStatusDialog(sale.id, sale.status)}>
                                         <DollarSign className="size-4" />
                                         Atualizar status
                                       </DropdownMenuItem>
                                     )}
-                                    {sale.status === 'pending' && (
+                                    {sale.status === 'pending' && !sale.paidViaDebtPaymentId && (
                                       <DropdownMenuItem
-                                        disabled={updateStatusMutation.isPending}
+                                        disabled={markReady.isPending}
                                         onClick={() => {
                                           if (!houseId) return
-                                          updateStatusMutation.mutate({ houseId, saleId: sale.id, status: 'ready' })
+                                          markReady.mutate({ houseId, saleId: sale.id, isReady: !sale.isReady })
                                         }}
                                       >
                                         <CheckCircle2 className="size-4" />
-                                        Marcar pronto
+                                        {sale.isReady ? 'Desmarcar pronto' : 'Marcar pronto'}
                                       </DropdownMenuItem>
                                     )}
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem variant="destructive" onClick={() => setDeleteSaleAlertId(sale.id)}>
-                                      <Trash2 className="size-4" />
-                                      Excluir item
-                                    </DropdownMenuItem>
+                                    {!sale.paidViaDebtPaymentId && (
+                                      <>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem variant="destructive" onClick={() => setDeleteSaleAlertId(sale.id)}>
+                                          <Trash2 className="size-4" />
+                                          Excluir venda
+                                        </DropdownMenuItem>
+                                      </>
+                                    )}
                                   </DropdownMenuContent>
                                 </DropdownMenu>
                               )}
@@ -855,57 +914,64 @@ export function StorePageContent({ category }: StorePageContentProps) {
           </DialogHeader>
           <div className="space-y-3 py-2">
             <div className="flex gap-1 rounded-md bg-muted p-1">
-              <button
-                type="button"
-                className={`flex-1 rounded px-3 py-1.5 text-xs font-medium transition-colors ${
-                  stockMode === 'add'
-                    ? 'bg-background text-foreground shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-                onClick={() => setStockMode('add')}
-              >
-                Adicionar
-              </button>
-              <button
-                type="button"
-                className={`flex-1 rounded px-3 py-1.5 text-xs font-medium transition-colors ${
-                  stockMode === 'set'
-                    ? 'bg-background text-foreground shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-                onClick={() => setStockMode('set')}
-              >
-                Definir total
-              </button>
+              {([
+                ['add', 'Entrada'],
+                ['remove', 'Saída/perda'],
+                ['set', 'Definir total'],
+              ] as const).map(([mode, label]) => (
+                <button
+                  key={mode}
+                  type="button"
+                  className={`flex-1 rounded px-3 py-1.5 text-xs font-medium transition-colors ${
+                    stockMode === mode
+                      ? 'bg-background text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                  onClick={() => setStockMode(mode)}
+                >
+                  {label}
+                </button>
+              ))}
             </div>
             <div className="space-y-1.5">
               <label className="text-sm font-medium">
-                {stockMode === 'add' ? 'Quantidade a adicionar' : 'Novo estoque total'}
+                {stockMode === 'add' ? 'Quantidade que entrou' : stockMode === 'remove' ? 'Quantidade que saiu' : 'Novo estoque total'}
               </label>
               <Input
                 type="number"
                 min={0}
+                step={1}
                 placeholder="0"
                 value={stockValue}
                 onChange={(e) => setStockValue(e.target.value)}
               />
+              <Input
+                placeholder="Motivo (opcional)"
+                maxLength={200}
+                value={stockReason}
+                onChange={(e) => setStockReason(e.target.value)}
+              />
             </div>
-            {stockItem && stockValue && Number(stockValue) >= 0 && (
-              <p className="text-sm text-muted-foreground">
-                Estoque resultante:{' '}
-                <span className="font-semibold text-foreground">
-                  {stockMode === 'add' ? stockItem.stock + Number(stockValue) : Number(stockValue)}
-                </span>
-              </p>
-            )}
+            {stockItem && stockValue && (() => {
+              const delta = stockDelta(stockItem, stockMode, stockValue)
+              if (delta === null) {
+                return <p className="text-xs text-destructive">Quantidade inválida (o estoque não pode ficar negativo)</p>
+              }
+              return (
+                <p className="text-sm text-muted-foreground">
+                  Estoque resultante:{' '}
+                  <span className="font-semibold text-foreground">{stockItem.stock + delta}</span>
+                </p>
+              )
+            })()}
           </div>
           <DialogFooter>
             <DialogClose render={<Button variant="outline" />}>Cancelar</DialogClose>
             <Button
               onClick={handleSaveStock}
-              disabled={!stockValue || Number(stockValue) < 0 || updateMutation.isPending}
+              disabled={!stockItem || !stockDelta(stockItem, stockMode, stockValue) || adjustStock.isPending}
             >
-              {updateMutation.isPending ? 'Salvando...' : 'Salvar'}
+              {adjustStock.isPending ? 'Salvando...' : 'Salvar'}
             </Button>
           </DialogFooter>
         </DialogContent>

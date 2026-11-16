@@ -44,6 +44,9 @@ export default function SiteStorePage() {
   const [cart, setCart] = useState<CartItem[]>([])
   const [buyerName, setBuyerName] = useState('')
   const [buyerPhone, setBuyerPhone] = useState('')
+  // Telefone obrigatório com DDD (10 ou 11 dígitos), como no back
+  const phoneDigits = buyerPhone.replace(/\D/g, '').length
+  const phoneOk = phoneDigits === 10 || phoneDigits === 11
   const [notes, setNotes] = useState('')
   const [orderSuccess, setOrderSuccess] = useState(false)
   const [orderNumber, setOrderNumber] = useState('')
@@ -96,22 +99,19 @@ export default function SiteStorePage() {
 
   const cartTotal = cart.reduce((sum, c) => sum + c.price * c.quantity, 0)
 
-  const handleOrder = async (forceCreate = false) => {
-    if (!buyerName.trim() || !buyerPhone.trim() || cart.length === 0) return
+  const handleOrder = async () => {
+    if (!buyerName.trim() || !phoneOk || cart.length === 0) return
     try {
       const response = await createOrderAsync({
         houseSlug: house.slug,
         items: cart.map((c) => ({ itemId: c.itemId, quantity: c.quantity })),
         buyerName: buyerName.trim(),
-        buyerPhone: buyerPhone.trim() || undefined,
+        buyerPhone: buyerPhone.trim(),
         notes: notes.trim() || undefined,
-        forceCreate,
       })
       if (response?.duplicate) {
-        setDuplicateInfo({
-          buyerName: response.existingBuyerName || buyerName,
-          orderNumber: response.existingOrderNumber || '',
-        })
+        // O back não aceita forçar: o mesmo pedido acabou de ser recebido
+        setDuplicateInfo({ buyerName: buyerName.trim(), orderNumber: '' })
         return
       }
       setCart([])
@@ -155,7 +155,7 @@ export default function SiteStorePage() {
               <p className="mt-2 text-xs text-gray-500">Guarde este número para retirada</p>
             </div>
           )}
-          <p className="mt-4 text-gray-500">Seu pedido foi enviado com sucesso.</p>
+          <p className="mt-4 text-gray-500">Seu pedido foi enviado com sucesso. Aguarde a confirmação da casa: pedidos não confirmados em 48h são cancelados automaticamente.</p>
           <Button className="mt-6" onClick={() => { setOrderSuccess(false); setOrderNumber('') }}>
             Fazer outro pedido
           </Button>
@@ -213,7 +213,7 @@ export default function SiteStorePage() {
                             </div>
                             <div className="flex items-center justify-between">
                               <span className="text-sm font-semibold text-[var(--site-primary)]">{formatCurrency(item.price)}</span>
-                              <Badge variant="outline" className="text-xs">{item.stock} disponível</Badge>
+                              <Badge variant="outline" className="text-xs">{item.stock} {item.stock === 1 ? 'disponível' : 'disponíveis'}</Badge>
                             </div>
                             {inCart ? (
                               <div className="flex items-center justify-center gap-3">
@@ -294,13 +294,14 @@ export default function SiteStorePage() {
                   <div className="space-y-1.5">
                     <label className="text-sm font-medium">Telefone *</label>
                     <MaskedInput mask="phone" placeholder="(00) 00000-0000" value={buyerPhone} onChange={(e) => setBuyerPhone(e.target.value)} />
+{buyerPhone && !phoneOk && <p className="text-xs text-destructive">Informe o telefone com DDD</p>}
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-sm font-medium">Observações (opcional)</label>
                     <Input placeholder="Alguma observação..." value={notes} onChange={(e) => setNotes(e.target.value)} />
                   </div>
                 </div>
-                <Button size="lg" disabled={isPending || cart.length === 0 || !buyerName.trim()} className="w-full" onClick={() => handleOrder()}>
+                <Button size="lg" disabled={isPending || cart.length === 0 || !buyerName.trim() || !phoneOk} className="w-full" onClick={() => handleOrder()}>
                   {isPending && <Loader2 className="size-4 animate-spin" />}
                   {isPending ? 'Enviando...' : `Fazer Pedido (${formatCurrency(cartTotal)})`}
                 </Button>
@@ -312,13 +313,8 @@ export default function SiteStorePage() {
       <DuplicateConfirmDialog
         open={!!duplicateInfo}
         onClose={() => setDuplicateInfo(null)}
-        onConfirm={() => {
-          setDuplicateInfo(null)
-          handleOrder(true)
-        }}
-        isPending={isPending}
         donorName={duplicateInfo?.buyerName}
-        description={`pedido ${duplicateInfo?.orderNumber}`}
+        description="já recebemos esse pedido"
       />
     </SiteInnerLayout>
   )

@@ -17,6 +17,9 @@ import type {
   DeleteStoreItemRequest,
   DeleteSaleRequest,
   PaginatedResponse,
+  AdjustStoreItemStockRequest,
+  AdjustStoreItemStockResponse,
+  MarkOrderReadyRequest,
 } from '@/types'
 
 export const storeService = {
@@ -43,6 +46,12 @@ export const storeService = {
 
   getSalesSummary: (data: GetSalesSummaryRequest) =>
     callFunction<GetSalesSummaryRequest, SalesSummary>('getSalesSummary', data),
+
+  adjustStoreItemStock: (data: AdjustStoreItemStockRequest) =>
+    callFunction<AdjustStoreItemStockRequest, AdjustStoreItemStockResponse>('adjustStoreItemStock', data),
+
+  markOrderReady: (data: MarkOrderReadyRequest) =>
+    callFunction<MarkOrderReadyRequest, { saleId: string; isReady: boolean }>('markOrderReady', data),
 
   updateSaleStatus: (data: UpdateSaleStatusRequest) =>
     callFunction<UpdateSaleStatusRequest, { saleId: string; status: string; memberId: string | null }>('updateSaleStatus', data),

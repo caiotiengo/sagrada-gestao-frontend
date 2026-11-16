@@ -1107,7 +1107,28 @@ export interface RegisterSaleRequest {
   isPaid?: boolean
 }
 
+export interface AdjustStoreItemStockRequest {
+  houseId: string
+  itemId: string
+  /** Variação: positiva = entrada, negativa = saída/perda. */
+  delta: number
+  reason?: string
+}
+
+export interface AdjustStoreItemStockResponse {
+  before: number
+  after: number
+  name: string
+}
+
+export interface MarkOrderReadyRequest {
+  houseId: string
+  saleId: string
+  isReady: boolean
+}
+
 export interface RegisterSaleResponse {
+  debtId?: string | null
   saleId: string
   itemName: string
   quantity: number
@@ -1126,6 +1147,8 @@ export interface RegisterSaleBatchRequest {
 }
 
 export interface RegisterSaleBatchResponse {
+  /** Linhas do mesmo item são somadas: `sales` pode ter menos linhas que o pedido. */
+  debtId?: string | null
   orderNumber: string
   orderTotal: number
   isPaid: boolean
@@ -1163,7 +1186,8 @@ export interface PaySaleRequest {
 export interface UpdateSaleStatusRequest {
   houseId: string
   saleId: string
-  status: SaleStatus  // includes 'ready' for ready-for-pickup
+  /** 'ready' só por compatibilidade; use markOrderReady. */
+  status: SaleStatus
   paymentMethod?: PaymentMethod
   memberId?: string
 }
@@ -1210,11 +1234,12 @@ export interface PublicStoreOrderRequest {
   houseSlug: string
   items: { itemId: string; quantity: number }[]
   buyerName: string
-  buyerPhone?: string
+  /** Obrigatório: 10–11 dígitos (aceita máscara). */
+  buyerPhone: string
   notes?: string
-  forceCreate?: boolean
 }
 
+/** Duplicata devolve só `{ duplicate: true }` (sem os demais campos). */
 export interface PublicStoreOrderResponse {
   sales: {
     saleId: string
@@ -1556,6 +1581,10 @@ export interface SaleItem {
   registeredBy: string | null
   source: 'internal' | 'public'
   orderNumber: string | null
+  /** Venda quitada por um pagamento de dívida no Financeiro: não muda status nem exclui. */
+  paidViaDebtPaymentId?: string | null
+  /** Pedido pronto para retirada (markOrderReady). */
+  isReady?: boolean
   createdAt: string
 }
 
@@ -1572,6 +1601,8 @@ export interface ShoppingListItem {
   isCompleted: boolean
   createdBy: string
   createdAt: string
+  /** Lista "list": só criador, caixa ou admin edita/arquiva/conclui/exclui/confirma. */
+  canManage?: boolean
 }
 
 export interface ShoppingItem {

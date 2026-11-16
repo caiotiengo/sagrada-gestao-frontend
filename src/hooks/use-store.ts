@@ -14,6 +14,8 @@ import type {
   DeleteSaleRequest,
   SaleStatus,
   StoreCategory,
+  AdjustStoreItemStockRequest,
+  MarkOrderReadyRequest,
 } from '@/types'
 import { toast } from 'sonner'
 import { invalidateFinance } from '@/lib/invalidate'
@@ -64,6 +66,38 @@ export function useUpdateStoreItem() {
     },
     onError: (error) => {
       toast.error(getErrorMessage(error, 'Erro ao atualizar item'))
+    },
+  })
+}
+
+export function useAdjustStoreItemStock() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (data: AdjustStoreItemStockRequest) =>
+      storeService.adjustStoreItemStock(data),
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ['store-items'] })
+      toast.success(`Estoque de ${result.name}: ${result.before} → ${result.after}`)
+    },
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Erro ao ajustar estoque'))
+    },
+  })
+}
+
+export function useMarkOrderReady() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (data: MarkOrderReadyRequest) => storeService.markOrderReady(data),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['sales'] })
+      queryClient.invalidateQueries({ queryKey: ['sales-summary'] })
+      toast.success(variables.isReady ? 'Pedido marcado como pronto' : 'Pedido desmarcado')
+    },
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Erro ao marcar pedido'))
     },
   })
 }

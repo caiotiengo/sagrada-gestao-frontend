@@ -284,8 +284,8 @@ function ShoppingListCard({
                   </form>
                 )}
 
-                {/* Complete button */}
-                {!list.isCompleted && shoppingItems.length > 0 && (
+                {/* Complete button (só quem gerencia a lista; back antigo não manda canManage) */}
+                {!list.isCompleted && shoppingItems.length > 0 && list.canManage !== false && (
                   <Button
                     size="sm"
                     variant="outline"

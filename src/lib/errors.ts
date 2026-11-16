@@ -13,7 +13,6 @@ const GENERIC_CODES = new Set([
   'functions/unavailable',
   'functions/deadline-exceeded',
   'functions/cancelled',
-  'functions/resource-exhausted',
   'functions/data-loss',
 ])
 

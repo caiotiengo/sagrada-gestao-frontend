@@ -220,8 +220,12 @@ export default function MemberNotesPage() {
                 placeholder="Escreva sua nota..."
                 rows={5}
                 value={content}
+                maxLength={20000}
                 onChange={(e) => setContent(e.target.value)}
               />
+              <p className="text-right text-xs text-muted-foreground">
+                {content.length.toLocaleString('pt-BR')}/20.000
+              </p>
             </div>
 
             <div className="flex items-center gap-2">
