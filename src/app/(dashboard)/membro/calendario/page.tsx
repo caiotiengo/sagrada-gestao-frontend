@@ -18,6 +18,7 @@ import {
   toCivilDateBRT,
 } from '@/utils/dates'
 import type { EventItem } from '@/types'
+import { RsvpButton, AttendeesButton } from '@/components/calendar/event-attendance'
 
 
 function groupByDay(events: EventItem[]) {
@@ -149,6 +150,11 @@ export default function MemberCalendarPage() {
                           {event.description}
                         </p>
                       )}
+
+                      <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                        <AttendeesButton event={event} />
+                        <RsvpButton event={event} />
+                      </div>
                     </CardContent>
                   </Card>
                 ))}

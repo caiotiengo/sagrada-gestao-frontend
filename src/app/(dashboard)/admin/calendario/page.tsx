@@ -27,6 +27,7 @@ import {
 } from '@/utils/dates'
 import { toast } from 'sonner'
 import type { EventItem } from '@/types'
+import { AttendeesButton } from '@/components/calendar/event-attendance'
 import { ListSkeleton } from '@/components/feedback/list-skeleton'
 import { ErrorState } from '@/components/feedback/error-state'
 import { EmptyState } from '@/components/feedback/empty-state'
@@ -479,6 +480,9 @@ export default function CalendarPage() {
                                 {event.location}
                               </span>
                             )}
+                          </div>
+                          <div className="mt-1 -ml-2">
+                            <AttendeesButton event={event} />
                           </div>
                         </div>
 
