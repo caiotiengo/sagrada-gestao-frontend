@@ -78,7 +78,7 @@ export function useAdjustStoreItemStock() {
       storeService.adjustStoreItemStock(data),
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['store-items'] })
-      toast.success(`Estoque de ${result.name}: ${result.before} → ${result.after}`)
+      toast.success(`Estoque ajustado: ${result.previousStock} → ${result.stock}`)
     },
     onError: (error) => {
       toast.error(getErrorMessage(error, 'Erro ao ajustar estoque'))

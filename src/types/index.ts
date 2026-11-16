@@ -1116,9 +1116,9 @@ export interface AdjustStoreItemStockRequest {
 }
 
 export interface AdjustStoreItemStockResponse {
-  before: number
-  after: number
-  name: string
+  itemId: string
+  stock: number
+  previousStock: number
 }
 
 export interface MarkOrderReadyRequest {
