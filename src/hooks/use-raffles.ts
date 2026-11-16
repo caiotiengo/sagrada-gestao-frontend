@@ -14,6 +14,8 @@ import type {
   RaffleStatus,
 } from '@/types'
 import { toast } from 'sonner'
+import { invalidateFinance } from '@/lib/invalidate'
+import { getErrorMessage } from '@/lib/errors'
 
 export function useRaffles(page = 1, status?: RaffleStatus) {
   const houseId = useAuthStore((s) => s.currentHouseId())
@@ -55,8 +57,8 @@ export function useCreateRaffle() {
       queryClient.invalidateQueries({ queryKey: ['raffles'] })
       toast.success('Rifa criada')
     },
-    onError: () => {
-      toast.error('Erro ao criar rifa')
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Erro ao criar rifa'))
     },
   })
 }
@@ -72,8 +74,8 @@ export function useUpdateRaffle() {
       queryClient.invalidateQueries({ queryKey: ['raffle-details'] })
       toast.success('Rifa atualizada')
     },
-    onError: () => {
-      toast.error('Erro ao atualizar rifa')
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Erro ao atualizar rifa'))
     },
   })
 }
@@ -86,11 +88,12 @@ export function useReserveRaffleNumbers() {
       rafflesService.reserveRaffleNumbers(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['raffles'] })
+      invalidateFinance(queryClient)
       queryClient.invalidateQueries({ queryKey: ['raffle-details'] })
       toast.success('Números reservados')
     },
-    onError: () => {
-      toast.error('Erro ao reservar números')
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Erro ao reservar números'))
     },
   })
 }
@@ -120,12 +123,13 @@ export function useConfirmRafflePayment() {
       rafflesService.confirmRafflePayment(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['raffles'] })
+      invalidateFinance(queryClient)
       queryClient.invalidateQueries({ queryKey: ['raffle-details'] })
       queryClient.invalidateQueries({ queryKey: ['raffle-reservations'] })
       toast.success('Pagamento confirmado')
     },
-    onError: () => {
-      toast.error('Erro ao confirmar pagamento')
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Erro ao confirmar pagamento'))
     },
   })
 }
@@ -138,11 +142,12 @@ export function useDrawRaffle() {
       rafflesService.drawRaffle(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['raffles'] })
+      invalidateFinance(queryClient)
       queryClient.invalidateQueries({ queryKey: ['raffle-details'] })
       toast.success('Sorteio realizado')
     },
-    onError: () => {
-      toast.error('Erro ao realizar sorteio')
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Erro ao realizar sorteio'))
     },
   })
 }
@@ -155,10 +160,11 @@ export function useDeleteRaffle() {
       rafflesService.deleteRaffle(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['raffles'] })
+      invalidateFinance(queryClient)
       toast.success('Rifa cancelada')
     },
-    onError: () => {
-      toast.error('Erro ao cancelar rifa')
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Erro ao cancelar rifa'))
     },
   })
 }
@@ -169,12 +175,12 @@ export function useDeleteRaffleReservation() {
     mutationFn: (data: DeleteRaffleReservationRequest) => rafflesService.deleteRaffleReservation(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['raffle-reservations'] })
+      invalidateFinance(queryClient)
       queryClient.invalidateQueries({ queryKey: ['raffles'] })
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
       toast.success('Reserva excluída com sucesso')
     },
-    onError: () => {
-      toast.error('Erro ao excluir reserva')
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Erro ao excluir reserva'))
     },
   })
 }

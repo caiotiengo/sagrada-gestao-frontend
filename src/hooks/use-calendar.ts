@@ -9,6 +9,7 @@ import type {
   DeleteEventRequest,
 } from '@/types'
 import { toast } from 'sonner'
+import { getErrorMessage } from '@/lib/errors'
 
 export function useEvents(page = 1, startAfter?: string, startBefore?: string) {
   const houseId = useAuthStore((s) => s.currentHouseId())
@@ -37,8 +38,8 @@ export function useCreateEvent() {
       queryClient.invalidateQueries({ queryKey: ['events'] })
       toast.success('Evento criado')
     },
-    onError: () => {
-      toast.error('Erro ao criar evento')
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Erro ao criar evento'))
     },
   })
 }
@@ -53,8 +54,8 @@ export function useUpdateEvent() {
       queryClient.invalidateQueries({ queryKey: ['events'] })
       toast.success('Evento atualizado')
     },
-    onError: () => {
-      toast.error('Erro ao atualizar evento')
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Erro ao atualizar evento'))
     },
   })
 }
@@ -69,8 +70,8 @@ export function useDeleteEvent() {
       queryClient.invalidateQueries({ queryKey: ['events'] })
       toast.success('Evento removido')
     },
-    onError: () => {
-      toast.error('Erro ao remover evento')
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Erro ao remover evento'))
     },
   })
 }

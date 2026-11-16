@@ -7,6 +7,7 @@ import { authService } from '@/services/auth'
 import type { RegisterHouseRequest } from '@/types'
 import { ROUTES } from '@/constants'
 import { toast } from 'sonner'
+import { getErrorMessage } from '@/lib/errors'
 
 export function useLogin() {
   const { setProfile } = useAuthStore()
@@ -29,8 +30,8 @@ export function useLogin() {
       }
       toast.success('Login realizado com sucesso!')
     },
-    onError: () => {
-      toast.error('Email ou senha inválidos')
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Email ou senha inválidos'))
     },
   })
 }
@@ -41,8 +42,8 @@ export function useForgotPassword() {
     onSuccess: () => {
       toast.success('Se o email existir, um link de recuperação será enviado.')
     },
-    onError: () => {
-      toast.error('Erro ao enviar email de recuperação')
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Erro ao enviar email de recuperação'))
     },
   })
 }
@@ -64,8 +65,8 @@ export function useRegisterAdmin() {
       router.push(ROUTES.ADMIN_HOME)
       toast.success('Cadastro realizado com sucesso!')
     },
-    onError: () => {
-      toast.error('Erro ao realizar cadastro')
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Erro ao realizar cadastro'))
     },
   })
 }

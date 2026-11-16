@@ -19,6 +19,8 @@ import type {
   ShoppingListStatus,
 } from '@/types'
 import { toast } from 'sonner'
+import { invalidateFinance } from '@/lib/invalidate'
+import { getErrorMessage } from '@/lib/errors'
 
 export function useShoppingLists(
   page = 1,
@@ -67,8 +69,8 @@ export function useCreateShoppingList() {
       queryClient.invalidateQueries({ queryKey: ['shopping-lists'] })
       toast.success('Criado com sucesso')
     },
-    onError: () => {
-      toast.error('Erro ao criar')
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Erro ao criar'))
     },
   })
 }
@@ -83,8 +85,8 @@ export function useUpdateShoppingList() {
       queryClient.invalidateQueries({ queryKey: ['shopping-lists'] })
       toast.success('Atualizado com sucesso')
     },
-    onError: () => {
-      toast.error('Erro ao atualizar')
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Erro ao atualizar'))
     },
   })
 }
@@ -97,10 +99,11 @@ export function useDeleteShoppingList() {
       shoppingService.deleteShoppingList(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['shopping-lists'] })
+      invalidateFinance(queryClient)
       toast.success('Excluído com sucesso')
     },
-    onError: () => {
-      toast.error('Erro ao excluir')
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Erro ao excluir'))
     },
   })
 }
@@ -115,8 +118,8 @@ export function useArchiveShoppingList() {
       queryClient.invalidateQueries({ queryKey: ['shopping-lists'] })
       toast.success('Arquivado com sucesso')
     },
-    onError: () => {
-      toast.error('Erro ao arquivar')
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Erro ao arquivar'))
     },
   })
 }
@@ -130,8 +133,8 @@ export function useAddShoppingItem() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['shopping-items'] })
     },
-    onError: () => {
-      toast.error('Erro ao adicionar item')
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Erro ao adicionar item'))
     },
   })
 }
@@ -144,12 +147,10 @@ export function useToggleShoppingItem() {
       shoppingService.toggleShoppingItem(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['shopping-items'] })
-      queryClient.invalidateQueries({ queryKey: ['financial-statement'] })
-      queryClient.invalidateQueries({ queryKey: ['member-financial-summary'] })
-      queryClient.invalidateQueries({ queryKey: ['my-financial-summary'] })
+      invalidateFinance(queryClient)
     },
-    onError: () => {
-      toast.error('Erro ao atualizar item')
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Erro ao atualizar item'))
     },
   })
 }
@@ -164,8 +165,8 @@ export function useCompleteShoppingList() {
       queryClient.invalidateQueries({ queryKey: ['shopping-lists'] })
       toast.success('Finalizado com sucesso')
     },
-    onError: () => {
-      toast.error('Erro ao finalizar')
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Erro ao finalizar'))
     },
   })
 }
@@ -178,11 +179,12 @@ export function useSignUpForList() {
       shoppingService.signUpForList(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['shopping-items'] })
+      invalidateFinance(queryClient)
       queryClient.invalidateQueries({ queryKey: ['shopping-lists'] })
       toast.success('Inscrição realizada!')
     },
-    onError: () => {
-      toast.error('Erro ao se inscrever')
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Erro ao se inscrever'))
     },
   })
 }
@@ -195,11 +197,12 @@ export function useAdminSignUpMember() {
       shoppingService.adminSignUpMember(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['shopping-items'] })
+      invalidateFinance(queryClient)
       queryClient.invalidateQueries({ queryKey: ['shopping-lists'] })
       toast.success('Membro inscrito!')
     },
-    onError: () => {
-      toast.error('Erro ao inscrever membro')
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Erro ao inscrever membro'))
     },
   })
 }
@@ -212,13 +215,11 @@ export function useConfirmListPayment() {
       shoppingService.confirmListPayment(data),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['shopping-items'] })
-      queryClient.invalidateQueries({ queryKey: ['financial-statement'] })
-      queryClient.invalidateQueries({ queryKey: ['member-financial-summary'] })
-      queryClient.invalidateQueries({ queryKey: ['my-financial-summary'] })
+      invalidateFinance(queryClient)
       toast.success(variables.isPaid === false ? 'Pagamento revertido' : 'Pagamento confirmado')
     },
-    onError: () => {
-      toast.error('Erro ao atualizar pagamento')
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Erro ao atualizar pagamento'))
     },
   })
 }
@@ -229,12 +230,12 @@ export function useDeleteShoppingItem() {
     mutationFn: (data: DeleteShoppingItemRequest) => shoppingService.deleteShoppingItem(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['shopping-items'] })
+      invalidateFinance(queryClient)
       queryClient.invalidateQueries({ queryKey: ['shopping-lists'] })
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
       toast.success('Inscrição removida com sucesso')
     },
-    onError: () => {
-      toast.error('Erro ao remover inscrição')
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Erro ao remover inscrição'))
     },
   })
 }

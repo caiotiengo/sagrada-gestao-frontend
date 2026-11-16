@@ -2,6 +2,8 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
+import { invalidateFinance } from '@/lib/invalidate'
+import { getErrorMessage } from '@/lib/errors'
 import { useAuthStore } from '@/stores/auth'
 import { ledgerService } from '@/services/ledger'
 import type {
@@ -62,14 +64,11 @@ export function useReconcileSummary() {
   return useMutation({
     mutationFn: () => ledgerService.reconcileHouseSummaryFromLedger({ houseId: houseId! }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['validate-ledger', houseId] })
-      qc.invalidateQueries({ queryKey: ['financial-statement'] })
-      qc.invalidateQueries({ queryKey: ['dashboard-summary', houseId] })
-      qc.invalidateQueries({ queryKey: ['dashboard'] })
+      invalidateFinance(qc)
       toast.success('Saldos recalculados')
     },
-    onError: () => {
-      toast.error('Erro ao recalcular saldos')
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Erro ao recalcular saldos'))
     },
   })
 }
@@ -82,14 +81,11 @@ export function useReverseLedgerEntry() {
   return useMutation({
     mutationFn: (data: ReverseLedgerEntryRequest) => ledgerService.reverseLedgerEntry(data),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['ledger'] })
-      qc.invalidateQueries({ queryKey: ['financial-statement'] })
-      qc.invalidateQueries({ queryKey: ['validate-ledger'] })
-      qc.invalidateQueries({ queryKey: ['dashboard'] })
+      invalidateFinance(qc)
       toast.success('Estorno registrado')
     },
-    onError: () => {
-      toast.error('Erro ao estornar')
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Erro ao estornar'))
     },
   })
 }
@@ -103,10 +99,7 @@ export function useBackfillLedger() {
   return useMutation({
     mutationFn: () => ledgerService.backfillHouseLedger({ houseId: houseId! }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['ledger'] })
-      qc.invalidateQueries({ queryKey: ['financial-statement'] })
-      qc.invalidateQueries({ queryKey: ['validate-ledger'] })
-      qc.invalidateQueries({ queryKey: ['dashboard'] })
+      invalidateFinance(qc)
     },
   })
 }

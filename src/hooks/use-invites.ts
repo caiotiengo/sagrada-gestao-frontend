@@ -10,6 +10,7 @@ import type {
   InviteStatus,
 } from '@/types'
 import { toast } from 'sonner'
+import { getErrorMessage } from '@/lib/errors'
 
 export function useValidateInvite(token: string, houseSlug: string) {
   return useQuery({
@@ -27,8 +28,8 @@ export function useRegisterByInvite() {
     onSuccess: () => {
       toast.success('Cadastro realizado com sucesso! Faça login para continuar.')
     },
-    onError: () => {
-      toast.error('Erro ao realizar cadastro')
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Erro ao realizar cadastro'))
     },
   })
 }
@@ -51,8 +52,8 @@ export function useCreateInvite() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['invites'] })
     },
-    onError: () => {
-      toast.error('Erro ao criar convite')
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Erro ao criar convite'))
     },
   })
 }
@@ -66,8 +67,8 @@ export function useRevokeInvite() {
       queryClient.invalidateQueries({ queryKey: ['invites'] })
       toast.success('Convite revogado')
     },
-    onError: () => {
-      toast.error('Erro ao revogar convite')
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Erro ao revogar convite'))
     },
   })
 }

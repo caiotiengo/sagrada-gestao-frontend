@@ -4,6 +4,7 @@ import { useMutation, useQuery } from '@tanstack/react-query'
 import { publicService } from '@/services/public'
 import type { PublicRegisterContributionRequest, PublicReserveRaffleNumbersRequest, PublicStoreOrderRequest } from '@/types'
 import { toast } from 'sonner'
+import { getErrorMessage } from '@/lib/errors'
 import { trackContribution, trackRaffleReservation, trackStoreOrder } from '@/lib/analytics'
 
 export function usePublicHouse(slug: string) {
@@ -32,8 +33,8 @@ export function useCampaignContribute() {
         trackContribution(variables.campaignSlug, variables.amount)
       }
     },
-    onError: () => {
-      toast.error('Erro ao registrar contribuição')
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Erro ao registrar contribuição'))
     },
   })
 }
@@ -56,8 +57,8 @@ export function useRaffleReservation() {
         trackRaffleReservation(variables.raffleSlug, variables.numbers.length, data.totalAmount)
       }
     },
-    onError: () => {
-      toast.error('Erro ao reservar números')
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Erro ao reservar números'))
     },
   })
 }
@@ -66,14 +67,6 @@ export function usePublicStore(houseSlug: string) {
   return useQuery({
     queryKey: ['store', 'public', houseSlug],
     queryFn: () => publicService.publicListStoreItems({ houseSlug }),
-    enabled: !!houseSlug,
-  })
-}
-
-export function usePublicStoreMembers(houseSlug: string) {
-  return useQuery({
-    queryKey: ['store-members', 'public', houseSlug],
-    queryFn: () => publicService.publicListStoreMembers({ houseSlug }),
     enabled: !!houseSlug,
   })
 }
@@ -112,8 +105,8 @@ export function usePublicStoreOrder() {
         trackStoreOrder(variables.items.length, data.orderTotal)
       }
     },
-    onError: () => {
-      toast.error('Erro ao realizar pedido')
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Erro ao realizar pedido'))
     },
   })
 }

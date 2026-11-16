@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { siteService } from '@/services/site'
 import type { UpdateHouseSiteConfigRequest } from '@/types'
 import { toast } from 'sonner'
+import { getErrorMessage } from '@/lib/errors'
 
 export function useHouseBySubdomain(subdomain: string) {
   return useQuery({
@@ -24,8 +25,8 @@ export function useUpdateSiteConfig() {
       queryClient.invalidateQueries({ queryKey: ['house'] })
       toast.success('Configurações do site atualizadas')
     },
-    onError: () => {
-      toast.error('Erro ao atualizar configurações do site')
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Erro ao atualizar configurações do site'))
     },
   })
 }

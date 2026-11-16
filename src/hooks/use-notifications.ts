@@ -9,6 +9,7 @@ import type {
   MarkAllNotificationsReadRequest,
 } from '@/types'
 import { toast } from 'sonner'
+import { getErrorMessage } from '@/lib/errors'
 
 export function useNotifications(page = 1, isRead?: boolean) {
   const houseId = useAuthStore((s) => s.currentHouseId())
@@ -36,8 +37,8 @@ export function useSendNotification() {
       queryClient.invalidateQueries({ queryKey: ['notifications'] })
       toast.success('Notificação enviada')
     },
-    onError: () => {
-      toast.error('Erro ao enviar notificação')
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Erro ao enviar notificação'))
     },
   })
 }
@@ -51,8 +52,8 @@ export function useMarkNotificationRead() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] })
     },
-    onError: () => {
-      toast.error('Erro ao marcar notificação como lida')
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Erro ao marcar notificação como lida'))
     },
   })
 }
@@ -67,8 +68,8 @@ export function useMarkAllNotificationsRead() {
       queryClient.invalidateQueries({ queryKey: ['notifications'] })
       toast.success('Todas as notificações marcadas como lidas')
     },
-    onError: () => {
-      toast.error('Erro ao marcar notificações como lidas')
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Erro ao marcar notificações como lidas'))
     },
   })
 }

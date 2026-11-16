@@ -5,6 +5,7 @@ import { useAuthStore } from '@/stores/auth'
 import { membersService } from '@/services/members'
 import type { UpdateMemberPermissionsRequest, UserRole } from '@/types'
 import { toast } from 'sonner'
+import { getErrorMessage } from '@/lib/errors'
 
 export function useMembers(page = 1, search?: string, role?: UserRole, isActive?: boolean) {
   const houseId = useAuthStore((s) => s.currentHouseId())
@@ -67,8 +68,8 @@ export function useUpdateMemberPermissions() {
       queryClient.invalidateQueries({ queryKey: ['members'] })
       toast.success('Permissões atualizadas')
     },
-    onError: () => {
-      toast.error('Erro ao atualizar permissões')
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Erro ao atualizar permissões'))
     },
   })
 }

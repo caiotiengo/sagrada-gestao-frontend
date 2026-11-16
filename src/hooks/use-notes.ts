@@ -9,6 +9,7 @@ import type {
   DeleteNoteRequest,
 } from '@/types'
 import { toast } from 'sonner'
+import { getErrorMessage } from '@/lib/errors'
 
 export function useNotes(page = 1) {
   const houseId = useAuthStore((s) => s.currentHouseId())
@@ -35,8 +36,8 @@ export function useCreateNote() {
       queryClient.invalidateQueries({ queryKey: ['notes'] })
       toast.success('Anotação criada')
     },
-    onError: () => {
-      toast.error('Erro ao criar anotação')
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Erro ao criar anotação'))
     },
   })
 }
@@ -51,8 +52,8 @@ export function useUpdateNote() {
       queryClient.invalidateQueries({ queryKey: ['notes'] })
       toast.success('Anotação atualizada')
     },
-    onError: () => {
-      toast.error('Erro ao atualizar anotação')
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Erro ao atualizar anotação'))
     },
   })
 }
@@ -67,8 +68,8 @@ export function useDeleteNote() {
       queryClient.invalidateQueries({ queryKey: ['notes'] })
       toast.success('Anotação removida')
     },
-    onError: () => {
-      toast.error('Erro ao remover anotação')
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Erro ao remover anotação'))
     },
   })
 }

@@ -9,6 +9,7 @@ import type {
   CheckinType,
 } from '@/types'
 import { toast } from 'sonner'
+import { getErrorMessage } from '@/lib/errors'
 
 export function useCheckins(page = 1, memberId?: string, type?: CheckinType, startDate?: string, endDate?: string) {
   const houseId = useAuthStore((s) => s.currentHouseId())
@@ -39,8 +40,8 @@ export function useRegisterCheckin() {
       queryClient.invalidateQueries({ queryKey: ['checkins'] })
       toast.success('Check-in registrado')
     },
-    onError: () => {
-      toast.error('Erro ao registrar check-in')
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Erro ao registrar check-in'))
     },
   })
 }
@@ -55,8 +56,8 @@ export function useRegisterBulkCheckin() {
       queryClient.invalidateQueries({ queryKey: ['checkins'] })
       toast.success('Check-ins registrados em lote')
     },
-    onError: () => {
-      toast.error('Erro ao registrar check-ins em lote')
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Erro ao registrar check-ins em lote'))
     },
   })
 }

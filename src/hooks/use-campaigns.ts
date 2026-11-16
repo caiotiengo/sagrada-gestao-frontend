@@ -15,6 +15,8 @@ import type {
   CampaignStatus,
 } from '@/types'
 import { toast } from 'sonner'
+import { invalidateFinance } from '@/lib/invalidate'
+import { getErrorMessage } from '@/lib/errors'
 
 export function useCampaigns(page = 1, status?: CampaignStatus) {
   const houseId = useAuthStore((s) => s.currentHouseId())
@@ -42,8 +44,8 @@ export function useCreateCampaign() {
       queryClient.invalidateQueries({ queryKey: ['campaigns'] })
       toast.success('Lista criada')
     },
-    onError: () => {
-      toast.error('Erro ao criar lista')
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Erro ao criar lista'))
     },
   })
 }
@@ -58,8 +60,8 @@ export function useUpdateCampaign() {
       queryClient.invalidateQueries({ queryKey: ['campaigns'] })
       toast.success('Lista atualizada')
     },
-    onError: () => {
-      toast.error('Erro ao atualizar lista')
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Erro ao atualizar lista'))
     },
   })
 }
@@ -72,12 +74,13 @@ export function useAssignQuota() {
       campaignsService.assignQuota(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['quotas'] })
+      invalidateFinance(queryClient)
       queryClient.invalidateQueries({ queryKey: ['campaigns'] })
       queryClient.invalidateQueries({ queryKey: ['campaign-contributions'] })
       toast.success('Cota atribuída')
     },
-    onError: () => {
-      toast.error('Erro ao atribuir cota')
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Erro ao atribuir cota'))
     },
   })
 }
@@ -90,12 +93,13 @@ export function usePayQuota() {
       campaignsService.payQuota(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['quotas'] })
+      invalidateFinance(queryClient)
       queryClient.invalidateQueries({ queryKey: ['campaigns'] })
       queryClient.invalidateQueries({ queryKey: ['campaign-contributions'] })
       toast.success('Pagamento de cota registrado')
     },
-    onError: () => {
-      toast.error('Erro ao registrar pagamento de cota')
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Erro ao registrar pagamento de cota'))
     },
   })
 }
@@ -108,11 +112,12 @@ export function useRegisterExternalContribution() {
       campaignsService.registerExternalContribution(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['campaigns'] })
+      invalidateFinance(queryClient)
       queryClient.invalidateQueries({ queryKey: ['campaign-contributions'] })
       toast.success('Contribuição externa registrada')
     },
-    onError: () => {
-      toast.error('Erro ao registrar contribuição externa')
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Erro ao registrar contribuição externa'))
     },
   })
 }
@@ -125,11 +130,12 @@ export function useUpdateContributionStatus() {
       campaignsService.updateContributionStatus(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['campaigns'] })
+      invalidateFinance(queryClient)
       queryClient.invalidateQueries({ queryKey: ['campaign-contributions'] })
       toast.success('Status da contribuição atualizado')
     },
-    onError: () => {
-      toast.error('Erro ao atualizar status da contribuição')
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Erro ao atualizar status da contribuição'))
     },
   })
 }
@@ -142,10 +148,11 @@ export function useDeleteCampaign() {
       campaignsService.deleteCampaign(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['campaigns'] })
+      invalidateFinance(queryClient)
       toast.success('Lista cancelada')
     },
-    onError: () => {
-      toast.error('Erro ao cancelar lista')
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Erro ao cancelar lista'))
     },
   })
 }
@@ -177,12 +184,12 @@ export function useDeleteContribution() {
     mutationFn: (data: DeleteContributionRequest) => campaignsService.deleteContribution(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['campaign-contributions'] })
+      invalidateFinance(queryClient)
       queryClient.invalidateQueries({ queryKey: ['campaigns'] })
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
       toast.success('Contribuição excluída com sucesso')
     },
-    onError: () => {
-      toast.error('Erro ao excluir contribuição')
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Erro ao excluir contribuição'))
     },
   })
 }

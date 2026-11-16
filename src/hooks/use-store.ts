@@ -16,6 +16,8 @@ import type {
   StoreCategory,
 } from '@/types'
 import { toast } from 'sonner'
+import { invalidateFinance } from '@/lib/invalidate'
+import { getErrorMessage } from '@/lib/errors'
 
 export function useStoreItems(page = 1, category?: StoreCategory) {
   const houseId = useAuthStore((s) => s.currentHouseId())
@@ -44,8 +46,8 @@ export function useCreateStoreItem() {
       queryClient.invalidateQueries({ queryKey: ['store-items'] })
       toast.success('Item criado')
     },
-    onError: () => {
-      toast.error('Erro ao criar item')
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Erro ao criar item'))
     },
   })
 }
@@ -60,8 +62,8 @@ export function useUpdateStoreItem() {
       queryClient.invalidateQueries({ queryKey: ['store-items'] })
       toast.success('Item atualizado')
     },
-    onError: () => {
-      toast.error('Erro ao atualizar item')
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Erro ao atualizar item'))
     },
   })
 }
@@ -74,12 +76,13 @@ export function useRegisterSale() {
       storeService.registerSale(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sales'] })
+      invalidateFinance(queryClient)
       queryClient.invalidateQueries({ queryKey: ['sales-summary'] })
       queryClient.invalidateQueries({ queryKey: ['store-items'] })
       toast.success('Venda registrada')
     },
-    onError: () => {
-      toast.error('Erro ao registrar venda')
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Erro ao registrar venda'))
     },
   })
 }
@@ -92,15 +95,13 @@ export function useRegisterSaleBatch() {
       storeService.registerSaleBatch(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sales'] })
+      invalidateFinance(queryClient)
       queryClient.invalidateQueries({ queryKey: ['sales-summary'] })
       queryClient.invalidateQueries({ queryKey: ['store-items'] })
-      queryClient.invalidateQueries({ queryKey: ['debts'] })
-      queryClient.invalidateQueries({ queryKey: ['financial-statement'] })
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
       toast.success('Venda registrada')
     },
-    onError: () => {
-      toast.error('Erro ao registrar venda')
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Erro ao registrar venda'))
     },
   })
 }
@@ -145,11 +146,12 @@ export function usePaySale() {
       storeService.paySale(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sales'] })
+      invalidateFinance(queryClient)
       queryClient.invalidateQueries({ queryKey: ['sales-summary'] })
       toast.success('Venda quitada')
     },
-    onError: () => {
-      toast.error('Erro ao quitar venda')
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Erro ao quitar venda'))
     },
   })
 }
@@ -162,11 +164,12 @@ export function useUpdateSaleStatus() {
       storeService.updateSaleStatus(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sales'] })
+      invalidateFinance(queryClient)
       queryClient.invalidateQueries({ queryKey: ['sales-summary'] })
       toast.success('Status da venda atualizado')
     },
-    onError: () => {
-      toast.error('Erro ao atualizar status da venda')
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Erro ao atualizar status da venda'))
     },
   })
 }
@@ -181,8 +184,8 @@ export function useDeleteStoreItem() {
       queryClient.invalidateQueries({ queryKey: ['store-items'] })
       toast.success('Item excluído')
     },
-    onError: () => {
-      toast.error('Erro ao excluir item')
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Erro ao excluir item'))
     },
   })
 }
@@ -193,15 +196,13 @@ export function useDeleteSale() {
     mutationFn: (data: DeleteSaleRequest) => storeService.deleteSale(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sales'] })
+      invalidateFinance(queryClient)
       queryClient.invalidateQueries({ queryKey: ['sales-summary'] })
       queryClient.invalidateQueries({ queryKey: ['store-items'] })
-      queryClient.invalidateQueries({ queryKey: ['debts'] })
-      queryClient.invalidateQueries({ queryKey: ['financial-statement'] })
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
       toast.success('Venda excluída — estoque devolvido')
     },
-    onError: () => {
-      toast.error('Erro ao excluir venda')
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Erro ao excluir venda'))
     },
   })
 }

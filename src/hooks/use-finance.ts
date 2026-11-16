@@ -22,6 +22,8 @@ import type {
   CreateRecurringMonthlyFeeRequest,
 } from '@/types'
 import { toast } from 'sonner'
+import { invalidateFinance } from '@/lib/invalidate'
+import { getErrorMessage } from '@/lib/errors'
 import { trackPayment, trackFeePayment, trackDebtPayment } from '@/lib/analytics'
 
 // ---- Monthly Fees ----
@@ -51,11 +53,11 @@ export function useCreateMonthlyFee() {
     mutationFn: (data: CreateMonthlyFeeRequest) =>
       financeService.createMonthlyFee(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['monthly-fees'] })
+      invalidateFinance(queryClient)
       toast.success('Mensalidade criada')
     },
-    onError: () => {
-      toast.error('Erro ao criar mensalidade')
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Erro ao criar mensalidade'))
     },
   })
 }
@@ -67,11 +69,11 @@ export function useCreateBulkMonthlyFees() {
     mutationFn: (data: CreateBulkMonthlyFeesRequest) =>
       financeService.createBulkMonthlyFees(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['monthly-fees'] })
+      invalidateFinance(queryClient)
       toast.success('Mensalidades criadas em lote')
     },
-    onError: () => {
-      toast.error('Erro ao criar mensalidades em lote')
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Erro ao criar mensalidades em lote'))
     },
   })
 }
@@ -83,11 +85,11 @@ export function useUpdateMonthlyFee() {
     mutationFn: (data: UpdateMonthlyFeeRequest) =>
       financeService.updateMonthlyFee(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['monthly-fees'] })
+      invalidateFinance(queryClient)
       toast.success('Mensalidade atualizada')
     },
-    onError: () => {
-      toast.error('Erro ao atualizar mensalidade')
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Erro ao atualizar mensalidade'))
     },
   })
 }
@@ -99,12 +101,12 @@ export function usePayMonthlyFee() {
     mutationFn: (data: PayMonthlyFeeRequest) =>
       financeService.payMonthlyFee(data),
     onSuccess: (data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['monthly-fees'] })
+      invalidateFinance(queryClient)
       toast.success('Pagamento registrado')
       trackFeePayment(data.amount ?? 0, variables.paymentMethod)
     },
-    onError: () => {
-      toast.error('Erro ao registrar pagamento')
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Erro ao registrar pagamento'))
     },
   })
 }
@@ -116,12 +118,11 @@ export function useDeleteMonthlyFee() {
     mutationFn: (data: DeleteMonthlyFeeRequest) =>
       financeService.deleteMonthlyFee(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['monthly-fees'] })
-      queryClient.invalidateQueries({ queryKey: ['financial-statement'] })
+      invalidateFinance(queryClient)
       toast.success('Mensalidade excluída')
     },
-    onError: () => {
-      toast.error('Erro ao excluir mensalidade')
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Erro ao excluir mensalidade'))
     },
   })
 }
@@ -152,12 +153,12 @@ export function useCreatePayment() {
     mutationFn: (data: CreatePaymentRequest) =>
       financeService.createPayment(data),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['payments'] })
+      invalidateFinance(queryClient)
       toast.success('Pagamento criado')
       trackPayment(variables.category, variables.amount, variables.type)
     },
-    onError: () => {
-      toast.error('Erro ao criar pagamento')
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Erro ao criar pagamento'))
     },
   })
 }
@@ -169,12 +170,11 @@ export function useDeletePayment() {
     mutationFn: (data: DeletePaymentRequest) =>
       financeService.deletePayment(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['payments'] })
-      queryClient.invalidateQueries({ queryKey: ['financial-statement'] })
+      invalidateFinance(queryClient)
       toast.success('Pagamento excluído')
     },
-    onError: () => {
-      toast.error('Erro ao excluir pagamento')
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Erro ao excluir pagamento'))
     },
   })
 }
@@ -205,11 +205,11 @@ export function useCreateDebt() {
     mutationFn: (data: CreateDebtRequest) =>
       financeService.createDebt(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['debts'] })
+      invalidateFinance(queryClient)
       toast.success('Débito criado')
     },
-    onError: () => {
-      toast.error('Erro ao criar débito')
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Erro ao criar débito'))
     },
   })
 }
@@ -221,12 +221,12 @@ export function usePayDebt() {
     mutationFn: (data: PayDebtRequest) =>
       financeService.payDebt(data),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['debts'] })
+      invalidateFinance(queryClient)
       toast.success('Pagamento de débito registrado')
       trackDebtPayment(variables.amount)
     },
-    onError: () => {
-      toast.error('Erro ao registrar pagamento de débito')
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Erro ao registrar pagamento de débito'))
     },
   })
 }
@@ -238,12 +238,11 @@ export function useDeleteDebt() {
     mutationFn: (data: DeleteDebtRequest) =>
       financeService.deleteDebt(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['debts'] })
-      queryClient.invalidateQueries({ queryKey: ['financial-statement'] })
+      invalidateFinance(queryClient)
       toast.success('Dívida excluída')
     },
-    onError: () => {
-      toast.error('Erro ao excluir dívida')
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Erro ao excluir dívida'))
     },
   })
 }
@@ -329,8 +328,8 @@ export function useCreatePaymentTag() {
       queryClient.invalidateQueries({ queryKey: ['payment-tags'] })
       toast.success('Tag criada')
     },
-    onError: () => {
-      toast.error('Erro ao criar tag')
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Erro ao criar tag'))
     },
   })
 }
@@ -345,8 +344,8 @@ export function useDeletePaymentTag() {
       queryClient.invalidateQueries({ queryKey: ['payment-tags'] })
       toast.success('Tag excluída')
     },
-    onError: () => {
-      toast.error('Erro ao excluir tag')
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Erro ao excluir tag'))
     },
   })
 }
@@ -360,11 +359,11 @@ export function useCreateRecurringMonthlyFee() {
     mutationFn: (data: CreateRecurringMonthlyFeeRequest) =>
       financeService.createRecurringMonthlyFee(data),
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['monthly-fees'] })
+      invalidateFinance(queryClient)
       toast.success(`${data.created} mensalidade(s) criada(s)`)
     },
-    onError: () => {
-      toast.error('Erro ao criar mensalidades')
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Erro ao criar mensalidades'))
     },
   })
 }
