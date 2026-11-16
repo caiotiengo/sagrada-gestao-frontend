@@ -9,6 +9,7 @@ export const SOURCE_LABELS: Record<LedgerSource, string> = {
   debt: 'Dívida',
   shoppingItem: 'Trabalho/Jogo',
   payment: 'Pagamento avulso',
+  memberCharge: 'Cobrança entre membros',
   manual: 'Manual',
 }
 

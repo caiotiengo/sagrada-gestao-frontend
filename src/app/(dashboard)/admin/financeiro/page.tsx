@@ -40,7 +40,6 @@ import {
   useCreateDebt,
   usePayDebt,
   useDeleteDebt,
-  useLegacyFinancialStatement,
   usePaymentTags,
   useCreatePaymentTag,
   useDeletePaymentTag,
@@ -62,8 +61,19 @@ import type {
   PaymentTagType,
 } from '@/types'
 import { formatCurrency, formatDate } from '@/utils'
+import {
+  MONTH_NAMES,
+  civilDateOf,
+  dateSortKey,
+  currentYearMonthBRT,
+  formatCompetence,
+  monthCivilRange,
+  todayBRT,
+} from '@/utils/dates'
 import { downloadCSV } from '@/utils/export-csv'
-import { callFunction } from '@/lib/callable'
+import { getErrorMessage } from '@/lib/errors'
+import { fetchStatementEntries, statementCsvRows, STATEMENT_CSV_HEADERS } from '@/lib/finance-export'
+import { useRecalculateHouseSummary } from '@/hooks/use-dashboard'
 import { toast } from 'sonner'
 import { ErrorState } from '@/components/feedback/error-state'
 import { EmptyState } from '@/components/feedback/empty-state'
@@ -117,11 +127,6 @@ const TAB_OPTIONS: { value: Tab; label: string }[] = [
   { value: 'dividas', label: 'Dívidas' },
 ]
 
-const MONTH_NAMES = [
-  'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
-  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
-]
-
 const PAYMENT_TYPE_LABELS: Record<PaymentType, string> = {
   income: 'Receita',
   expense: 'Despesa',
@@ -140,6 +145,19 @@ function feeStatusVariant(status: FeeStatus) {
     default:
       return 'secondary' as const
   }
+}
+
+/** Categorias de sistema gravadas pelo back (ex.: pagamento de dívida). */
+const SYSTEM_CATEGORY_LABELS: Record<string, string> = {
+  debt_payment: 'Pagamento de dívida',
+}
+
+function categoryLabel(category: string) {
+  return SYSTEM_CATEGORY_LABELS[category] ?? category
+}
+
+function isValidDueDay(day: number) {
+  return Number.isInteger(day) && day >= 1 && day <= 31
 }
 
 function formatYearMonth(year: number, month: number) {
@@ -199,8 +217,8 @@ function MonthNavigator({
   onNext: () => void
   onToday: () => void
 }) {
-  const now = new Date()
-  const isCurrentMonth = year === now.getFullYear() && month === now.getMonth()
+  const now = currentYearMonthBRT()
+  const isCurrentMonth = year === now.year && month === now.month
 
   return (
     <div className="flex items-center justify-between rounded-lg border bg-card px-4 py-2">
@@ -229,10 +247,10 @@ function MonthNavigator({
 function MensalidadesTab() {
   const houseId = useAuthStore((s) => s.currentHouseId())
   const canManage = useAuthStore((s) => s.hasPermission('canManageCashier'))
-  const now = new Date()
+  const now = currentYearMonthBRT()
   const [page, setPage] = useState(1)
-  const [year, setYear] = useState(now.getFullYear())
-  const [month, setMonth] = useState(now.getMonth())
+  const [year, setYear] = useState(now.year)
+  const [month, setMonth] = useState(now.month)
   const [search, setSearch] = useState('')
   const [bulkDialogOpen, setBulkDialogOpen] = useState(false)
   const [singleDialogOpen, setSingleDialogOpen] = useState(false)
@@ -242,6 +260,7 @@ function MensalidadesTab() {
   const [deleteFeeId, setDeleteFeeId] = useState<string | null>(null)
   const [selectedFee, setSelectedFee] = useState<MonthlyFeeItem | null>(null)
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('pix')
+  const [feePaidAt, setFeePaidAt] = useState('')
 
   // Edit form state
   const [editAmount, setEditAmount] = useState(0)
@@ -295,12 +314,12 @@ function MensalidadesTab() {
   }
   const goToToday = () => {
     setPage(1)
-    setYear(now.getFullYear())
-    setMonth(now.getMonth())
+    setYear(now.year)
+    setMonth(now.month)
   }
 
   // Year options for month/year selects (previous, current, next 2)
-  const currentYear = now.getFullYear()
+  const currentYear = now.year
   const yearOptions = [currentYear - 1, currentYear, currentYear + 1, currentYear + 2]
 
   /**
@@ -342,6 +361,7 @@ function MensalidadesTab() {
         houseId,
         feeId: selectedFee.id,
         paymentMethod,
+        paidAt: feePaidAt || undefined,
       },
       {
         onSettled: (_, error) => {
@@ -358,13 +378,14 @@ function MensalidadesTab() {
   const openPayDialog = (fee: MonthlyFeeItem) => {
     setSelectedFee(fee)
     setPaymentMethod('pix')
+    setFeePaidAt(todayBRT())
     setPayDialogOpen(true)
   }
 
   const openEditDialog = (fee: MonthlyFeeItem) => {
     setSelectedFee(fee)
     setEditAmount(fee.amount)
-    setEditDueDate(fee.dueDate.slice(0, 10))
+    setEditDueDate(civilDateOf(fee.dueDate))
     setEditDialogOpen(true)
   }
 
@@ -469,9 +490,13 @@ function MensalidadesTab() {
                   type="number"
                   min={1}
                   max={31}
-                  value={singleDueDay}
-                  onChange={(e) => setSingleDueDay(Number(e.target.value))}
+                  value={singleDueDay || ''}
+                  aria-invalid={!isValidDueDay(singleDueDay)}
+                  onChange={(e) => setSingleDueDay(Math.trunc(Number(e.target.value)))}
                 />
+                {!isValidDueDay(singleDueDay) && (
+                  <p className="text-xs text-destructive">Informe um dia entre 1 e 31</p>
+                )}
               </div>
               <div className="flex items-center gap-2">
                 <input
@@ -502,7 +527,7 @@ function MensalidadesTab() {
             <DialogFooter>
               <Button variant="outline" onClick={() => setSingleDialogOpen(false)}>Cancelar</Button>
               <Button
-                disabled={createRecurring.isPending || !singleMemberId || !monthIso(singleMonth, singleYear) || !singleAmount || !singleDueDay}
+                disabled={createRecurring.isPending || !singleMemberId || !monthIso(singleMonth, singleYear) || !singleAmount || !isValidDueDay(singleDueDay)}
                 onClick={() => {
                   const startMonthIso = monthIso(singleMonth, singleYear)
                   if (!houseId || !startMonthIso) return
@@ -640,7 +665,7 @@ function MensalidadesTab() {
                       {fee.memberName ?? 'Membro'}
                     </span>
                     <span className="text-xs text-muted-foreground">
-                      {fee.referenceMonth}
+                      {formatCompetence(fee.referenceMonth)}
                     </span>
                     <Badge variant={feeStatusVariant(fee.status)}>
                       {FEE_STATUS_LABELS[fee.status] ?? fee.status}
@@ -739,12 +764,19 @@ function MensalidadesTab() {
                 </SelectContent>
               </Select>
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="fee-paid-at">Data do pagamento</Label>
+              <DateInput id="fee-paid-at" value={feePaidAt} onValueChange={setFeePaidAt} />
+              {feePaidAt > todayBRT() && (
+                <p className="text-xs text-destructive">A data do pagamento não pode ser no futuro</p>
+              )}
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setPayDialogOpen(false)}>
               Cancelar
             </Button>
-            <Button onClick={handlePayFee} disabled={payFee.isPending}>
+            <Button onClick={handlePayFee} disabled={payFee.isPending || !feePaidAt || feePaidAt > todayBRT()}>
               {payFee.isPending ? 'Registrando...' : 'Confirmar Pagamento'}
             </Button>
           </DialogFooter>
@@ -759,7 +791,7 @@ function MensalidadesTab() {
           </DialogHeader>
           {selectedFee && (
             <p className="text-sm text-muted-foreground">
-              {selectedFee.memberName ?? 'Membro'} — {selectedFee.referenceMonth}
+              {selectedFee.memberName ?? 'Membro'} — {formatCompetence(selectedFee.referenceMonth)}
             </p>
           )}
           <div className="space-y-4 py-2">
@@ -830,10 +862,14 @@ function MensalidadesTab() {
 function PagamentosTab() {
   const houseId = useAuthStore((s) => s.currentHouseId())
   const canManage = useAuthStore((s) => s.hasPermission('canManageCashier'))
-  const now = new Date()
+  // Lançamento avulso: caixa/canRegisterInternalPayments lançam entrada e saída;
+  // canRegisterSales só entrada; membro comum não lança (regra do back).
+  const canExpense = useAuthStore((s) => s.hasPermission('canManageCashier') || s.hasPermission('canRegisterInternalPayments'))
+  const canCreatePayment = useAuthStore((s) => s.hasPermission('canManageCashier') || s.hasPermission('canRegisterInternalPayments') || s.hasPermission('canRegisterSales'))
+  const now = currentYearMonthBRT()
   const [page, setPage] = useState(1)
-  const [year, setYear] = useState(now.getFullYear())
-  const [month, setMonth] = useState(now.getMonth())
+  const [year, setYear] = useState(now.year)
+  const [month, setMonth] = useState(now.month)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [deleteAlertOpen, setDeleteAlertOpen] = useState(false)
   const [deletePaymentId, setDeletePaymentId] = useState<string | null>(null)
@@ -848,6 +884,7 @@ function PagamentosTab() {
   const [type, setType] = useState<PaymentType>('income')
   const [category, setCategory] = useState('')
   const [method, setMethod] = useState<PaymentMethod>('pix')
+  const [paidAt, setPaidAt] = useState(todayBRT())
 
   const { data, isLoading, isError, refetch } = usePayments(page, undefined, categoryFilter || undefined)
   const createPayment = useCreatePayment()
@@ -863,16 +900,11 @@ function PagamentosTab() {
   const filteredPayments = useMemo(() => {
     const prefix = formatYearMonth(year, month)
 
-    const parseTs = (d: string | null | undefined): number => {
-      if (!d) return 0
-      if (d.length === 10 && d.includes('-')) return new Date(d + 'T12:00:00').getTime()
-      const t = new Date(d).getTime()
-      return isNaN(t) ? 0 : t
-    }
-
+    // Mês pela data real do pagamento (paidAt), em BRT
+    const when = (p: PaymentItem) => p.paidAt || p.createdAt
     let merged = payments
-      .filter((p) => p.createdAt.startsWith(prefix))
-      .sort((a, b) => parseTs(b.createdAt) - parseTs(a.createdAt))
+      .filter((p) => civilDateOf(when(p)).startsWith(prefix))
+      .sort((a, b) => dateSortKey(when(b)) - dateSortKey(when(a)))
 
     if (paymentSearch.trim()) {
       const term = paymentSearch.toLowerCase()
@@ -900,12 +932,13 @@ function PagamentosTab() {
   }
   const goToToday = () => {
     setPage(1)
-    setYear(now.getFullYear())
-    setMonth(now.getMonth())
+    setYear(now.year)
+    setMonth(now.month)
   }
 
   const handleCreate = () => {
-    if (!houseId || !description || !amount || !category) return
+    if (!houseId || description.trim().length < 3 || !amount || !category) return
+    if (type === 'expense' && !canExpense) return
     createPayment.mutate(
       {
         houseId,
@@ -914,6 +947,7 @@ function PagamentosTab() {
         type,
         category,
         paymentMethod: method,
+        paidAt: paidAt || undefined,
       },
       {
         onSettled: (_, error) => {
@@ -924,6 +958,7 @@ function PagamentosTab() {
             setType('income')
             setCategory('')
             setMethod('pix')
+            setPaidAt(todayBRT())
           }
         },
       },
@@ -946,7 +981,7 @@ function PagamentosTab() {
         <p className="text-sm text-muted-foreground">
           Registre receitas e despesas da casa
         </p>
-        {canManage && <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        {canCreatePayment && <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger
             render={
               <Button size="sm">
@@ -983,13 +1018,14 @@ function PagamentosTab() {
                   value={type}
                   onValueChange={(v) => setType(v as PaymentType)}
                   items={{ income: 'Receita', expense: 'Despesa' }}
+                  disabled={!canExpense}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="income">Receita</SelectItem>
-                    <SelectItem value="expense">Despesa</SelectItem>
+                    {canExpense && <SelectItem value="expense">Despesa</SelectItem>}
                   </SelectContent>
                 </Select>
               </div>
@@ -998,6 +1034,7 @@ function PagamentosTab() {
                 <Select
                   value={category}
                   onValueChange={(v) => setCategory(v ?? '')}
+                  items={Object.fromEntries((tags ?? []).map((t) => [t.name, t.name]))}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione uma categoria" />
@@ -1038,6 +1075,13 @@ function PagamentosTab() {
                 </Select>
               </div>
             </div>
+            <div className="space-y-2 pb-2">
+              <Label htmlFor="pay-paid-at">Data do pagamento</Label>
+              <DateInput id="pay-paid-at" value={paidAt} onValueChange={setPaidAt} />
+              {paidAt > todayBRT() && (
+                <p className="text-xs text-destructive">A data do pagamento não pode ser no futuro</p>
+              )}
+            </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setDialogOpen(false)}>
                 Cancelar
@@ -1046,9 +1090,11 @@ function PagamentosTab() {
                 onClick={handleCreate}
                 disabled={
                   createPayment.isPending ||
-                  !description ||
+                  description.trim().length < 3 ||
                   !amount ||
-                  !category
+                  !category ||
+                  !paidAt ||
+                  paidAt > todayBRT()
                 }
               >
                 {createPayment.isPending ? 'Criando...' : 'Criar'}
@@ -1072,6 +1118,7 @@ function PagamentosTab() {
         <Select
           value={categoryFilter || 'all'}
           onValueChange={(v) => { setCategoryFilter(v === 'all' ? '' : v ?? ''); setPage(1) }}
+          items={{ all: 'Todas categorias', ...Object.fromEntries((tags ?? []).map((t) => [t.name, categoryLabel(t.name)])) }}
         >
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Filtrar por tag" />
@@ -1102,7 +1149,11 @@ function PagamentosTab() {
                     onChange={(e) => setNewTagName(e.target.value)}
                     className="flex-1"
                   />
-                  <Select value={newTagType} onValueChange={(v) => setNewTagType(v as PaymentTagType)}>
+                  <Select
+                    value={newTagType}
+                    onValueChange={(v) => setNewTagType(v as PaymentTagType)}
+                    items={{ both: 'Ambos', income: 'Receita', expense: 'Despesa' }}
+                  >
                     <SelectTrigger className="w-[120px]">
                       <SelectValue />
                     </SelectTrigger>
@@ -1188,14 +1239,14 @@ function PagamentosTab() {
                   </div>
                   <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
                     <span>{formatCurrency(payment.amount)}</span>
-                    <span>{payment.category}</span>
+                    <span>{categoryLabel(payment.category)}</span>
                     {payment.paymentMethod && (
                       <span>
                         {PAYMENT_METHOD_LABELS[payment.paymentMethod] ??
                           payment.paymentMethod}
                       </span>
                     )}
-                    {payment.createdAt && <span>{formatDate(payment.createdAt)}</span>}
+                    {(payment.paidAt || payment.createdAt) && <span>{formatDate(payment.paidAt || payment.createdAt)}</span>}
                   </div>
                 </div>
                 {canManage && (
@@ -1270,10 +1321,10 @@ function PagamentosTab() {
 function DividasTab() {
   const houseId = useAuthStore((s) => s.currentHouseId())
   const canManage = useAuthStore((s) => s.hasPermission('canManageCashier'))
-  const now = new Date()
+  const now = currentYearMonthBRT()
   const [page, setPage] = useState(1)
-  const [year, setYear] = useState(now.getFullYear())
-  const [month, setMonth] = useState(now.getMonth())
+  const [year, setYear] = useState(now.year)
+  const [month, setMonth] = useState(now.month)
   const [search, setSearch] = useState('')
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [payDialogOpen, setPayDialogOpen] = useState(false)
@@ -1290,9 +1341,10 @@ function DividasTab() {
   // Pay form state
   const [payAmount, setPayAmount] = useState(0)
   const [payMethod, setPayMethod] = useState<PaymentMethod>('pix')
+  const [payPaidAt, setPayPaidAt] = useState(todayBRT())
 
   const { data, isLoading, isError, refetch } = useDebts(page)
-  const { data: membersData } = useMembers(1, undefined, undefined)
+  const { data: membersData } = useAllMembers()
   const createDebt = useCreateDebt()
   const payDebt = usePayDebt()
   const deleteDebt = useDeleteDebt()
@@ -1305,10 +1357,12 @@ function DividasTab() {
 
   const debts = data?.data ?? []
   const totalPages = data?.pagination?.totalPages ?? 1
+  const selectedDebt = debts.find((d) => d.id === selectedDebtId) ?? null
+  const payExceeds = !!selectedDebt && payAmount > selectedDebt.remainingAmount
 
   const filteredDebts = useMemo(() => {
     const prefix = formatYearMonth(year, month)
-    let filtered = debts.filter((d) => d.createdAt.startsWith(prefix))
+    let filtered = debts.filter((d) => civilDateOf(d.createdAt).startsWith(prefix))
     if (search.trim()) {
       const term = search.toLowerCase()
       filtered = filtered.filter((debt) =>
@@ -1331,8 +1385,8 @@ function DividasTab() {
   }
   const goToToday = () => {
     setPage(1)
-    setYear(now.getFullYear())
-    setMonth(now.getMonth())
+    setYear(now.year)
+    setMonth(now.month)
   }
 
   const handleCreateDebt = () => {
@@ -1361,12 +1415,14 @@ function DividasTab() {
 
   const handlePayDebt = () => {
     if (!houseId || !selectedDebtId || !payAmount) return
+    if (selectedDebt && payAmount > selectedDebt.remainingAmount) return
     payDebt.mutate(
       {
         houseId,
         debtId: selectedDebtId,
         amount: payAmount,
         paymentMethod: payMethod,
+        paidAt: payPaidAt || undefined,
       },
       {
         onSettled: (_, error) => {
@@ -1381,10 +1437,11 @@ function DividasTab() {
     )
   }
 
-  const openPayDialog = (debtId: string) => {
-    setSelectedDebtId(debtId)
-    setPayAmount(0)
+  const openPayDialog = (debt: DebtItem) => {
+    setSelectedDebtId(debt.id)
+    setPayAmount(debt.remainingAmount)
     setPayMethod('pix')
+    setPayPaidAt(todayBRT())
     setPayDialogOpen(true)
   }
 
@@ -1548,7 +1605,7 @@ function DividasTab() {
                     <DropdownMenuContent align="end">
                       {debt.status !== 'paid' && debt.status !== 'cancelled' && (
                         <>
-                          <DropdownMenuItem onClick={() => openPayDialog(debt.id)}>
+                          <DropdownMenuItem onClick={() => openPayDialog(debt)}>
                             <CreditCard className="size-4" />
                             Registrar pagamento
                           </DropdownMenuItem>
@@ -1595,7 +1652,21 @@ function DividasTab() {
                 id="pay-debt-amount"
                 value={payAmount}
                 onValueChange={setPayAmount}
+                aria-invalid={payExceeds}
               />
+              {selectedDebt && (
+                <p className={payExceeds ? 'text-xs text-destructive' : 'text-xs text-muted-foreground'}>
+                  {payExceeds ? 'Valor acima do restante: ' : 'Restante: '}
+                  {formatCurrency(selectedDebt.remainingAmount)}
+                </p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="pay-debt-paid-at">Data do pagamento</Label>
+              <DateInput id="pay-debt-paid-at" value={payPaidAt} onValueChange={setPayPaidAt} />
+              {payPaidAt > todayBRT() && (
+                <p className="text-xs text-destructive">A data do pagamento não pode ser no futuro</p>
+              )}
             </div>
             <div className="space-y-2">
               <Label>Método de pagamento</Label>
@@ -1623,7 +1694,7 @@ function DividasTab() {
             </Button>
             <Button
               onClick={handlePayDebt}
-              disabled={payDebt.isPending || !payAmount}
+              disabled={payDebt.isPending || !payAmount || payExceeds || !payPaidAt || payPaidAt > todayBRT()}
             >
               {payDebt.isPending ? 'Registrando...' : 'Confirmar Pagamento'}
             </Button>
@@ -1668,30 +1739,34 @@ export default function AdminFinancePage() {
   const [activeTab, setActiveTab] = useState<Tab>('mensalidades')
   const houseId = useAuthStore((s) => s.currentHouseId())
   const canManage = useAuthStore((s) => s.hasPermission('canManageCashier'))
-  const now = new Date()
-  const [exportYear, setExportYear] = useState(now.getFullYear())
-  const [exportMonth, setExportMonth] = useState(now.getMonth())
-  const [recalculating, setRecalculating] = useState(false)
+  const isAdmin = useAuthStore((s) => s.isAdmin())
+  const now = currentYearMonthBRT()
+  const [exportDialogOpen, setExportDialogOpen] = useState(false)
+  const [exportYear, setExportYear] = useState(now.year)
+  const [exportMonth, setExportMonth] = useState(now.month)
+  const [exporting, setExporting] = useState(false)
+  const recalculate = useRecalculateHouseSummary()
+  const { data: allMembersData } = useAllMembers()
 
-  const exportStartDate = `${exportYear}-${String(exportMonth + 1).padStart(2, '0')}-01`
-  const exportEndDate = `${exportYear}-${String(exportMonth + 1).padStart(2, '0')}-${new Date(exportYear, exportMonth + 1, 0).getDate()}`
-  const { data: exportData, isFetching: exportLoading } = useLegacyFinancialStatement(1, undefined, undefined, exportStartDate, exportEndDate)
-
-  const handleExportCSV = () => {
-    const entries = exportData?.data ?? []
-    if (entries.length === 0) return
-    const headers = ['Data', 'Descricao', 'Tipo', 'Valor', 'Fonte', 'Pessoa', 'Metodo Pagamento']
-    const rows = entries.map((e) => [
-      e.date ? formatDate(e.date) : '',
-      e.description,
-      e.type === 'income' ? 'Receita' : 'Despesa',
-      formatCurrency(e.amount),
-      e.sourceLabel,
-      e.personName ?? '',
-      e.paymentMethod ? PAYMENT_METHOD_LABELS[e.paymentMethod as PaymentMethod] ?? e.paymentMethod : '',
-    ])
-    const monthLabel = `${MONTH_NAMES[exportMonth]}_${exportYear}`
-    downloadCSV(`financeiro_${monthLabel}.csv`, headers, rows)
+  const handleExportCSV = async () => {
+    if (!houseId) return
+    setExporting(true)
+    try {
+      const { start, end } = monthCivilRange(exportYear, exportMonth)
+      const entries = await fetchStatementEntries({ houseId, startDate: start, endDate: end })
+      if (entries.length === 0) {
+        toast.info('Nenhum lançamento no período')
+        return
+      }
+      const names = new Map((allMembersData?.data ?? []).map((m) => [m.id, m.fullName]))
+      const rows = statementCsvRows(entries, (id) => (id ? names.get(id) ?? '' : ''))
+      downloadCSV(`financeiro_${MONTH_NAMES[exportMonth]}_${exportYear}.csv`, STATEMENT_CSV_HEADERS, rows)
+      setExportDialogOpen(false)
+    } catch (error) {
+      toast.error(getErrorMessage(error, 'Erro ao exportar o extrato'))
+    } finally {
+      setExporting(false)
+    }
   }
 
   return (
@@ -1712,34 +1787,58 @@ export default function AdminFinancePage() {
               variant="outline"
               size="sm"
               className="gap-2"
-              disabled={recalculating || !houseId}
-              onClick={async () => {
-                if (!houseId) return
-                setRecalculating(true)
-                try {
-                  const result = await callFunction<{ houseId: string }, { totalRevenue: number; totalExpense: number; balance: number }>('recalculateHouseSummary', { houseId })
-                  toast.success(`Saldo recalculado: ${formatCurrency(result.balance)}`)
-                } catch {
-                  toast.error('Erro ao recalcular saldo')
-                } finally {
-                  setRecalculating(false)
-                }
-              }}
+              disabled={recalculate.isPending || !houseId}
+              onClick={() => recalculate.mutate()}
             >
-              <RefreshCw className={`size-4 ${recalculating ? 'animate-spin' : ''}`} />
-              <span className="hidden sm:inline">{recalculating ? 'Recalculando...' : 'Recalcular saldo'}</span>
+              <RefreshCw className={`size-4 ${recalculate.isPending ? 'animate-spin' : ''}`} />
+              <span className="hidden sm:inline">{recalculate.isPending ? 'Recalculando...' : 'Recalcular saldo'}</span>
             </Button>
           )}
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-2"
-            onClick={handleExportCSV}
-            disabled={exportLoading || !exportData?.data?.length}
-          >
-            <Download className="size-4" />
-            <span className="hidden sm:inline">Exportar CSV</span>
-          </Button>
+          <Dialog open={exportDialogOpen} onOpenChange={setExportDialogOpen}>
+            <DialogTrigger
+              render={<Button variant="outline" size="sm" className="gap-2" disabled={!houseId} />}
+            >
+              <Download className="size-4" />
+              <span className="hidden sm:inline">Exportar CSV</span>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Exportar extrato</DialogTitle>
+              </DialogHeader>
+              <p className="text-sm text-muted-foreground">
+                Todos os lançamentos do mês (mensalidades, pagamentos, dívidas, vendas, rifas, listas e estornos).
+              </p>
+              <div className="grid grid-cols-2 gap-2 py-2">
+                <select
+                  aria-label="Mês"
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+                  value={exportMonth}
+                  onChange={(e) => setExportMonth(Number(e.target.value))}
+                >
+                  {MONTH_NAMES.map((name, idx) => (
+                    <option key={idx} value={idx}>{name}</option>
+                  ))}
+                </select>
+                <select
+                  aria-label="Ano"
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+                  value={exportYear}
+                  onChange={(e) => setExportYear(Number(e.target.value))}
+                >
+                  {[now.year - 2, now.year - 1, now.year, now.year + 1].map((y) => (
+                    <option key={y} value={y}>{y}</option>
+                  ))}
+                </select>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setExportDialogOpen(false)}>Cancelar</Button>
+                <Button onClick={handleExportCSV} disabled={exporting} className="gap-2">
+                  <Download className="size-4" />
+                  {exporting ? 'Exportando...' : 'Exportar'}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 
@@ -1758,12 +1857,14 @@ export default function AdminFinancePage() {
               Auditoria
             </Button>
           </Link>
-          <Link href={ROUTES.ADMIN_FINANCE_BACKFILL}>
-            <Button variant="outline" size="sm" className="gap-2">
-              <Database className="size-4" />
-              Backfill
-            </Button>
-          </Link>
+          {isAdmin && (
+            <Link href={ROUTES.ADMIN_FINANCE_BACKFILL}>
+              <Button variant="outline" size="sm" className="gap-2">
+                <Database className="size-4" />
+                Backfill
+              </Button>
+            </Link>
+          )}
         </div>
       )}
 

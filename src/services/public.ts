@@ -13,7 +13,6 @@ import type {
   PublicStoreData,
   PublicStoreOrderRequest,
   PublicStoreOrderResponse,
-  PublicStoreMembersData,
   PublicEventItem,
   PublicRaffleListItem,
   PublicCampaignListItem,
@@ -40,9 +39,6 @@ export const publicService = {
 
   publicCreateStoreOrder: (data: PublicStoreOrderRequest) =>
     callFunction<PublicStoreOrderRequest, PublicStoreOrderResponse>('publicCreateStoreOrder', data),
-
-  publicListStoreMembers: (data: { houseSlug: string }) =>
-    callFunction<{ houseSlug: string }, PublicStoreMembersData>('publicListStoreMembers', data),
 
   publicListEvents: (data: { houseSlug: string }) =>
     callFunction<{ houseSlug: string }, PublicEventItem[]>('publicListEvents', data),

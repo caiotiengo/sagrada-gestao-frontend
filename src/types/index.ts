@@ -167,8 +167,10 @@ export interface MemberItem {
   extraPermissions: ExtraPermission[]
   isActive: boolean
   fullName: string
-  email: string
-  phone: string
+  /** null para quem não é admin nem tem canManageMembers. */
+  email: string | null
+  /** Só dígitos (10–11). null para quem não é admin nem tem canManageMembers. */
+  phone: string | null
   photoUrl: string | null
   joinedAt: string
   createdAt: string
@@ -188,8 +190,8 @@ export interface MemberDetails {
   joinedAt: string
   user: {
     fullName: string
-    email: string
-    phone: string
+    email: string | null
+    phone: string | null
     alternatePhone: string | null
     documentType: string | null
     documentNumber: string | null
@@ -222,23 +224,27 @@ export interface GetDashboardSummaryRequest {
 export interface DashboardSummary {
   totalMembers: number
   activeMembers: number
-  totalRevenue: number
-  pendingFees: number
   activeCampaigns: number
   activeRaffles: number
   lastUpdatedAt: string
-  /** New detailed revenue breakdown (post-ledger migration). */
-  revenue?: {
+  /** Receita do ledger (líquida de estornos), por origem. */
+  revenue: {
     monthlyFees: number
     storeSales: number
     raffles: number
     campaigns: number
+    /** Pagamentos avulsos + pagamentos de dívida + lançamentos manuais. */
     payments: number
     shopping: number
     total: number
   }
-  /** New detailed pending breakdown (post-ledger migration). */
-  pending?: {
+  expenses: {
+    payments: number
+    total: number
+  }
+  balance: number
+  /** Valores em aberto (mesma regra do extrato). Fiado de loja só em sales. */
+  pending: {
     feesCount: number
     feesAmount: number
     debtsCount: number
@@ -247,8 +253,21 @@ export interface DashboardSummary {
     salesAmount: number
     shoppingCount: number
     shoppingAmount: number
+    quotasCount: number
+    quotasAmount: number
+    /** Mensalidades de competências futuras (fora do total). */
+    upcomingFeesCount: number
+    upcomingFeesAmount: number
     totalAmount: number
   }
+}
+
+export interface RecalculateHouseSummaryResponse {
+  totalRevenue: number
+  totalExpense: number
+  balance: number
+  pendingFees: number
+  breakdown: Record<string, { revenue: number; expense: number; net: number }>
 }
 
 // ---- Finance: Monthly Fees ----
@@ -314,6 +333,8 @@ export interface PayMonthlyFeeRequest {
   feeId: string
   paymentMethod: PaymentMethod
   receiptUrl?: string
+  /** Data real do recebimento ("YYYY-MM-DD", dia civil BRT). Não pode ser futura. Padrão: agora. */
+  paidAt?: string
 }
 
 export interface DeleteMonthlyFeeRequest {
@@ -380,6 +401,8 @@ export interface PayDebtRequest {
   debtId: string
   amount: number
   paymentMethod: PaymentMethod
+  /** Data real do recebimento ("YYYY-MM-DD", dia civil BRT). Não pode ser futura. Padrão: agora. */
+  paidAt?: string
 }
 
 export interface DeleteDebtRequest {
@@ -1141,13 +1164,6 @@ export interface PublicStoreOrderResponse {
   existingBuyerName?: string
   existingOrderNumber?: string
   existingTotal?: number
-}
-
-export interface PublicStoreMembersData {
-  members: {
-    memberId: string
-    name: string
-  }[]
 }
 
 // ---- Shopping Lists / Trabalhos / Jogos ----

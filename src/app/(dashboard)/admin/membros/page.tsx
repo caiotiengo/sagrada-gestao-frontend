@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { Users, Search, Shield, MoreVertical, Trash2 } from 'lucide-react'
 import { useMembers, useUpdateMemberPermissions } from '@/hooks/use-members'
@@ -81,13 +81,14 @@ function MemberActions({ member }: { member: MemberItem }) {
             <Trash2 className="size-4" />
             Remover membro
           </DropdownMenuItem>
+
         </DropdownMenuContent>
       </DropdownMenu>
 
       <Dialog open={permsOpen} onOpenChange={setPermsOpen}>
         <DialogContent className="sm:max-w-sm" onClick={(e) => e.stopPropagation()}>
           <DialogHeader>
-            <DialogTitle>Permissões de {member.fullName.split(' ')[0]}</DialogTitle>
+            <DialogTitle>Permissões de {member.fullName}</DialogTitle>
           </DialogHeader>
           <div className="space-y-1 py-2">
             {ALL_PERMISSIONS.map((perm) => (
@@ -116,23 +117,24 @@ export default function MembersListPage() {
   const [page, setPage] = useState(1)
   const [roleFilter, setRoleFilter] = useState<UserRole | undefined>(undefined)
   const [activeFilter, setActiveFilter] = useState<boolean | undefined>(undefined)
-  const { data, isLoading, isError, refetch } = useMembers(page, undefined, roleFilter, activeFilter)
+  // Busca feita no servidor (pagination.total já vem filtrado); debounce de 300ms
+  const [debouncedSearch, setDebouncedSearch] = useState('')
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setDebouncedSearch(search.trim())
+      setPage(1)
+    }, 300)
+    return () => clearTimeout(t)
+  }, [search])
+  const { data, isLoading, isError, refetch } = useMembers(page, debouncedSearch || undefined, roleFilter, activeFilter)
 
   const members = data?.data ?? []
   const totalPages = data?.pagination.totalPages ?? 1
 
-  const filteredMembers = useMemo(() => {
-    let result = members
-    if (search.trim()) {
-      const q = search.toLowerCase()
-      result = result.filter(
-        (m) =>
-          m.fullName.toLowerCase().includes(q) ||
-          m.email.toLowerCase().includes(q),
-      )
-    }
-    return result.sort((a, b) => a.fullName.localeCompare(b.fullName, 'pt-BR'))
-  }, [members, search])
+  const filteredMembers = useMemo(
+    () => [...members].sort((a, b) => a.fullName.localeCompare(b.fullName, 'pt-BR')),
+    [members],
+  )
 
   const handleMemberClick = (member: MemberItem) => {
     router.push(ROUTES.MEMBER_DETAIL(member.id))
@@ -176,6 +178,7 @@ export default function MembersListPage() {
         <Select
           value={roleFilter ?? 'all'}
           onValueChange={(v) => { setRoleFilter(v === 'all' ? undefined : v as UserRole); setPage(1) }}
+          items={{ all: 'Todos os cargos', ...ROLE_LABELS }}
         >
           <SelectTrigger className="w-[160px]">
             <SelectValue placeholder="Cargo" />
@@ -191,6 +194,7 @@ export default function MembersListPage() {
         <Select
           value={activeFilter === undefined ? 'all' : activeFilter ? 'active' : 'inactive'}
           onValueChange={(v) => { setActiveFilter(v === 'all' ? undefined : v === 'active'); setPage(1) }}
+          items={{ all: 'Todos', active: 'Ativos', inactive: 'Inativos' }}
         >
           <SelectTrigger className="w-[140px]">
             <SelectValue placeholder="Status" />
@@ -221,7 +225,7 @@ export default function MembersListPage() {
             />
           ))}
         </div>
-      ) : search.trim() ? (
+      ) : debouncedSearch ? (
         <EmptyState
           icon={Search}
           title="Nenhum resultado encontrado"

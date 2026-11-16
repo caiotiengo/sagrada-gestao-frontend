@@ -44,6 +44,8 @@ import {
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { membersService } from '@/services/members'
 import { toast } from 'sonner'
+import { getErrorMessage } from '@/lib/errors'
+import { invalidateFinance } from '@/lib/invalidate'
 
 export default function MemberDetailPage() {
   const params = useParams()
@@ -73,12 +75,12 @@ export default function MemberDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['members'] })
       toast.success(
         isCaixa
-          ? 'Permissão de caixa removida'
-          : 'Permissão de caixa concedida',
+          ? 'Permissão de tesoureiro removida'
+          : 'Permissão de tesoureiro concedida',
       )
     },
-    onError: () => {
-      toast.error('Erro ao alterar permissão de caixa')
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Erro ao alterar permissão de tesoureiro'))
     },
   })
 
@@ -130,7 +132,7 @@ export default function MemberDetailPage() {
               </Badge>
               <Badge variant="outline">{roleLabel}</Badge>
               {isCaixa && (
-                <Badge variant="secondary">Caixa</Badge>
+                <Badge variant="secondary">Tesoureiro</Badge>
               )}
             </div>
           </div>
@@ -254,7 +256,7 @@ export default function MemberDetailPage() {
             <Mail className="size-4 shrink-0 text-muted-foreground" />
             <div className="min-w-0 flex-1">
               <p className="text-xs text-muted-foreground">Email</p>
-              <p className="truncate text-sm">{member.user.email}</p>
+              <p className="truncate text-sm">{member.user.email || '—'}</p>
             </div>
           </div>
 
@@ -264,7 +266,7 @@ export default function MemberDetailPage() {
             <Phone className="size-4 shrink-0 text-muted-foreground" />
             <div className="min-w-0 flex-1">
               <p className="text-xs text-muted-foreground">Telefone</p>
-              <p className="text-sm">{formatPhone(member.user.phone)}</p>
+              <p className="text-sm">{member.user.phone ? formatPhone(member.user.phone) : '—'}</p>
             </div>
           </div>
         </CardContent>
@@ -304,7 +306,7 @@ export default function MemberDetailPage() {
                 <Droplets className="size-4 shrink-0 text-muted-foreground" />
                 <div className="min-w-0 flex-1">
                   <p className="text-xs text-muted-foreground">
-                    Tipo Sanguineo
+                    Tipo sanguíneo
                   </p>
                   <p className="text-sm">{member.mediumProfile.bloodType}</p>
                 </div>
@@ -318,7 +320,7 @@ export default function MemberDetailPage() {
       {(member.mediumProfile?.emergencyContactName || member.mediumProfile?.emergencyContactPhone) && (
         <Card className="rounded-xl shadow-sm">
           <CardHeader>
-            <CardTitle>Contato de Emergencia</CardTitle>
+            <CardTitle>Contato de Emergência</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             {member.mediumProfile?.emergencyContactName && (
@@ -383,19 +385,19 @@ export default function MemberDetailPage() {
               <Button variant="outline" className="flex-1" />
             }
           >
-            {isCaixa ? 'Remover Caixa' : 'Tornar Caixa'}
+            {isCaixa ? 'Remover Tesoureiro' : 'Tornar Tesoureiro'}
           </AlertDialogTrigger>
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>
                 {isCaixa
-                  ? 'Remover permissão de caixa?'
-                  : 'Conceder permissão de caixa?'}
+                  ? 'Remover permissão de tesoureiro?'
+                  : 'Conceder permissão de tesoureiro?'}
               </AlertDialogTitle>
               <AlertDialogDescription>
                 {isCaixa
-                  ? `Tem certeza que deseja remover a permissão de caixa de ${member.user.fullName}?`
-                  : `Tem certeza que deseja conceder permissão de caixa a ${member.user.fullName}?`}
+                  ? `Tem certeza que deseja remover a permissão de tesoureiro de ${member.user.fullName}?`
+                  : `Tem certeza que deseja conceder permissão de tesoureiro a ${member.user.fullName}?`}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>

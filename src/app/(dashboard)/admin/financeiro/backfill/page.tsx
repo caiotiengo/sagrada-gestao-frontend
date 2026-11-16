@@ -14,6 +14,7 @@ import {
 import { useBackfillLedger } from '@/hooks/use-ledger'
 import { useAuthStore } from '@/stores/auth'
 import { formatCurrency } from '@/utils'
+import { getErrorMessage } from '@/lib/errors'
 import { SOURCE_LABELS } from '@/lib/ledger-labels'
 import type { LedgerSource, BackfillResult } from '@/types/ledger'
 import { ROUTES } from '@/constants'
@@ -24,7 +25,8 @@ import { Input } from '@/components/ui/input'
 import { ErrorState } from '@/components/feedback/error-state'
 
 export default function BackfillPage() {
-  const canManage = useAuthStore((s) => s.hasPermission('canManageCashier'))
+  // backfillHouseLedger é só para admin no back
+  const canManage = useAuthStore((s) => s.isAdmin())
   const houseName = useAuthStore((s) => s.currentHouse?.houseName) ?? ''
 
   const [confirmText, setConfirmText] = useState('')
@@ -144,7 +146,7 @@ export default function BackfillPage() {
             <div>
               <p className="font-semibold text-destructive">Erro ao executar backfill</p>
               <p className="text-sm text-muted-foreground">
-                {(backfill.error as Error)?.message ?? 'Erro desconhecido'}
+                {getErrorMessage(backfill.error, 'Erro desconhecido')}
               </p>
             </div>
           </CardContent>
@@ -174,8 +176,8 @@ export default function BackfillPage() {
                     : 'Backfill concluído com divergências'}
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  {result.backfill.totalCreated} entradas criadas,{' '}
-                  {result.backfill.totalSkipped} já existiam.
+                  {result.backfill.totalCreated} ajuste(s) lançado(s),{' '}
+                  {result.backfill.totalSkipped} registro(s) já batiam com o ledger.
                 </p>
                 {hasLargeDrift && (
                   <p className="text-sm font-medium text-amber-700 dark:text-amber-300">
@@ -209,19 +211,39 @@ export default function BackfillPage() {
                 ))}
               </div>
 
-              {result.backfill.errors.length > 0 && (
+              {(result.backfill.drift ?? []).length > 0 && (
                 <div className="mt-4 space-y-2">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-destructive">
-                    Erros ({result.backfill.errors.length})
+                  <p className="text-xs font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-300">
+                    Ledger acima do registro ({result.backfill.drift.length}) — estorne na auditoria
                   </p>
                   <div className="max-h-48 space-y-1 overflow-y-auto rounded-md bg-muted/40 p-2 text-xs">
-                    {result.backfill.errors.slice(0, 20).map((err, i) => (
-                      <div key={i} className="flex gap-2">
-                        <Badge variant="destructive" className="text-[0.625rem]">
-                          {err.source}
+                    {result.backfill.drift.slice(0, 20).map((d) => (
+                      <div key={`${d.source}-${d.sourceId}`} className="flex flex-wrap gap-2">
+                        <Badge variant="outline" className="text-[0.625rem]">
+                          {SOURCE_LABELS[d.source as LedgerSource] ?? d.source}
                         </Badge>
-                        <span className="font-mono">{err.id.slice(0, 10)}...</span>
-                        <span className="flex-1 text-muted-foreground">{err.message}</span>
+                        <span className="font-mono">{d.sourceId.slice(0, 10)}…</span>
+                        <span className="flex-1 text-muted-foreground">
+                          esperado {formatCurrency(d.expected)} · no ledger {formatCurrency(d.ledger)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {(result.backfill.ambiguous ?? []).length > 0 && (
+                <div className="mt-4 space-y-2">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-destructive">
+                    Casos ambíguos ({result.backfill.ambiguous.length}) — revisar manualmente
+                  </p>
+                  <div className="max-h-48 space-y-1 overflow-y-auto rounded-md bg-muted/40 p-2 text-xs">
+                    {result.backfill.ambiguous.slice(0, 20).map((a) => (
+                      <div key={`${a.source}-${a.sourceId}`} className="flex gap-2">
+                        <Badge variant="destructive" className="text-[0.625rem]">
+                          {SOURCE_LABELS[a.source as LedgerSource] ?? a.source}
+                        </Badge>
+                        <span className="font-mono">{a.sourceId.slice(0, 10)}…</span>
                       </div>
                     ))}
                   </div>

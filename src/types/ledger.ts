@@ -7,6 +7,7 @@ export type LedgerSource =
   | 'debt'
   | 'shoppingItem'
   | 'payment'
+  | 'memberCharge'
   | 'manual'
 
 export type LedgerDirection = 'credit' | 'debit'
@@ -32,6 +33,10 @@ export interface LedgerEntryView {
   status: LedgerStatus
   channel: LedgerChannel
   description: string
+  /** true quando este lançamento é o estorno de outro (`reverses`). */
+  isReversal: boolean
+  /** Data real do fato (pagamento/estorno). Ordenação e filtros usam este campo. */
+  occurredAt: string
   createdAt: string
   confirmedAt: string | null
   reversedBy: string | null
@@ -53,7 +58,13 @@ export interface AggregateByDirection {
 
 export interface FinancialStatement {
   balance: { revenue: number; expense: number; net: number }
-  pending: { amount: number; count: number; byType: PendingTotalsByType }
+  pending: {
+    amount: number
+    count: number
+    byType: PendingTotalsByType
+    /** Mensalidades de competências futuras ainda não vencidas (fora do total). */
+    upcomingFees: { amount: number; count: number }
+  }
   aggregatesByType: Partial<Record<LedgerSource, AggregateByDirection>>
   data: LedgerEntryView[]
   pagination: {
@@ -104,21 +115,31 @@ export interface LedgerListResponse {
 export interface LedgerValidationResult {
   houseId: string
   isBalanced: boolean
-  ledger: { credit: number; debit: number; net: number; byType: Partial<Record<LedgerSource, AggregateByDirection>> }
-  entities: { credit: number; debit: number; net: number; byType: Partial<Record<LedgerSource, AggregateByDirection>> }
+  ledger: { credit: number; debit: number; net: number; entriesCount: number }
+  entities: {
+    credit: number
+    debit: number
+    byType: {
+      fees: number
+      sales: number
+      quotas: number
+      contributions: number
+      raffles: number
+      shopping: number
+      paymentsIncome: number
+      paymentsExpense: number
+      memberChargesExpense: number
+    }
+  }
   drift: { credit: number; debit: number; net: number }
-  validatedAt: string
 }
 
 export interface ReconcileSummaryResult {
-  houseId: string
-  reconciledAt: string
-  summary: {
-    totalRevenue: number
-    totalExpense: number
-    pendingCount: number
-    pendingAmount: number
-  }
+  totalRevenue: number
+  totalExpense: number
+  balance: number
+  pendingFees: number
+  entriesCount: number
 }
 
 export interface ReverseLedgerEntryRequest {
@@ -128,18 +149,29 @@ export interface ReverseLedgerEntryRequest {
 }
 
 export interface ReverseLedgerEntryResult {
-  reversalEntryId: string
-  reversedEntryId: string
+  reversalId: string | null
+  originalId: string
+  created: boolean
+}
+
+export interface BackfillDrift {
+  source: string
+  sourceId: string
+  expected: number
+  ledger: number
 }
 
 export interface BackfillResult {
-  houseId: string
   backfill: {
+    houseId: string
     created: Partial<Record<LedgerSource, number>>
     skipped: Partial<Record<LedgerSource, number>>
-    errors: Array<{ source: string; id: string; message: string }>
     totalCreated: number
     totalSkipped: number
+    /** Ledger com MAIS do que a entidade: nada foi lançado, precisa de estorno manual. */
+    drift: BackfillDrift[]
+    /** Casos que o backfill não conseguiu decidir sozinho. */
+    ambiguous: Array<{ source: string; sourceId: string }>
   }
   validation: LedgerValidationResult
 }

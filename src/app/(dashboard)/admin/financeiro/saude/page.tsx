@@ -11,15 +11,25 @@ import {
 } from 'lucide-react'
 import { useValidateLedger, useReconcileSummary } from '@/hooks/use-ledger'
 import { useAuthStore } from '@/stores/auth'
-import { formatCurrency, formatDate } from '@/utils'
-import { SOURCE_LABELS } from '@/lib/ledger-labels'
-import type { LedgerSource } from '@/types/ledger'
+import { formatCurrency } from '@/utils'
 import { ROUTES } from '@/constants'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { LoadingState } from '@/components/feedback/loading-state'
 import { ErrorState } from '@/components/feedback/error-state'
+
+const ENTITY_LABELS = {
+  fees: 'Mensalidades pagas',
+  sales: 'Vendas pagas',
+  quotas: 'Cotas de campanha',
+  contributions: 'Contribuições externas',
+  raffles: 'Rifas',
+  shopping: 'Trabalhos/Jogos',
+  paymentsIncome: 'Pagamentos (entrada)',
+  paymentsExpense: 'Pagamentos (saída)',
+  memberChargesExpense: 'Cobranças pagas pela casa',
+} as const
 
 export default function FinanceHealthPage() {
   const houseId = useAuthStore((s) => s.currentHouseId())
@@ -52,22 +62,18 @@ export default function FinanceHealthPage() {
   }
 
   const isBalanced = validation.isBalanced
-  const drift = validation.drift
+  const drift = validation.drift ?? { credit: 0, debit: 0, net: 0 }
 
-  // Build diff rows by source
-  const allSources = new Set<LedgerSource>([
-    ...(Object.keys(validation.ledger.byType) as LedgerSource[]),
-    ...(Object.keys(validation.entities.byType) as LedgerSource[]),
-  ])
+  // Comparação ledger x entidades (o back devolve os totais do ledger e o
+  // detalhamento só do lado das entidades).
+  const ledger = validation.ledger ?? { credit: 0, debit: 0, net: 0, entriesCount: 0 }
+  const entities = validation.entities ?? { credit: 0, debit: 0, byType: {} }
+  const entityByType: Partial<Record<keyof typeof ENTITY_LABELS, number>> = entities.byType ?? {}
 
-  const diffRows = Array.from(allSources).map((source) => {
-    const ledgerAgg = validation.ledger.byType[source] ?? { credit: 0, debit: 0 }
-    const entityAgg = validation.entities.byType[source] ?? { credit: 0, debit: 0 }
-    const ledgerNet = ledgerAgg.credit - ledgerAgg.debit
-    const entityNet = entityAgg.credit - entityAgg.debit
-    const diff = ledgerNet - entityNet
-    return { source, ledgerNet, entityNet, diff }
-  })
+  const diffRows = [
+    { key: 'credit', label: 'Entradas', ledgerValue: ledger.credit ?? 0, entityValue: entities.credit ?? 0, diff: drift?.credit ?? 0 },
+    { key: 'debit', label: 'Saídas', ledgerValue: ledger.debit ?? 0, entityValue: entities.debit ?? 0, diff: drift?.debit ?? 0 },
+  ]
 
   const hasDrift = diffRows.some((r) => Math.abs(r.diff) > 0.01)
 
@@ -110,7 +116,7 @@ export default function FinanceHealthPage() {
                 {isBalanced ? 'Ledger consistente' : 'Divergência detectada'}
               </p>
               <p className="text-xs text-muted-foreground">
-                Validado em {formatDate(validation.validatedAt)}
+                {ledger.entriesCount ?? 0} lançamento(s) no ledger
               </p>
             </div>
           </div>
@@ -133,7 +139,7 @@ export default function FinanceHealthPage() {
           <CardContent className="py-4">
             <p className="text-xs font-medium text-muted-foreground">Receita (ledger)</p>
             <p className="mt-1 text-lg font-semibold text-emerald-600 dark:text-emerald-400">
-              {formatCurrency(validation.ledger.credit)}
+              {formatCurrency(ledger.credit ?? 0)}
             </p>
           </CardContent>
         </Card>
@@ -141,7 +147,7 @@ export default function FinanceHealthPage() {
           <CardContent className="py-4">
             <p className="text-xs font-medium text-muted-foreground">Despesa (ledger)</p>
             <p className="mt-1 text-lg font-semibold text-red-600 dark:text-red-400">
-              {formatCurrency(validation.ledger.debit)}
+              {formatCurrency(ledger.debit ?? 0)}
             </p>
           </CardContent>
         </Card>
@@ -149,7 +155,7 @@ export default function FinanceHealthPage() {
           <CardContent className="py-4">
             <p className="text-xs font-medium text-muted-foreground">Líquido</p>
             <p className="mt-1 text-lg font-semibold">
-              {formatCurrency(validation.ledger.net)}
+              {formatCurrency(ledger.net ?? 0)}
             </p>
           </CardContent>
         </Card>
@@ -192,49 +198,58 @@ export default function FinanceHealthPage() {
         </Card>
       )}
 
-      {/* Per-source diff table */}
+      {/* Ledger x entidades */}
       <Card>
         <CardHeader>
-          <CardTitle>Consistência por tipo</CardTitle>
+          <CardTitle>Consistência ledger x registros</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="divide-y">
-            {diffRows.length === 0 ? (
-              <p className="py-3 text-center text-sm text-muted-foreground">
-                Sem lançamentos registrados.
-              </p>
-            ) : (
-              diffRows.map((row) => {
-                const isDivergent = Math.abs(row.diff) > 0.01
-                return (
-                  <div
-                    key={row.source}
-                    className="grid grid-cols-4 items-center gap-3 py-3 text-sm"
-                  >
-                    <div className="col-span-1 font-medium">
-                      {SOURCE_LABELS[row.source] ?? row.source}
-                    </div>
-                    <div className="col-span-1 text-right text-xs text-muted-foreground">
-                      Ledger: {formatCurrency(row.ledgerNet)}
-                    </div>
-                    <div className="col-span-1 text-right text-xs text-muted-foreground">
-                      Entidades: {formatCurrency(row.entityNet)}
-                    </div>
-                    <div className="col-span-1 flex justify-end">
-                      {isDivergent ? (
-                        <Badge variant="destructive">
-                          {formatCurrency(Math.abs(row.diff))}
-                        </Badge>
-                      ) : (
-                        <Badge variant="outline" className="border-emerald-200 text-emerald-700 dark:border-emerald-900 dark:text-emerald-400">
-                          OK
-                        </Badge>
-                      )}
-                    </div>
+            {diffRows.map((row) => {
+              const isDivergent = Math.abs(row.diff) > 0.01
+              return (
+                <div
+                  key={row.key}
+                  className="grid grid-cols-4 items-center gap-3 py-3 text-sm"
+                >
+                  <div className="col-span-1 font-medium">{row.label}</div>
+                  <div className="col-span-1 text-right text-xs text-muted-foreground">
+                    Ledger: {formatCurrency(row.ledgerValue)}
                   </div>
-                )
-              })
-            )}
+                  <div className="col-span-1 text-right text-xs text-muted-foreground">
+                    Registros: {formatCurrency(row.entityValue)}
+                  </div>
+                  <div className="col-span-1 flex justify-end">
+                    {isDivergent ? (
+                      <Badge variant="destructive">
+                        {formatCurrency(Math.abs(row.diff))}
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="border-emerald-200 text-emerald-700 dark:border-emerald-900 dark:text-emerald-400">
+                        OK
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Detalhe dos registros */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Registros por tipo</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="divide-y">
+            {(Object.keys(ENTITY_LABELS) as Array<keyof typeof ENTITY_LABELS>).map((key) => (
+              <div key={key} className="flex items-center justify-between py-2 text-sm">
+                <span>{ENTITY_LABELS[key]}</span>
+                <span className="font-medium">{formatCurrency(entityByType[key] ?? 0)}</span>
+              </div>
+            ))}
           </div>
         </CardContent>
       </Card>
