@@ -19,11 +19,14 @@ export function formatCNPJ(value: string): string {
     .replace(/(\d{4})(\d{1,2})$/, '$1-$2')
 }
 
-export function formatPhone(value: string): string {
-  return value
-    .replace(/\D/g, '')
-    .replace(/(\d{2})(\d)/, '($1) $2')
-    .replace(/(\d{5})(\d{1,4})$/, '$1-$2')
+export function formatPhone(value: string | null | undefined): string {
+  const d = (value ?? '').replace(/\D/g, '').slice(0, 11)
+  if (!d) return (value ?? '').trim() === '—' ? '—' : ''
+  if (d.length <= 2) return d
+  if (d.length <= 6) return `(${d.slice(0, 2)}) ${d.slice(2)}`
+  // Fixo (10 dígitos): (11) 3333-4444; celular (11 dígitos): (11) 98888-7777
+  if (d.length <= 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`
+  return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`
 }
 
 export function formatRG(value: string): string {
@@ -41,22 +44,8 @@ export function formatCurrency(value: number): string {
   }).format(value)
 }
 
-export function formatDate(date: string | Date): string {
-  const d = typeof date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(date)
-    ? new Date(date + 'T00:00:00')
-    : new Date(date)
-  return new Intl.DateTimeFormat('pt-BR').format(d)
-}
-
-export function formatDateTime(date: string | Date): string {
-  const d = typeof date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(date)
-    ? new Date(date + 'T00:00:00')
-    : new Date(date)
-  return new Intl.DateTimeFormat('pt-BR', {
-    dateStyle: 'short',
-    timeStyle: 'short',
-  }).format(d)
-}
+// Datas: sempre no fuso de Brasília (ver utils/dates.ts).
+export { formatDate, formatDateTime } from './dates'
 
 export function onlyNumbers(value: string): string {
   return value.replace(/\D/g, '')

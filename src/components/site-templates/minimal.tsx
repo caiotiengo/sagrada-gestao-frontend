@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { formatIntlBRT } from '@/utils/dates'
 import {
   Instagram,
   Facebook,
@@ -110,7 +111,7 @@ export function MinimalTemplate() {
                     <div key={event.id} className="border-l-2 pl-4" style={{ borderColor: primaryColor }}>
                       <p className="font-medium text-gray-800">{event.title}</p>
                       <p className="text-sm text-gray-500">
-                        {new Date(event.startDate).toLocaleDateString('pt-BR', {
+                        {formatIntlBRT(event.startDate, {
                           weekday: 'long',
                           day: 'numeric',
                           month: 'long',

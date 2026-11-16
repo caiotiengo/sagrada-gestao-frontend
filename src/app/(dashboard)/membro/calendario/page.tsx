@@ -10,43 +10,33 @@ import { ListSkeleton } from '@/components/feedback/list-skeleton'
 import { EmptyState } from '@/components/feedback/empty-state'
 import { ErrorState } from '@/components/feedback/error-state'
 import { formatDateTime } from '@/utils'
+import {
+  MONTH_NAMES,
+  currentYearMonthBRT,
+  formatDayLabel,
+  monthEventRange,
+  toCivilDateBRT,
+} from '@/utils/dates'
 import type { EventItem } from '@/types'
 
-const MONTH_NAMES = [
-  'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
-  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
-]
-
-function getMonthRange(year: number, month: number) {
-  const startAfter = new Date(year, month, 1).toISOString()
-  const startBefore = new Date(year, month + 1, 0, 23, 59, 59).toISOString()
-  return { startAfter, startBefore }
-}
 
 function groupByDay(events: EventItem[]) {
   const groups: Record<string, EventItem[]> = {}
   for (const event of events) {
-    const day = event.startDate.slice(0, 10)
+    const day = toCivilDateBRT(event.startDate)
     if (!groups[day]) groups[day] = []
     groups[day].push(event)
   }
   return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b))
 }
 
-function formatDayLabel(dateStr: string) {
-  const date = new Date(dateStr + 'T12:00:00')
-  const day = date.getDate()
-  const weekday = date.toLocaleDateString('pt-BR', { weekday: 'long' })
-  return `${day} - ${weekday.charAt(0).toUpperCase() + weekday.slice(1)}`
-}
-
 export default function MemberCalendarPage() {
-  const now = new Date()
-  const [year, setYear] = useState(now.getFullYear())
-  const [month, setMonth] = useState(now.getMonth())
+  const now = currentYearMonthBRT()
+  const [year, setYear] = useState(now.year)
+  const [month, setMonth] = useState(now.month)
   const [page, setPage] = useState(1)
 
-  const { startAfter, startBefore } = getMonthRange(year, month)
+  const { startAfter, startBefore } = monthEventRange(year, month)
   const { data, isLoading, isError, refetch } = useEvents(page, startAfter, startBefore)
 
   const events = data?.data ?? []
@@ -79,8 +69,8 @@ export default function MemberCalendarPage() {
 
   const goToToday = () => {
     setPage(1)
-    setYear(now.getFullYear())
-    setMonth(now.getMonth())
+    setYear(now.year)
+    setMonth(now.month)
   }
 
   if (isError) {
@@ -89,7 +79,7 @@ export default function MemberCalendarPage() {
 
   return (
     <div className="mx-auto w-full max-w-5xl space-y-6 px-4 py-6 lg:px-8 lg:py-8">
-      <h1 className="text-lg font-bold tracking-tight">Calendario</h1>
+      <h1 className="text-lg font-bold tracking-tight">Calendário</h1>
 
       {/* Month Navigation */}
       <div className="flex items-center justify-between rounded-lg border bg-card px-4 py-3">
@@ -101,7 +91,7 @@ export default function MemberCalendarPage() {
           <h2 className="text-lg font-semibold">
             {MONTH_NAMES[month]} {year}
           </h2>
-          {(year !== now.getFullYear() || month !== now.getMonth()) && (
+          {(year !== now.year || month !== now.month) && (
             <Button variant="outline" size="sm" onClick={goToToday}>
               Hoje
             </Button>

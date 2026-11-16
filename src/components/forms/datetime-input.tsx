@@ -3,12 +3,16 @@
 import * as React from 'react'
 
 import { Input } from '@/components/ui/input'
+import { isValidDateTimeLocal, toDateTimeLocalBRT } from '@/utils/dates'
 
 /**
  * Converts ISO datetime-local (YYYY-MM-DDTHH:MM) to DD/MM/AAAA HH:MM
  */
-function isoToDisplay(iso: string): string {
-  if (!iso) return ''
+function isoToDisplay(value: string): string {
+  if (!value) return ''
+  // Instante com fuso (ex.: "2026-03-10T13:00:00.000Z" vindo da API) vira
+  // horário de Brasília; "YYYY-MM-DDTHH:MM" sem fuso já é BRT.
+  const iso = /(Z|[+-]\d{2}:?\d{2})$/i.test(value) ? toDateTimeLocalBRT(value) : value
   const match = iso.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/)
   if (match) return `${match[3]}/${match[2]}/${match[1]} ${match[4]}:${match[5]}`
   return iso
@@ -50,15 +54,18 @@ interface DateTimeInputProps
 const DateTimeInput = React.forwardRef<HTMLInputElement, DateTimeInputProps>(
   ({ value, onValueChange, placeholder = 'DD/MM/AAAA HH:MM', ...props }, ref) => {
     const [display, setDisplay] = React.useState(() => isoToDisplay(value))
+    const [invalid, setInvalid] = React.useState(false)
+
+    // Último valor emitido: só sincroniza o texto quando o valor muda por fora
+    // (ex.: reset do form), não a cada tecla digitada.
+    const lastEmitted = React.useRef(value)
 
     // Sync display when the external value changes (e.g. form reset)
     React.useEffect(() => {
-      const expected = isoToDisplay(value)
-      if (value && expected) {
-        setDisplay(expected)
-      } else if (!value) {
-        setDisplay('')
-      }
+      if (value === lastEmitted.current) return
+      lastEmitted.current = value
+      setDisplay(value ? isoToDisplay(value) : '')
+      setInvalid(false)
     }, [value])
 
     function handleChange(event: React.ChangeEvent<HTMLInputElement>) {
@@ -67,11 +74,12 @@ const DateTimeInput = React.forwardRef<HTMLInputElement, DateTimeInputProps>(
 
       setDisplay(masked)
 
-      if (raw.length === 12) {
-        onValueChange?.(displayToIso(raw))
-      } else {
-        onValueChange?.('')
-      }
+      // Só emite quando a data/hora completa existe (recusa 31/02, 25:00)
+      const iso = raw.length === 12 ? displayToIso(raw) : ''
+      const ok = !!iso && isValidDateTimeLocal(iso)
+      setInvalid(raw.length === 12 && !ok)
+      lastEmitted.current = ok ? iso : ''
+      onValueChange?.(ok ? iso : '')
     }
 
     function handleKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
@@ -84,8 +92,10 @@ const DateTimeInput = React.forwardRef<HTMLInputElement, DateTimeInputProps>(
     }
 
     return (
+      <>
       <Input
         {...props}
+        aria-invalid={invalid || props['aria-invalid']}
         ref={ref}
         type="text"
         inputMode="numeric"
@@ -95,6 +105,10 @@ const DateTimeInput = React.forwardRef<HTMLInputElement, DateTimeInputProps>(
         onChange={handleChange}
         onKeyDown={handleKeyDown}
       />
+      {invalid && (
+        <p className="text-xs text-destructive">Data ou hora inválida</p>
+      )}
+      </>
     )
   }
 )

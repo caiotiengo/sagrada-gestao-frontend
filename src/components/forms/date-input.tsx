@@ -3,12 +3,15 @@
 import * as React from 'react'
 
 import { Input } from '@/components/ui/input'
+import { civilDateOf, isValidCivilDate } from '@/utils/dates'
 
 /**
  * Converts YYYY-MM-DD to DD/MM/AAAA for display.
  */
-function isoToDisplay(iso: string): string {
-  if (!iso) return ''
+function isoToDisplay(value: string): string {
+  if (!value) return ''
+  // ISO completo (ex.: vencimento gravado como fim do dia BRT) vira o dia civil BRT
+  const iso = /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : civilDateOf(value) || value
   // Handle YYYY-MM-DD
   const match = iso.match(/^(\d{4})-(\d{2})-(\d{2})/)
   if (match) return `${match[3]}/${match[2]}/${match[1]}`
@@ -48,15 +51,18 @@ interface DateInputProps
 const DateInput = React.forwardRef<HTMLInputElement, DateInputProps>(
   ({ value, onValueChange, placeholder = 'DD/MM/AAAA', ...props }, ref) => {
     const [display, setDisplay] = React.useState(() => isoToDisplay(value))
+    const [invalid, setInvalid] = React.useState(false)
+
+    // Último valor emitido: só sincroniza o texto quando o valor muda por fora
+    // (ex.: reset do form), não a cada tecla digitada.
+    const lastEmitted = React.useRef(value)
 
     // Sync display when the external value changes (e.g. form reset)
     React.useEffect(() => {
-      const expected = isoToDisplay(value)
-      if (value && expected) {
-        setDisplay(expected)
-      } else if (!value) {
-        setDisplay('')
-      }
+      if (value === lastEmitted.current) return
+      lastEmitted.current = value
+      setDisplay(value ? isoToDisplay(value) : '')
+      setInvalid(false)
     }, [value])
 
     function handleChange(event: React.ChangeEvent<HTMLInputElement>) {
@@ -65,12 +71,12 @@ const DateInput = React.forwardRef<HTMLInputElement, DateInputProps>(
 
       setDisplay(masked)
 
-      // Only emit ISO when we have a full date
-      if (raw.length === 8) {
-        onValueChange?.(displayToIso(masked))
-      } else {
-        onValueChange?.('')
-      }
+      // Only emit ISO when we have a full date that exists (recusa 31/02, 99/99)
+      const iso = raw.length === 8 ? displayToIso(masked) : ''
+      const ok = !!iso && isValidCivilDate(iso)
+      setInvalid(raw.length === 8 && !ok)
+      lastEmitted.current = ok ? iso : ''
+      onValueChange?.(ok ? iso : '')
     }
 
     function handleKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
@@ -83,8 +89,10 @@ const DateInput = React.forwardRef<HTMLInputElement, DateInputProps>(
     }
 
     return (
+      <>
       <Input
         {...props}
+        aria-invalid={invalid || props['aria-invalid']}
         ref={ref}
         type="text"
         inputMode="numeric"
@@ -94,6 +102,10 @@ const DateInput = React.forwardRef<HTMLInputElement, DateInputProps>(
         onChange={handleChange}
         onKeyDown={handleKeyDown}
       />
+      {invalid && (
+        <p className="text-xs text-destructive">Data inválida</p>
+      )}
+      </>
     )
   }
 )

@@ -16,7 +16,16 @@ import {
 } from 'lucide-react'
 import { useEvents, useCreateEvent, useUpdateEvent, useDeleteEvent } from '@/hooks/use-calendar'
 import { useAuthStore } from '@/stores/auth'
-import { formatDate } from '@/utils'
+import { formatDateTime } from '@/utils'
+import {
+  MONTH_NAMES,
+  currentYearMonthBRT,
+  formatDayLabel,
+  monthEventRange,
+  toCivilDateBRT,
+  toDateTimeLocalBRT,
+} from '@/utils/dates'
+import { toast } from 'sonner'
 import type { EventItem } from '@/types'
 import { ListSkeleton } from '@/components/feedback/list-skeleton'
 import { ErrorState } from '@/components/feedback/error-state'
@@ -48,32 +57,15 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
 
-const MONTH_NAMES = [
-  'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
-  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
-]
-
-function getMonthRange(year: number, month: number) {
-  const startAfter = new Date(year, month, 1).toISOString()
-  const startBefore = new Date(year, month + 1, 0, 23, 59, 59).toISOString()
-  return { startAfter, startBefore }
-}
 
 function groupByDay(events: EventItem[]) {
   const groups: Record<string, EventItem[]> = {}
   for (const event of events) {
-    const day = event.startDate.slice(0, 10)
+    const day = toCivilDateBRT(event.startDate)
     if (!groups[day]) groups[day] = []
     groups[day].push(event)
   }
   return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b))
-}
-
-function formatDayLabel(dateStr: string) {
-  const date = new Date(dateStr + 'T12:00:00')
-  const day = date.getDate()
-  const weekday = date.toLocaleDateString('pt-BR', { weekday: 'long' })
-  return `${day} - ${weekday.charAt(0).toUpperCase() + weekday.slice(1)}`
 }
 
 interface CreateEventForm {
@@ -84,6 +76,11 @@ interface CreateEventForm {
   location: string
   isRecurring: boolean
   isPublic: boolean
+}
+
+/** Datas no formato "YYYY-MM-DDTHH:MM" (BRT): comparação lexicográfica basta. */
+function endsBeforeStart(form: CreateEventForm): boolean {
+  return !!form.endDate && !!form.startDate && form.endDate <= form.startDate
 }
 
 const initialForm: CreateEventForm = {
@@ -97,9 +94,9 @@ const initialForm: CreateEventForm = {
 }
 
 export default function CalendarPage() {
-  const now = new Date()
-  const [year, setYear] = useState(now.getFullYear())
-  const [month, setMonth] = useState(now.getMonth())
+  const now = currentYearMonthBRT()
+  const [year, setYear] = useState(now.year)
+  const [month, setMonth] = useState(now.month)
   const [page, setPage] = useState(1)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [form, setForm] = useState<CreateEventForm>(initialForm)
@@ -107,7 +104,7 @@ export default function CalendarPage() {
   const houseId = useAuthStore((s) => s.currentHouseId())
   const canManage = useAuthStore((s) => s.hasPermission('canManageCalendar'))
 
-  const { startAfter, startBefore } = getMonthRange(year, month)
+  const { startAfter, startBefore } = monthEventRange(year, month)
   const { data, isLoading, isError, refetch } = useEvents(page, startAfter, startBefore)
   const createEvent = useCreateEvent()
   const updateEvent = useUpdateEvent()
@@ -158,12 +155,16 @@ export default function CalendarPage() {
 
   const goToToday = () => {
     setPage(1)
-    setYear(now.getFullYear())
-    setMonth(now.getMonth())
+    setYear(now.year)
+    setMonth(now.month)
   }
 
   const handleCreateEvent = () => {
     if (!houseId || !form.title.trim() || !form.startDate) return
+    if (endsBeforeStart(form)) {
+      toast.error('A data de fim deve ser depois do início')
+      return
+    }
     createEvent.mutate(
       {
         houseId,
@@ -189,8 +190,8 @@ export default function CalendarPage() {
     setEditForm({
       title: event.title,
       description: event.description || '',
-      startDate: event.startDate,
-      endDate: event.endDate || '',
+      startDate: toDateTimeLocalBRT(event.startDate),
+      endDate: toDateTimeLocalBRT(event.endDate),
       location: event.location || '',
       isRecurring: event.isRecurring,
       isPublic: event.isPublic ?? false,
@@ -200,6 +201,10 @@ export default function CalendarPage() {
 
   const handleUpdateEvent = () => {
     if (!houseId || !editingEvent || !editForm.title.trim() || !editForm.startDate) return
+    if (endsBeforeStart(editForm)) {
+      toast.error('A data de fim deve ser depois do início')
+      return
+    }
     updateEvent.mutate(
       {
         houseId,
@@ -252,7 +257,7 @@ export default function CalendarPage() {
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
-            Calendario
+            Calendário
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Gerencie os eventos da casa
@@ -300,7 +305,7 @@ export default function CalendarPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Data de Inicio *</label>
+                  <label className="text-sm font-medium">Data de Início *</label>
                   <DateTimeInput
                     value={form.startDate}
                     onValueChange={(v) =>
@@ -317,6 +322,9 @@ export default function CalendarPage() {
                       setForm((f) => ({ ...f, endDate: v }))
                     }
                   />
+                  {endsBeforeStart(form) && (
+                    <p className="text-xs text-destructive">O fim deve ser depois do início</p>
+                  )}
                 </div>
               </div>
 
@@ -372,7 +380,8 @@ export default function CalendarPage() {
                 disabled={
                   createEvent.isPending ||
                   !form.title.trim() ||
-                  !form.startDate
+                  !form.startDate ||
+                  endsBeforeStart(form)
                 }
               >
                 {createEvent.isPending ? 'Criando...' : 'Criar Evento'}
@@ -392,7 +401,7 @@ export default function CalendarPage() {
           <h2 className="text-lg font-semibold">
             {MONTH_NAMES[month]} {year}
           </h2>
-          {(year !== now.getFullYear() || month !== now.getMonth()) && (
+          {(year !== now.year || month !== now.month) && (
             <Button variant="outline" size="sm" onClick={goToToday}>
               Hoje
             </Button>
@@ -461,8 +470,8 @@ export default function CalendarPage() {
                           <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
                             <span className="flex items-center gap-1">
                               <CalendarDays className="size-3" />
-                              {formatDate(event.startDate)}
-                              {event.endDate && ` - ${formatDate(event.endDate)}`}
+                              {formatDateTime(event.startDate)}
+                              {event.endDate && ` - ${formatDateTime(event.endDate)}`}
                             </span>
                             {event.location && (
                               <span className="flex items-center gap-1">
@@ -599,6 +608,9 @@ export default function CalendarPage() {
                   value={editForm.endDate}
                   onValueChange={(v) => setEditForm((f) => ({ ...f, endDate: v }))}
                 />
+                {endsBeforeStart(editForm) && (
+                  <p className="text-xs text-destructive">O fim deve ser depois do início</p>
+                )}
               </div>
             </div>
 
@@ -645,7 +657,7 @@ export default function CalendarPage() {
             </DialogClose>
             <Button
               onClick={handleUpdateEvent}
-              disabled={updateEvent.isPending || !editForm.title.trim() || !editForm.startDate}
+              disabled={updateEvent.isPending || !editForm.title.trim() || !editForm.startDate || endsBeforeStart(editForm)}
             >
               {updateEvent.isPending ? 'Salvando...' : 'Salvar'}
             </Button>

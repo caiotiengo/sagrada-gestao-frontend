@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { formatIntlBRT } from '@/utils/dates'
 import {
   Instagram,
   Facebook,
@@ -156,7 +157,7 @@ export function ModernTemplate() {
                 <Card key={event.id} className="rounded-xl border-0 p-6 shadow-md">
                   <p className="text-lg font-semibold text-gray-800">{event.title}</p>
                   <p className="mt-1 text-sm text-gray-500">
-                    {new Date(event.startDate).toLocaleDateString('pt-BR', {
+                    {formatIntlBRT(event.startDate, {
                       weekday: 'long',
                       day: 'numeric',
                       month: 'long',
