@@ -1486,7 +1486,7 @@ function DividasTab() {
         houseId,
         debtId: editDebt.id,
         ...(editDescription.trim() !== editDebt.description ? { description: editDescription.trim() } : {}),
-        ...(editDueDate !== prevDue ? { dueDate: editDueDate || null } : {}),
+        ...(editDueDate !== prevDue ? { dueDate: editDueDate } : {}),
         ...(!editHasPayment && Math.round(editAmount * 100) !== Math.round(editDebt.amount * 100) ? { amount: editAmount } : {}),
       },
       { onSuccess: () => setEditDebt(null) },

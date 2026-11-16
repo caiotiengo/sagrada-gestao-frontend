@@ -457,8 +457,8 @@ export interface UpdateDebtRequest {
   houseId: string
   debtId: string
   description?: string
-  /** null remove o vencimento. */
-  dueDate?: string | null
+  /** '' remove o vencimento (o back troca null por undefined). */
+  dueDate?: string
   /** Só aceito enquanto a dívida não tem pagamento. */
   amount?: number
 }
@@ -1751,8 +1751,8 @@ export interface UpdateNoticeRequest {
   title?: string
   body?: string
   pinned?: boolean
-  /** null remove a validade. */
-  expiresAt?: string | null
+  /** '' remove a validade (o back troca null por undefined). */
+  expiresAt?: string
 }
 
 export interface ListNoticesRequest {

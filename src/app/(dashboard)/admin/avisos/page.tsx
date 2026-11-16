@@ -111,8 +111,8 @@ export default function AdminNoticesPage() {
           title: form.title.trim(),
           body: form.body.trim(),
           pinned: form.pinned,
-          // Só manda a validade se mudou; '' vira null (remove o prazo).
-          ...(form.expiresAt !== prevExpires ? { expiresAt: form.expiresAt || null } : {}),
+          // Só manda a validade se mudou; '' remove o prazo.
+          ...(form.expiresAt !== prevExpires ? { expiresAt: form.expiresAt } : {}),
         },
         { onSuccess },
       )
