@@ -35,7 +35,8 @@ export function MemberListItem({ member, onClick, action }: MemberListItemProps)
       }}
       className={cn(
         'flex items-center gap-3 rounded-xl border border-border/50 bg-card p-3 shadow-sm transition-all duration-150 sm:p-4',
-        onClick && 'cursor-pointer hover:bg-muted/40'
+        onClick && 'cursor-pointer hover:bg-muted/40',
+        !member.isActive && 'opacity-75'
       )}
     >
       <Avatar size="lg">
@@ -49,6 +50,12 @@ export function MemberListItem({ member, onClick, action }: MemberListItemProps)
           <Badge variant={roleBadgeVariant[member.role] ?? 'outline'} className="shrink-0">
             {ROLE_LABELS[member.role] ?? member.role}
           </Badge>
+          {member.isOwner && (
+            <Badge variant="secondary" className="hidden shrink-0 sm:inline-flex">Fundador</Badge>
+          )}
+          {!member.isActive && (
+            <Badge variant="destructive" className="shrink-0">Inativo</Badge>
+          )}
         </div>
 
         {member.phone && (

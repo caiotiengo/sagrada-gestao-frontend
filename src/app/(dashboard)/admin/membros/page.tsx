@@ -2,8 +2,8 @@
 
 import { useEffect, useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import { Users, Search, Shield, MoreVertical, Trash2 } from 'lucide-react'
-import { useMembers, useUpdateMemberPermissions } from '@/hooks/use-members'
+import { Users, Search, Shield, MoreVertical, UserX, UserCheck } from 'lucide-react'
+import { useMembers, useUpdateMemberPermissions, useSetMemberActive } from '@/hooks/use-members'
 import { useAuthStore } from '@/stores/auth'
 import { ROUTES, PERMISSION_LABELS, ROLE_LABELS } from '@/constants'
 import type { MemberItem, ExtraPermission, UserRole } from '@/types'
@@ -34,13 +34,35 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Textarea } from '@/components/ui/textarea'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 
 const ALL_PERMISSIONS = Object.keys(PERMISSION_LABELS) as ExtraPermission[]
 
-function MemberActions({ member }: { member: MemberItem }) {
+function MemberActions({
+  member,
+  canEditPermissions,
+  canChangeStatus,
+}: {
+  member: MemberItem
+  canEditPermissions: boolean
+  canChangeStatus: boolean
+}) {
   const houseId = useAuthStore((s) => s.currentHouseId())
   const updatePermissions = useUpdateMemberPermissions()
+  const setActive = useSetMemberActive()
   const [permsOpen, setPermsOpen] = useState(false)
+  const [statusOpen, setStatusOpen] = useState(false)
+  const [reason, setReason] = useState('')
   const [localPerms, setLocalPerms] = useState<ExtraPermission[]>(member.extraPermissions)
 
   const toggle = (perm: ExtraPermission) => {
@@ -72,18 +94,77 @@ function MemberActions({ member }: { member: MemberItem }) {
           <MoreVertical className="size-4" />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-          <DropdownMenuItem onClick={() => setPermsOpen(true)}>
-            <Shield className="size-4" />
-            Permissões
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem variant="destructive" disabled>
-            <Trash2 className="size-4" />
-            Remover membro
-          </DropdownMenuItem>
-
+          {canEditPermissions && (
+            <DropdownMenuItem onClick={() => setPermsOpen(true)}>
+              <Shield className="size-4" />
+              Permissões
+            </DropdownMenuItem>
+          )}
+          {canEditPermissions && canChangeStatus && <DropdownMenuSeparator />}
+          {canChangeStatus && (
+            member.isActive ? (
+              <DropdownMenuItem variant="destructive" onClick={() => setStatusOpen(true)}>
+                <UserX className="size-4" />
+                Desativar membro
+              </DropdownMenuItem>
+            ) : (
+              <DropdownMenuItem onClick={() => setStatusOpen(true)}>
+                <UserCheck className="size-4" />
+                Reativar membro
+              </DropdownMenuItem>
+            )
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
+
+      <AlertDialog open={statusOpen} onOpenChange={(open) => { setStatusOpen(open); if (!open) setReason('') }}>
+        <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {member.isActive ? `Desativar ${member.fullName}?` : `Reativar ${member.fullName}?`}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {member.isActive
+                ? 'O membro perde o acesso à casa e deixa de receber mensalidades em lote e notificações. Nada é apagado: mensalidades, dívidas, pagamentos e o histórico financeiro continuam registrados e podem ser cobrados. Você pode reativar depois.'
+                : 'O membro volta a acessar a casa com o mesmo cadastro, permissões e histórico.'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {member.isActive && (
+            <div className="space-y-1.5">
+              <label htmlFor={`reason-${member.id}`} className="text-sm font-medium">Motivo (opcional)</label>
+              <Textarea
+                id={`reason-${member.id}`}
+                rows={2}
+                maxLength={280}
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                placeholder="Ex.: Saiu da casa"
+              />
+            </div>
+          )}
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={setActive.isPending}
+              className={member.isActive ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90' : undefined}
+              onClick={() => {
+                if (!houseId) return
+                setActive.mutate(
+                  {
+                    houseId,
+                    memberId: member.id,
+                    active: !member.isActive,
+                    ...(member.isActive && reason.trim() ? { reason: reason.trim() } : {}),
+                  },
+                  { onSuccess: () => { setStatusOpen(false); setReason('') } },
+                )
+              }}
+            >
+              {setActive.isPending ? 'Salvando...' : member.isActive ? 'Desativar' : 'Reativar'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <Dialog open={permsOpen} onOpenChange={setPermsOpen}>
         <DialogContent className="sm:max-w-sm" onClick={(e) => e.stopPropagation()}>
@@ -113,6 +194,8 @@ function MemberActions({ member }: { member: MemberItem }) {
 export default function MembersListPage() {
   const router = useRouter()
   const canManage = useAuthStore((s) => s.hasPermission('canManageMembers'))
+  const isAdmin = useAuthStore((s) => s.currentHouse?.role === 'admin')
+  const myUid = useAuthStore((s) => s.profile?.uid)
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
   const [roleFilter, setRoleFilter] = useState<UserRole | undefined>(undefined)
@@ -217,11 +300,14 @@ export default function MembersListPage() {
               key={member.id}
               member={member}
               onClick={handleMemberClick}
-              action={
-                canManage && member.role !== 'admin'
-                  ? <MemberActions member={member} />
+              action={(() => {
+                const canEditPermissions = canManage && member.role !== 'admin' && member.isActive
+                // Desativar/reativar: só admin (regra do back), nunca o fundador nem a si mesmo.
+                const canChangeStatus = isAdmin && !member.isOwner && member.userId !== myUid
+                return canEditPermissions || canChangeStatus
+                  ? <MemberActions member={member} canEditPermissions={canEditPermissions} canChangeStatus={canChangeStatus} />
                   : undefined
-              }
+              })()}
             />
           ))}
         </div>
