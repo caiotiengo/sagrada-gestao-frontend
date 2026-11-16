@@ -32,6 +32,8 @@ import {
   useUpdateMonthlyFee,
   usePayMonthlyFee,
   useDeleteMonthlyFee,
+  useDeleteBulkMonthlyFees,
+  useUpdateDebt,
   usePayments,
   useCreatePayment,
   useDeletePayment,
@@ -83,6 +85,7 @@ import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
 import { CurrencyInput } from '@/components/forms/currency-input'
 import { DateInput } from '@/components/forms/date-input'
 import {
@@ -258,6 +261,10 @@ function MensalidadesTab() {
   const [deleteAlertOpen, setDeleteAlertOpen] = useState(false)
   const [deleteFeeId, setDeleteFeeId] = useState<string | null>(null)
   const [selectedFee, setSelectedFee] = useState<MonthlyFeeItem | null>(null)
+  // Exclusão em lote: ids marcados na página atual (zera ao trocar mês/página).
+  const [bulkIds, setBulkIds] = useState<string[]>([])
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false)
+  const [bulkConfirmText, setBulkConfirmText] = useState('')
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('pix')
   const [feePaidAt, setFeePaidAt] = useState('')
 
@@ -287,6 +294,7 @@ function MensalidadesTab() {
   const payFee = usePayMonthlyFee()
   const updateFee = useUpdateMonthlyFee()
   const deleteFee = useDeleteMonthlyFee()
+  const deleteBulk = useDeleteBulkMonthlyFees()
   const { data: allMembersData } = useAllMembers()
   const allMembers = allMembersData?.data ?? []
 
@@ -301,17 +309,44 @@ function MensalidadesTab() {
     )
   }, [fees, search])
 
+  const bulkSelectedFees = fees.filter((f) => bulkIds.includes(f.id))
+  const bulkPaidCount = bulkSelectedFees.filter((f) => f.status === 'paid').length
+  const bulkNeedsTyping = bulkSelectedFees.length >= 5 || bulkPaidCount > 0
+  const allPageSelected = filteredFees.length > 0 && filteredFees.every((f) => bulkIds.includes(f.id))
+  const toggleBulk = (id: string) =>
+    setBulkIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
+  const toggleBulkPage = () =>
+    setBulkIds(allPageSelected ? [] : filteredFees.map((f) => f.id))
+  const handleBulkDelete = () => {
+    if (!houseId || bulkSelectedFees.length === 0) return
+    deleteBulk.mutate(
+      { houseId, feeIds: bulkSelectedFees.map((f) => f.id) },
+      {
+        onSuccess: () => {
+          setBulkIds([])
+          setBulkDeleteOpen(false)
+          setBulkConfirmText('')
+        },
+      },
+    )
+  }
+  // Seleção vale só para a página/mês visível.
+  const resetBulk = () => setBulkIds([])
+
   const goToPrevMonth = () => {
+    resetBulk()
     setPage(1)
     if (month === 0) { setMonth(11); setYear((y) => y - 1) }
     else setMonth((m) => m - 1)
   }
   const goToNextMonth = () => {
+    resetBulk()
     setPage(1)
     if (month === 11) { setMonth(0); setYear((y) => y + 1) }
     else setMonth((m) => m + 1)
   }
   const goToToday = () => {
+    resetBulk()
     setPage(1)
     setYear(now.year)
     setMonth(now.month)
@@ -651,13 +686,44 @@ function MensalidadesTab() {
         />
       </div>
 
+      {canManage && !isLoading && filteredFees.length > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-muted/30 px-3 py-2">
+          <label className="flex cursor-pointer items-center gap-2 text-sm">
+            <Checkbox checked={allPageSelected} onCheckedChange={toggleBulkPage} aria-label="Selecionar todas desta página" />
+            {bulkIds.length > 0 ? `${bulkIds.length} selecionada${bulkIds.length === 1 ? '' : 's'}` : 'Selecionar todas desta página'}
+          </label>
+          {bulkIds.length > 0 && (
+            <div className="flex gap-2">
+              <Button variant="ghost" size="sm" onClick={resetBulk}>Limpar</Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                className="gap-1.5"
+                onClick={() => { setBulkConfirmText(''); setBulkDeleteOpen(true) }}
+                data-testid="bulk-delete-fees"
+              >
+                <Trash2 className="size-4" />
+                Excluir selecionadas
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+
       {isLoading ? (
         <ListSkeleton rows={6} />
       ) : filteredFees.length > 0 ? (
         <div className="space-y-2">
           {filteredFees.map((fee: MonthlyFeeItem) => (
-            <Card key={fee.id}>
+            <Card key={fee.id} className={bulkIds.includes(fee.id) ? 'ring-2 ring-destructive/40' : undefined}>
               <CardContent className="flex items-center justify-between gap-3 p-4">
+                {canManage && (
+                  <Checkbox
+                    checked={bulkIds.includes(fee.id)}
+                    onCheckedChange={() => toggleBulk(fee.id)}
+                    aria-label={`Selecionar mensalidade de ${fee.memberName ?? 'membro'}`}
+                  />
+                )}
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium">
@@ -730,7 +796,7 @@ function MensalidadesTab() {
         />
       )}
 
-      <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
+      <Pagination page={page} totalPages={totalPages} onPageChange={(p) => { resetBulk(); setPage(p) }} />
 
       {/* Pay Fee Dialog */}
       <Dialog open={payDialogOpen} onOpenChange={setPayDialogOpen}>
@@ -849,6 +915,61 @@ function MensalidadesTab() {
             >
               {deleteFee.isPending ? 'Excluindo...' : 'Excluir'}
             </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Bulk Delete Fees Alert */}
+      <AlertDialog open={bulkDeleteOpen} onOpenChange={(open) => { setBulkDeleteOpen(open); if (!open) setBulkConfirmText('') }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Excluir {bulkSelectedFees.length} mensalidade{bulkSelectedFees.length === 1 ? '' : 's'}?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {formatCompetence(referenceMonth)} · total {formatCurrency(bulkSelectedFees.reduce((acc, f) => acc + f.amount, 0))}. A exclusão não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <ul className="max-h-40 space-y-1 overflow-y-auto rounded-md border p-2 text-xs">
+            {bulkSelectedFees.map((f) => (
+              <li key={f.id} className="flex justify-between gap-2">
+                <span className="truncate">{f.memberName ?? 'Membro'}</span>
+                <span className="shrink-0 text-muted-foreground">
+                  {formatCurrency(f.amount)} · {FEE_STATUS_LABELS[f.status] ?? f.status}
+                </span>
+              </li>
+            ))}
+          </ul>
+          {bulkPaidCount > 0 && (
+            <p className="flex items-start gap-2 rounded-md bg-destructive/10 p-2 text-xs text-destructive">
+              <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
+              {bulkPaidCount} {bulkPaidCount === 1 ? 'está paga' : 'estão pagas'}: o pagamento é estornado no caixa e sai da receita.
+            </p>
+          )}
+          {bulkNeedsTyping && (
+            <div className="space-y-1.5">
+              <Label htmlFor="bulk-confirm">Digite EXCLUIR para confirmar</Label>
+              <Input
+                id="bulk-confirm"
+                value={bulkConfirmText}
+                autoComplete="off"
+                onChange={(e) => setBulkConfirmText(e.target.value)}
+              />
+            </div>
+          )}
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <Button
+              variant="destructive"
+              onClick={handleBulkDelete}
+              disabled={
+                deleteBulk.isPending ||
+                bulkSelectedFees.length === 0 ||
+                (bulkNeedsTyping && bulkConfirmText.trim().toUpperCase() !== 'EXCLUIR')
+              }
+            >
+              {deleteBulk.isPending ? 'Excluindo...' : `Excluir ${bulkSelectedFees.length}`}
+            </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -1341,6 +1462,37 @@ function DividasTab() {
   const [payMethod, setPayMethod] = useState<PaymentMethod>('pix')
   const [payPaidAt, setPayPaidAt] = useState(todayBRT())
 
+  // Edit form state
+  const [editDebt, setEditDebt] = useState<DebtItem | null>(null)
+  const [editDescription, setEditDescription] = useState('')
+  const [editDueDate, setEditDueDate] = useState('')
+  const [editAmount, setEditAmount] = useState(0)
+  const updateDebt = useUpdateDebt()
+  // Valor só pode mudar enquanto não houve pagamento (regra do back).
+  const editHasPayment = !!editDebt && Math.round(editDebt.remainingAmount * 100) !== Math.round(editDebt.amount * 100)
+
+  const openEditDebt = (debt: DebtItem) => {
+    setEditDebt(debt)
+    setEditDescription(debt.description)
+    setEditDueDate(debt.dueDate ? civilDateOf(debt.dueDate) : '')
+    setEditAmount(debt.amount)
+  }
+
+  const handleEditDebt = () => {
+    if (!houseId || !editDebt) return
+    const prevDue = editDebt.dueDate ? civilDateOf(editDebt.dueDate) : ''
+    updateDebt.mutate(
+      {
+        houseId,
+        debtId: editDebt.id,
+        ...(editDescription.trim() !== editDebt.description ? { description: editDescription.trim() } : {}),
+        ...(editDueDate !== prevDue ? { dueDate: editDueDate || null } : {}),
+        ...(!editHasPayment && Math.round(editAmount * 100) !== Math.round(editDebt.amount * 100) ? { amount: editAmount } : {}),
+      },
+      { onSuccess: () => setEditDebt(null) },
+    )
+  }
+
   const { data, isLoading, isError, refetch } = useDebts(page)
   const { data: membersData } = useAllMembers()
   const createDebt = useCreateDebt()
@@ -1603,6 +1755,10 @@ function DividasTab() {
                     <DropdownMenuContent align="end">
                       {debt.status !== 'paid' && debt.status !== 'cancelled' && (
                         <>
+                          <DropdownMenuItem onClick={() => openEditDebt(debt)}>
+                            <Pencil className="size-4" />
+                            Editar
+                          </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => openPayDialog(debt)}>
                             <CreditCard className="size-4" />
                             Registrar pagamento
@@ -1636,6 +1792,64 @@ function DividasTab() {
       )}
 
       <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
+
+      {/* Edit Debt Dialog */}
+      <Dialog open={!!editDebt} onOpenChange={(open) => { if (!open) setEditDebt(null) }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar dívida</DialogTitle>
+          </DialogHeader>
+          {editDebt && (
+            <p className="text-sm text-muted-foreground">{editDebt.memberName ?? 'Membro'}</p>
+          )}
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="edit-debt-description">Descrição</Label>
+              <Input
+                id="edit-debt-description"
+                value={editDescription}
+                maxLength={200}
+                onChange={(e) => setEditDescription(e.target.value)}
+              />
+              {editDescription.trim().length > 0 && editDescription.trim().length < 3 && (
+                <p className="text-xs text-destructive">Use pelo menos 3 caracteres</p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-debt-due">Vencimento</Label>
+              <div className="flex items-center gap-2">
+                <DateInput id="edit-debt-due" value={editDueDate} onValueChange={setEditDueDate} />
+                {editDueDate && (
+                  <Button variant="ghost" size="sm" onClick={() => setEditDueDate('')}>Sem vencimento</Button>
+                )}
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-debt-amount">Valor (R$)</Label>
+              <CurrencyInput
+                id="edit-debt-amount"
+                value={editAmount}
+                onValueChange={setEditAmount}
+                disabled={editHasPayment}
+              />
+              {editHasPayment && (
+                <p className="text-xs text-muted-foreground">
+                  Esta dívida já tem pagamento: o valor não pode mudar. Para corrigir, exclua o pagamento antes.
+                </p>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditDebt(null)}>Cancelar</Button>
+            <Button
+              onClick={handleEditDebt}
+              disabled={updateDebt.isPending || editDescription.trim().length < 3 || (!editHasPayment && !editAmount)}
+            >
+              {updateDebt.isPending ? 'Salvando...' : 'Salvar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Pay Debt Dialog */}
       <Dialog open={payDialogOpen} onOpenChange={setPayDialogOpen}>
