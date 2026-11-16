@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import {
   Home,
   Users,
@@ -25,6 +25,7 @@ import {
   Globe,
 } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth'
+import { useLogout } from '@/hooks/use-auth'
 import { APP_NAME, ROLE_LABELS, ROUTES } from '@/constants'
 import { cn } from '@/lib/utils'
 import { getInitials } from '@/utils'
@@ -113,8 +114,8 @@ interface DashboardLayoutProps {
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   const pathname = usePathname()
-  const router = useRouter()
-  const { profile, currentHouse, clearAuth } = useAuthStore()
+  const { profile, currentHouse } = useAuthStore()
+  const logout = useLogout()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   const [expandedGroups, setExpandedGroups] = useState<string[]>([])
@@ -167,8 +168,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const roleLabel = currentHouse?.role ? ROLE_LABELS[currentHouse.role] ?? currentHouse.role : ''
 
   const handleLogout = () => {
-    clearAuth()
-    router.push(ROUTES.LOGIN)
+    if (logout.isPending) return
+    logout.mutate()
   }
 
   // Close mobile menu on route change
@@ -324,6 +325,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               variant="ghost"
               size="icon-sm"
               onClick={handleLogout}
+              disabled={logout.isPending}
               aria-label="Sair"
               className="text-sidebar-foreground/40 hover:text-destructive"
             >
@@ -406,6 +408,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                   variant="ghost"
                   size="sm"
                   onClick={handleLogout}
+                  disabled={logout.isPending}
                   className="mt-1 w-full justify-start gap-2 text-destructive hover:bg-destructive/10 hover:text-destructive"
                 >
                   <LogOut className="size-4" />

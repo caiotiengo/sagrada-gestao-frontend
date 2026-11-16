@@ -92,10 +92,14 @@ export function useLogout() {
 
   return useMutation({
     mutationFn: () => authService.logout(),
-    onSettled: () => {
+    onSettled: async () => {
+      // signOut já invalida a sessão do Firebase (onIdTokenChanged emite null).
+      // Limpamos estado local e todo o cache de queries para não vazar dados
+      // da sessão anterior para o próximo usuário do navegador.
       clearAuth()
+      await queryClient.cancelQueries()
       queryClient.clear()
-      router.push(ROUTES.LOGIN)
+      router.replace(ROUTES.LOGIN)
     },
   })
 }
