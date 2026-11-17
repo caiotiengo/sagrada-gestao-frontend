@@ -49,6 +49,8 @@ export interface PendingTotalsByType {
   quotas: { amount: number; count: number }
   sales: { amount: number; count: number }
   shopping: { amount: number; count: number }
+  /** Reservas de rifa não pagas (back novo). */
+  raffles?: { amount: number; count: number }
 }
 
 export interface AggregateByDirection {

@@ -157,6 +157,13 @@ export default function AdminHomePage() {
                   <p className="text-[0.65rem] text-muted-foreground">{dashboardSummary.pending.shoppingCount} {dashboardSummary.pending.shoppingCount === 1 ? 'item' : 'itens'}</p>
                 </div>
               )}
+              {(dashboardSummary.pending.rafflesAmount ?? 0) > 0 && (
+                <div className="rounded-md bg-muted/40 px-2 py-1.5">
+                  <p className="text-[0.65rem] uppercase tracking-wide text-muted-foreground">Rifas reservadas</p>
+                  <p className="text-sm font-semibold">{formatCurrency(dashboardSummary.pending.rafflesAmount ?? 0)}</p>
+                  <p className="text-[0.65rem] text-muted-foreground">{dashboardSummary.pending.rafflesCount} {dashboardSummary.pending.rafflesCount === 1 ? 'reserva' : 'reservas'}</p>
+                </div>
+              )}
             </div>
             {(dashboardSummary.pending.upcomingFeesAmount ?? 0) > 0 && (
               <p className="mt-2 text-xs text-muted-foreground">

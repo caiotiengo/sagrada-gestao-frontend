@@ -25,6 +25,7 @@ import {
 import { useMyDashboard } from '@/hooks/use-me'
 import { useCommunityFeed } from '@/hooks/use-notices'
 import { NoticesWidget } from '@/components/notices/notices-widget'
+import { HousePixCard } from '@/components/member-charges/house-pix-card'
 import { formatDateTime } from '@/utils/dates'
 import { useAuthStore } from '@/stores/auth'
 import { useLegacyMyFinancialSummary } from '@/hooks/use-finance'
@@ -182,6 +183,7 @@ export default function MemberHomePage() {
     storeTabTotal: byType?.sales.amount ?? 0,
     totalQuotasPending: byType?.quotas.amount ?? 0,
     totalShoppingPending: byType?.shopping.amount ?? 0,
+    totalRafflesPending: byType?.raffles?.amount ?? 0,
     totalOwed: statement?.pending.amount ?? 0,
     totalPaid: statement?.balance.revenue ?? 0,
   }
@@ -189,8 +191,11 @@ export default function MemberHomePage() {
   const pendingFees = financialSummary?.pendingFees ?? []
   const debts = financialSummary?.debts ?? []
   const storeTab = financialSummary?.storeTab ?? []
-  const quotas = (financialSummary?.quotas ?? []).filter((q) => q.status !== 'paid')
+  const quotas = (financialSummary?.quotas ?? []).filter((q) => q.status === 'pending' || q.status === 'partial')
   const shoppingDebts = financialSummary?.shoppingDebts ?? []
+  const storeOrders = financialSummary?.storeOrders ?? []
+  const raffleReservations = financialSummary?.raffleReservations ?? []
+  const memberCharges = financialSummary?.memberCharges ?? []
   const recentPayments = financialSummary?.recentPayments ?? []
 
   return (
@@ -278,6 +283,14 @@ export default function MemberHomePage() {
                   </span>
                 </div>
               )}
+              {totals.totalRafflesPending > 0 && (
+                <div className="flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1.5">
+                  <Ticket className="size-3.5" />
+                  <span className="text-xs font-medium">
+                    Rifas: {formatCurrency(totals.totalRafflesPending)}
+                  </span>
+                </div>
+              )}
               {totals.totalPaid > 0 && (
                 <div className="flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1.5">
                   <ArrowDownLeft className="size-3.5" />
@@ -290,6 +303,8 @@ export default function MemberHomePage() {
           </CardContent>
         </Card>
       )}
+
+      {!isLoadingSummary && totals.totalOwed > 0 && <HousePixCard />}
 
       <MyDashboardStats />
 
@@ -359,7 +374,7 @@ export default function MemberHomePage() {
               </div>
             ))}
           </div>
-        ) : (pendingFees.length > 0 || debts.length > 0 || storeTab.length > 0 || quotas.length > 0 || shoppingDebts.length > 0 || recentPayments.length > 0) ? (
+        ) : (pendingFees.length > 0 || debts.length > 0 || storeTab.length > 0 || storeOrders.length > 0 || quotas.length > 0 || shoppingDebts.length > 0 || raffleReservations.length > 0 || memberCharges.length > 0 || recentPayments.length > 0) ? (
           <Card>
             <CardContent className="divide-y p-0">
               {/* Mensalidades pendentes */}
@@ -428,6 +443,51 @@ export default function MemberHomePage() {
                 </Link>
               ))}
 
+              {/* Pedidos da loja não pagos (fora do fiado) */}
+              {storeOrders.slice(0, 3).map((sale) => (
+                <Link
+                  key={sale.id}
+                  href={ROUTES.MEMBER_FINANCE}
+                  className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/50"
+                >
+                  <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-purple-100 text-purple-600 dark:bg-purple-950 dark:text-purple-400">
+                    <ShoppingCart className="size-4" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium">{sale.itemName} ({sale.quantity}x)</p>
+                    <p className="text-xs text-muted-foreground">
+                      Pedido da loja não pago{sale.orderNumber ? ` · ${sale.orderNumber}` : ''}
+                    </p>
+                  </div>
+                  <span className="shrink-0 text-sm font-semibold tabular-nums text-purple-600 dark:text-purple-400">
+                    -{formatCurrency(sale.totalPrice)}
+                  </span>
+                </Link>
+              ))}
+
+              {/* Rifas reservadas e não pagas */}
+              {raffleReservations.map((r) => (
+                <Link
+                  key={r.id}
+                  href={`${ROUTES.MEMBER_RAFFLES}/${r.raffleId}`}
+                  className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/50"
+                  data-testid="owed-raffle"
+                >
+                  <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-purple-100 text-purple-600 dark:bg-purple-950 dark:text-purple-400">
+                    <Ticket className="size-4" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium">{r.description}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Rifa reservada · pague por PIX e avise a liderança
+                    </p>
+                  </div>
+                  <span className="shrink-0 text-sm font-semibold tabular-nums text-purple-600 dark:text-purple-400">
+                    -{formatCurrency(r.amount)}
+                  </span>
+                </Link>
+              ))}
+
               {/* Cotas de listas */}
               {quotas.slice(0, 3).map((quota) => (
                 <Link
@@ -468,6 +528,28 @@ export default function MemberHomePage() {
                   </div>
                   <span className="shrink-0 text-sm font-semibold tabular-nums text-indigo-600 dark:text-indigo-400">
                     -{formatCurrency(item.amount)}
+                  </span>
+                </Link>
+              ))}
+
+              {/* Cobranças de outros filhos (fora do total da casa) */}
+              {memberCharges.map((c) => (
+                <Link
+                  key={c.id}
+                  href={ROUTES.MEMBER_CHARGES}
+                  className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/50"
+                >
+                  <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-lime-100 text-lime-700 dark:bg-lime-950 dark:text-lime-400">
+                    <HandCoins className="size-4" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium">{c.description}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Cobrança de {c.creatorName} · {c.status === 'pending' ? 'aguardando você validar' : 'validada'} · fora do total da casa
+                    </p>
+                  </div>
+                  <span className="shrink-0 text-sm font-semibold tabular-nums text-lime-700 dark:text-lime-400">
+                    -{formatCurrency(c.amount)}
                   </span>
                 </Link>
               ))}

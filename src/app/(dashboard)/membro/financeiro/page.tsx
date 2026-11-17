@@ -242,13 +242,14 @@ export default function MemberFinancePage() {
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Pendências por tipo
             </p>
-            <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-5">
+            <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-6">
               {[
                 { key: 'fees', label: 'Mensalidades' },
                 { key: 'debts', label: 'Dívidas' },
                 { key: 'quotas', label: 'Cotas' },
                 { key: 'sales', label: 'Loja' },
                 { key: 'shopping', label: 'Trabalhos' },
+                { key: 'raffles', label: 'Rifas' },
               ].map(({ key, label }) => {
                 const item = statement.pending.byType[key as keyof typeof statement.pending.byType]
                 if (!item || item.amount === 0) return null

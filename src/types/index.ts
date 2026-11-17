@@ -270,6 +270,9 @@ export interface DashboardSummary {
     shoppingAmount: number
     quotasCount: number
     quotasAmount: number
+    /** Reservas de rifa não pagas (rifa à venda). */
+    rafflesCount?: number
+    rafflesAmount?: number
     /** Mensalidades de competências futuras (fora do total). */
     upcomingFeesCount: number
     upcomingFeesAmount: number
@@ -575,6 +578,39 @@ export interface MyRecentFeePayment {
   paymentMethod: PaymentMethod | null
 }
 
+/** Reserva de rifa não paga: "Rifa X — 3 números (12, 15, 40)". */
+export interface OwedRaffleReservation {
+  id: string
+  raffleId: string
+  raffleTitle: string
+  numbers: number[]
+  numberPrice: number
+  amount: number
+  description: string
+  expiresAt: string | null
+  createdAt: string | null
+}
+
+/** Pedido da loja não pago fora do fiado. */
+export interface OwedStoreOrder {
+  id: string
+  itemName: string
+  quantity: number
+  totalPrice: number
+  orderNumber: string | null
+  createdAt: string | null
+}
+
+/** Cobrança de outro filho contra o membro (não é dívida com a casa). */
+export interface OwedMemberCharge {
+  id: string
+  creatorName: string
+  description: string
+  amount: number
+  status: 'pending' | 'accepted'
+  createdAt: string | null
+}
+
 export interface MyFinancialSummary {
   pendingFees: MonthlyFeeItem[]
   currentMonthFee: MonthlyFeeItem | null
@@ -582,6 +618,9 @@ export interface MyFinancialSummary {
   storeTab: SaleItem[]
   quotas: QuotaItem[]
   shoppingDebts: ShoppingDebtItem[]
+  storeOrders?: OwedStoreOrder[]
+  raffleReservations?: OwedRaffleReservation[]
+  memberCharges?: OwedMemberCharge[]
   /** Últimas mensalidades pagas pelo membro. */
   recentPayments: MyRecentFeePayment[]
   recentPurchases: SaleItem[]
@@ -593,9 +632,13 @@ export interface MyFinancialSummary {
     overdueFeesTotal: number
     totalDebt: number
     storeTabTotal: number
+    totalStoreOrdersPending?: number
+    totalRafflesPending?: number
     totalQuotasPending: number
     totalShoppingPending: number
     totalOwed: number
+    /** Cobranças validadas de outros filhos (fora do totalOwed). */
+    totalMemberChargesOwed?: number
     totalFeesPaid: number
     totalDebtsPaid: number
     totalPurchasesPaid: number
@@ -982,7 +1025,12 @@ export interface RaffleItem {
   prizeDescription: string
   numberPrice: number
   totalNumbers: number
+  /** Reservados + pagos (ocupados). */
   soldNumbers: number
+  /** Números já pagos (back novo; ausente em resposta antiga). */
+  paidNumbers?: number
+  /** Reservados aguardando pagamento. */
+  reservedNumbers?: number
   status: RaffleStatus
   isPublic: boolean
   imageUrl: string | null
