@@ -213,7 +213,7 @@ const TILES: Tile[] = [
   {
     title: 'Rifas',
     icon: Ticket,
-    text: 'Números reservados por pessoa e sorteio que guarda a semente para quem quiser conferir.',
+    text: 'Números reservados por pessoa e sorteio que qualquer um pode conferir depois.',
     visual: 'raffle',
   },
   {
@@ -278,7 +278,7 @@ const PRIVACY: { title: string; text: string; icon: LucideIcon }[] = [
   { icon: Lock, title: 'Cada casa vê só os próprios dados', text: 'Os dados de uma casa não aparecem para outra. Quem é da casa vê só o que é seu.' },
   { icon: KeyRound, title: 'Permissão por função', text: 'Tesouraria, cantina, agenda, rifas: cada pessoa acessa só o que a casa liberou para ela.' },
   { icon: HandCoins, title: 'O dinheiro não passa por nós', text: 'O PIX vai direto para a chave da casa. O sistema só registra; quem dá a baixa é a tesouraria.' },
-  { icon: BookOpenCheck, title: 'Sorteio que dá para conferir', text: 'Cada sorteio de rifa guarda a semente e a lista de números, para quem quiser refazer a conta.' },
+  { icon: BookOpenCheck, title: 'Sorteio que dá para conferir', text: 'Cada sorteio de rifa guarda um código de conferência e a lista de números, para quem quiser refazer a conta.' },
 ]
 
 const FAQ: { q: string; a: string }[] = [

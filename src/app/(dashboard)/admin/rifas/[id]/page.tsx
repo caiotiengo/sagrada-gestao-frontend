@@ -264,7 +264,7 @@ export default function AdminRaffleDetailPage() {
               {raffle.drawnAt && <p>Sorteado em: {formatDateTime(raffle.drawnAt)}</p>}
               <p>Números elegíveis (pagos): {raffle.draw.eligibleCount}</p>
               <p>Posição sorteada: {raffle.draw.winnerIndex + 1}º da lista de elegíveis</p>
-              <p className="break-all">Semente: <span className="font-mono">{raffle.draw.seed}</span></p>
+              <p className="break-all">Código de conferência: <span className="font-mono">{raffle.draw.seed}</span></p>
               <p className="break-all">Hash dos elegíveis: <span className="font-mono">{raffle.draw.eligibleHash}</span></p>
             </div>
           )}
