@@ -122,7 +122,7 @@ export function MemberRoleCard({ member }: { member: MemberDetails }) {
             <p className="text-sm text-muted-foreground">Reative a pessoa para mudar o papel dela.</p>
           )}
 
-          {isAdmin && member.isActive && (
+          {isAdmin && member.isActive && !(isLeader && member.isOwner) && (
             <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
               {!isLeader && (
                 <Button onClick={() => setPending('promote')}>Tornar Liderança</Button>
