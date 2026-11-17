@@ -15,6 +15,7 @@ import { Progress } from '@/components/ui/progress'
 import { LoadingState } from '@/components/feedback/loading-state'
 import { EmptyState } from '@/components/feedback/empty-state'
 import { ErrorState } from '@/components/feedback/error-state'
+import { PlanFeatureNotice } from '@/components/billing/plan-feature-notice'
 
 const STATUS_LABELS: Record<RaffleStatus, string> = {
   draft: 'Rascunho',
@@ -51,6 +52,7 @@ export default function MemberRafflesPage() {
 
   return (
     <div className="mx-auto w-full max-w-5xl space-y-6 px-4 py-6 lg:px-8 lg:py-8">
+      <PlanFeatureNotice feature="raffles" />
       <div>
         <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">Rifas</h1>
       </div>

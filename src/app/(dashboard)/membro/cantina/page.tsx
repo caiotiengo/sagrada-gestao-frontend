@@ -36,6 +36,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { PlanFeatureNotice } from '@/components/billing/plan-feature-notice'
 
 interface CartItem {
   item: StoreItem
@@ -52,6 +53,7 @@ const paymentMethods: { value: PaymentMethod; label: string }[] = [
 export default function MemberStorePage() {
   return (
     <div className="mx-auto w-full max-w-5xl space-y-6 px-4 py-6 lg:px-8 lg:py-8">
+      <PlanFeatureNotice feature="store" />
       <div>
         <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
           Cantina

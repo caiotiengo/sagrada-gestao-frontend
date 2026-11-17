@@ -75,6 +75,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { PlanFeatureNotice } from '@/components/billing/plan-feature-notice'
 
 const PAYMENT_METHODS: { value: PaymentMethod; label: string }[] = [
   { value: 'pix', label: 'PIX' },
@@ -446,6 +447,7 @@ export function StorePageContent({ category }: StorePageContentProps) {
 
   return (
     <div className="mx-auto w-full max-w-5xl space-y-6 px-4 py-6 lg:px-8 lg:py-8">
+      <PlanFeatureNotice feature="store" />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

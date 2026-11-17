@@ -47,6 +47,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { PlanFeatureNotice } from '@/components/billing/plan-feature-notice'
 
 const STATUS_LABELS: Record<RaffleStatus, string> = {
   draft: 'Rascunho',
@@ -153,6 +154,7 @@ export default function AdminRafflesPage() {
 
   return (
     <div className="mx-auto w-full max-w-5xl space-y-6 px-4 py-6 lg:px-8 lg:py-8">
+      <PlanFeatureNotice feature="raffles" />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

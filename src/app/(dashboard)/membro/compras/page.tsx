@@ -29,6 +29,7 @@ import { ErrorState } from '@/components/feedback/error-state'
 import { ShoppingCart, Plus, Check, ChevronDown, Loader2 } from 'lucide-react'
 import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
+import { PlanFeatureNotice } from '@/components/billing/plan-feature-notice'
 
 export default function MemberShoppingPage() {
   const houseId = useAuthStore((s) => s.currentHouseId())
@@ -69,6 +70,7 @@ export default function MemberShoppingPage() {
 
   return (
     <div className="mx-auto w-full max-w-5xl space-y-6 px-4 py-6 lg:px-8 lg:py-8">
+      <PlanFeatureNotice feature="shoppingLists" />
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold tracking-tight">Compras</h1>
 
