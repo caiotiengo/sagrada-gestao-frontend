@@ -50,6 +50,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from '@/components/ui/command'
 import { cn } from '@/lib/utils'
+import { PlanFeatureNotice } from '@/components/billing/plan-feature-notice'
 
 // ========================================
 // Main Page
@@ -60,6 +61,7 @@ export default function CampaignsPage() {
 
   return (
     <div className="mx-auto w-full max-w-5xl space-y-6 px-4 py-6 lg:px-8 lg:py-8">
+      <PlanFeatureNotice feature="campaigns" />
       <div>
         <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
           Listas
