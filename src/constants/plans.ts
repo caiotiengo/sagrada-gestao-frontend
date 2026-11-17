@@ -1,9 +1,12 @@
 // ========================================
 // Planos da landing page
 // ----------------------------------------
-// PROPOSTA A CONFIRMAR PELO CAIO. Nada aqui está cobrado nem aplicado no
-// sistema: não há checkout, e os limites (pessoas, recursos) ainda não são
-// verificados pelo backend. O botão de cada plano só leva ao cadastro da casa.
+// CÓPIA DE VITRINE. A fonte da verdade é functions/src/constants/plans.ts do
+// back: lá estão os preços, o limite de pessoas ativas e os recursos pagos que
+// o backend bloqueia (cantina/loja, rifas, campanhas, listas, pedidos e
+// reservas pelo site, push e permissões por função). Mudou lá, mude aqui.
+// O botão de cada plano leva ao cadastro; a casa nasce no Semente e assina
+// em Gestão > Plano e cobrança.
 //
 // Referência de mercado (lida em 17/11/2026): app de gestão de terreiro em
 // plano único de R$ 67/mês (≈ R$ 804/ano), sem plano gratuito nem anual na
