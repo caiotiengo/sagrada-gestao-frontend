@@ -100,7 +100,8 @@ export default function PrivacyPage() {
 
       <H3>2.8 Câmera</H3>
       <p>
-        O aplicativo usa a câmera só para ler o QR Code de presença. As imagens não são gravadas nem enviadas.
+        O aplicativo usa a câmera para ler o QR Code de presença (essas imagens não são gravadas nem enviadas) e, se
+        você escolher, para fotografar um comprovante de pagamento, que é enviado como explicado na seção 2.11.
       </p>
 
       <H3>2.9 Registros técnicos e de segurança</H3>
@@ -123,6 +124,53 @@ export default function PrivacyPage() {
         aplicativo para celular não usa ferramenta de medição.{' '}
         <ToConfirm>se o Google Analytics está ativo em produção e se haverá aviso/consentimento de cookies</ToConfirm>
       </p>
+      <H3>2.11 Comprovantes de pagamento (PIX)</H3>
+      <p>
+        Quando você paga a casa por PIX, pode enviar o comprovante pelo aplicativo ou pelo site para dar baixa no que
+        deve. Tratamos:
+      </p>
+      <UL>
+        <li>o <strong>arquivo</strong> enviado (foto, print ou PDF do comprovante);</li>
+        <li>
+          os <strong>dados lidos do comprovante</strong>: valor, data e hora, identificador da transação (ID PIX/E2E),
+          chave e nome de quem recebeu e banco de quem recebeu, e nome, CPF parcial (mascarado, como o banco mostra) e
+          banco de quem pagou;
+        </li>
+        <li>o resultado das conferências, a decisão (baixa automática, aprovação, recusa ou baixa desfeita) e quem decidiu.</li>
+      </UL>
+      <p>
+        <strong>Para quê</strong>: dar baixa no que você deve à casa (mensalidades, dívidas, cantina, loja, listas, rifas)
+        e permitir que a casa confira o pagamento e prove o recebimento. A base legal é a execução do contrato (art. 7º,
+        V) e, para guardar o comprovante como registro financeiro da casa, o exercício regular de direitos e o
+        cumprimento de obrigação legal (art. 7º, II e VI).
+      </p>
+      <p>
+        <strong>Leitura automática</strong>: o arquivo é enviado à Anthropic, PBC (EUA), fornecedora do modelo de
+        inteligência artificial Claude, que atua como operadora/suboperadora só para ler os dados do comprovante. A
+        Anthropic não usa esse conteúdo para treinar seus modelos.{' '}
+        <ToConfirm>não uso para treino e prazo de retenção pela Anthropic, conforme os termos comerciais contratados</ToConfirm>{' '}
+        Quando tudo confere (valor, chave da casa, data, transação nunca usada) e o valor está dentro do teto definido
+        pela casa, a baixa é feita na hora; se algo não confere, uma pessoa da casa (Liderança ou quem cuida do caixa)
+        confere e decide. A casa pode desligar a baixa automática.
+      </p>
+      <p>
+        <strong>Quem vê</strong>: você, a Liderança e quem cuida do caixa da sua casa. Outros membros não veem.
+      </p>
+      <p>
+        <strong>Onde fica</strong>: o arquivo e os dados ficam no Firebase/Google Cloud, na região de São Paulo
+        (southamerica-east1), com acesso só pelo servidor.
+      </p>
+      <p>
+        <strong>Por quanto tempo</strong>: 5 anos a partir do envio, por ser documento financeiro da casa.{' '}
+        <ToConfirm>prazo de guarda dos comprovantes validado com contador/jurídico</ToConfirm> Depois disso o arquivo é
+        apagado e o nome do pagador é anonimizado; fica só o registro contábil.
+      </p>
+      <p>
+        <strong>Se você excluir a conta</strong>: comprovantes que já deram baixa ficam com a casa como prova financeira,
+        com o seu nome de pagador anonimizado; comprovantes ainda não conferidos são apagados (arquivo e dados).{' '}
+        <strong>Se a casa for apagada</strong>, os arquivos de comprovante dela são apagados.
+      </p>
+
       <p>
         <strong>Não vendemos dados pessoais e não os usamos para publicidade.</strong>
       </p>
@@ -153,6 +201,11 @@ export default function PrivacyPage() {
           Internet, art. 15).
         </li>
         <li>
+          <strong>Ler comprovantes de PIX e dar baixa no que o membro deve</strong> (seção 2.11): execução de contrato
+          (art. 7º, V); guarda do comprovante como prova financeira da casa: exercício regular de direitos e obrigação
+          legal (art. 7º, II e VI).
+        </li>
+        <li>
           <strong>Manter os registros financeiros da casa</strong>, inclusive depois que um membro exclui a conta:
           cumprimento de obrigação legal ou regulatória da casa e exercício regular de direitos (art. 7º, II e VI; art.
           16).
@@ -178,7 +231,7 @@ export default function PrivacyPage() {
           <strong>Provedores que operam o serviço para nós</strong>: Google (Firebase Authentication, Cloud Firestore,
           Cloud Functions, Firebase Hosting, Cloud Run, Cloud Logging, Firebase Cloud Messaging e Google Analytics); Expo
           (650 Industries, Inc., EUA), que entrega as notificações do aplicativo; Apple e Google, que entregam as
-          notificações ao aparelho.
+          notificações ao aparelho; Anthropic, PBC (EUA), que lê os comprovantes de PIX enviados (seção 2.11).
         </li>
         <li>
           <strong>Autoridades</strong>, quando a lei ou uma ordem judicial exigir.
@@ -189,7 +242,7 @@ export default function PrivacyPage() {
       <p>
         As funções do servidor e o site rodam na região de São Paulo do Google Cloud (southamerica-east1). O banco de
         dados fica na região <ToConfirm>região do Cloud Firestore de produção</ToConfirm>. Alguns provedores (Firebase
-        Authentication, Google Analytics, Expo, Apple) tratam dados fora do Brasil, principalmente nos Estados Unidos.
+        Authentication, Google Analytics, Expo, Apple e a Anthropic, na leitura dos comprovantes) tratam dados fora do Brasil, principalmente nos Estados Unidos.
         Essa transferência internacional se apoia nas garantias contratuais desses provedores (art. 33 da LGPD).{' '}
         <ToConfirm>mecanismo de transferência internacional adotado (cláusulas-padrão da ANPD)</ToConfirm>
       </p>
@@ -216,6 +269,11 @@ export default function PrivacyPage() {
           <strong>Casa sem ninguém</strong>: se a última pessoa da casa exclui a conta, a casa é desativada (sai do login
           e do site público) e os registros ficam guardados pelo prazo acima. Depois disso são apagados.{' '}
           <ToConfirm>processo de eliminação das casas desativadas após o prazo</ToConfirm>
+        </li>
+        <li>
+          <strong>Comprovantes de PIX</strong>: 5 anos a partir do envio <ToConfirm>prazo de guarda dos comprovantes</ToConfirm>;
+          na exclusão da conta, os que já deram baixa ficam com o pagador anonimizado e os não conferidos são apagados
+          (seção 2.11).
         </li>
         <li>
           <strong>Registros de auditoria</strong> (sem o e-mail): <ToConfirm>prazo de guarda</ToConfirm>.{' '}
@@ -245,7 +303,11 @@ export default function PrivacyPage() {
         exemplo, corrigir uma mensalidade) são encaminhados à casa. Respondemos em até 15 dias. Você também pode
         reclamar à Autoridade Nacional de Proteção de Dados (ANPD).
       </p>
-      <p>O sistema não toma decisões automatizadas sobre você.</p>
+      <p>
+        A única decisão automatizada é a baixa automática por comprovante de PIX (seção 2.11), que só reconhece um
+        pagamento; quando algo não confere, quem decide é uma pessoa da casa. Você pode pedir à casa a revisão de
+        qualquer decisão sobre um comprovante (art. 20).
+      </p>
 
       <H2 id="seguranca">8. Segurança</H2>
       <p>
