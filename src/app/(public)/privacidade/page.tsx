@@ -145,10 +145,11 @@ export default function PrivacyPage() {
         cumprimento de obrigação legal (art. 7º, II e VI).
       </p>
       <p>
-        <strong>Leitura automática</strong>: o arquivo é enviado à Anthropic, PBC (EUA), fornecedora do modelo de
-        inteligência artificial Claude, que atua como operadora/suboperadora só para ler os dados do comprovante. A
-        Anthropic não usa esse conteúdo para treinar seus modelos.{' '}
-        <ToConfirm>não uso para treino e prazo de retenção pela Anthropic, conforme os termos comerciais contratados</ToConfirm>{' '}
+        <strong>Leitura automática</strong>: o arquivo é enviado à Google LLC (EUA), pela Gemini API (modelos de
+        inteligência artificial Gemini), que atua como operadora/suboperadora só para ler os dados do comprovante. Usamos
+        o serviço pago, em que o Google não usa o conteúdo enviado nem as respostas para melhorar os produtos dele. Como
+        alternativa, a leitura pode ser feita pela Anthropic, PBC (EUA), com o modelo Claude, nas mesmas condições.{' '}
+        <ToConfirm>provedor em uso, não uso para treino e prazo de retenção (o Google guarda por tempo limitado para detectar abuso), conforme os termos comerciais contratados</ToConfirm>{' '}
         Quando tudo confere (valor, chave da casa, data, transação nunca usada) e o valor está dentro do teto definido
         pela casa, a baixa é feita na hora; se algo não confere, uma pessoa da casa (Liderança ou quem cuida do caixa)
         confere e decide. A casa pode desligar a baixa automática.
@@ -231,7 +232,8 @@ export default function PrivacyPage() {
           <strong>Provedores que operam o serviço para nós</strong>: Google (Firebase Authentication, Cloud Firestore,
           Cloud Functions, Firebase Hosting, Cloud Run, Cloud Logging, Firebase Cloud Messaging e Google Analytics); Expo
           (650 Industries, Inc., EUA), que entrega as notificações do aplicativo; Apple e Google, que entregam as
-          notificações ao aparelho; Anthropic, PBC (EUA), que lê os comprovantes de PIX enviados (seção 2.11).
+          notificações ao aparelho; Google LLC (Gemini API) e, como alternativa, Anthropic, PBC (EUA), que leem os
+          comprovantes de PIX enviados (seção 2.11).
         </li>
         <li>
           <strong>Autoridades</strong>, quando a lei ou uma ordem judicial exigir.
@@ -242,7 +244,7 @@ export default function PrivacyPage() {
       <p>
         As funções do servidor e o site rodam na região de São Paulo do Google Cloud (southamerica-east1). O banco de
         dados fica na região <ToConfirm>região do Cloud Firestore de produção</ToConfirm>. Alguns provedores (Firebase
-        Authentication, Google Analytics, Expo, Apple e a Anthropic, na leitura dos comprovantes) tratam dados fora do Brasil, principalmente nos Estados Unidos.
+        Authentication, Google Analytics, Expo, Apple e, na leitura dos comprovantes, o Google (Gemini API) ou a Anthropic) tratam dados fora do Brasil, principalmente nos Estados Unidos.
         Essa transferência internacional se apoia nas garantias contratuais desses provedores (art. 33 da LGPD).{' '}
         <ToConfirm>mecanismo de transferência internacional adotado (cláusulas-padrão da ANPD)</ToConfirm>
       </p>
