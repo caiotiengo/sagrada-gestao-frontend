@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import {
   ArrowLeft,
@@ -16,6 +17,8 @@ import {
   ListChecks,
   Store,
   Briefcase,
+  Ticket,
+  ShoppingCart,
 } from 'lucide-react'
 import { useMember } from '@/hooks/use-members'
 import { useLegacyMemberFinancialSummary } from '@/hooks/use-finance'
@@ -181,7 +184,40 @@ export default function MemberDetailPage() {
                   Trabalhos/Jogos: {formatCurrency(financialSummary.totals.totalShoppingPending)}
                 </Badge>
               )}
+              {(financialSummary.totals.totalStoreOrdersPending ?? 0) > 0 && (
+                <Badge variant="outline" className="gap-1.5">
+                  <ShoppingCart className="size-3" />
+                  Pedidos não pagos: {formatCurrency(financialSummary.totals.totalStoreOrdersPending ?? 0)}
+                </Badge>
+              )}
+              {(financialSummary.totals.totalRafflesPending ?? 0) > 0 && (
+                <Badge variant="outline" className="gap-1.5">
+                  <Ticket className="size-3" />
+                  Rifas: {formatCurrency(financialSummary.totals.totalRafflesPending ?? 0)}
+                </Badge>
+              )}
             </div>
+
+            {(financialSummary.raffleReservations ?? []).length > 0 && (
+              <div className="mt-4 space-y-2">
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Rifas reservadas sem pagamento
+                </p>
+                {(financialSummary.raffleReservations ?? []).map((r) => (
+                  <Link
+                    key={r.id}
+                    href={ROUTES.ADMIN_RAFFLE_DETAIL(r.raffleId)}
+                    className="flex items-center justify-between rounded-lg bg-muted/50 px-3 py-2 hover:bg-muted"
+                  >
+                    <span className="flex min-w-0 items-center gap-2">
+                      <Ticket className="size-4 shrink-0 text-purple-500" />
+                      <span className="truncate text-sm">{r.description}</span>
+                    </span>
+                    <span className="shrink-0 text-sm font-semibold">{formatCurrency(r.amount)}</span>
+                  </Link>
+                ))}
+              </div>
+            )}
 
             {/* Pending quotas detail */}
             {financialSummary.quotas.filter((q) => q.status !== 'paid').length > 0 && (

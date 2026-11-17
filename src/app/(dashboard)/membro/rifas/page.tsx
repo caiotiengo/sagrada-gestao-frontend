@@ -1,5 +1,6 @@
 'use client'
 
+import { raffleCountsLabel } from '@/lib/raffle-counts'
 import { useState } from 'react'
 import Link from 'next/link'
 import { Ticket, Trophy, Calendar, Share2, Check } from 'lucide-react'
@@ -129,7 +130,7 @@ function RaffleCard({ raffle }: { raffle: RaffleItem }) {
         <div className="space-y-1">
           <div className="flex items-center justify-between text-xs text-muted-foreground">
             <span>
-              {raffle.soldNumbers} / {raffle.totalNumbers} números vendidos
+              {raffleCountsLabel(raffle)}
             </span>
             <span>{progress}%</span>
           </div>
