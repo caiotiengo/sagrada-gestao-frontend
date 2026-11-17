@@ -8,6 +8,8 @@ import { ROUTES } from '@/constants'
 import type { HouseMembership } from '@/types'
 import { DashboardLayout } from '@/components/layout/dashboard-layout'
 import { LoadingState } from '@/components/feedback/loading-state'
+import { HouseSuspended } from '@/components/billing/house-suspended'
+import { useHouseBilling } from '@/hooks/use-billing'
 
 // Map permissions to the admin routes they unlock for members
 const permissionRouteMap: Record<string, string[]> = {
@@ -18,6 +20,14 @@ const permissionRouteMap: Record<string, string[]> = {
   canManageRaffles: ['/admin/rifas'],
   canRegisterSales: ['/admin/loja', '/admin/cantina'],
 }
+
+/**
+ * Casa bloqueada por pagamento pendente: a liderança só fica em Plano e
+ * cobrança e no perfil (sair/excluir conta); o resto vai para Plano e cobrança.
+ */
+const BLOCKED_LEADER_PATHS = [ROUTES.ADMIN_BILLING, ROUTES.PROFILE]
+const BLOCKED_MEMBER_PATHS = [ROUTES.PROFILE]
+const allowedWhenBlocked = (pathname: string, paths: string[]) => paths.some((p) => pathname === p || pathname.startsWith(p + '/'))
 
 /** Rota para onde o usuário deve ir, ou null se pode ficar na atual. */
 function redirectFor(pathname: string, house: HouseMembership): string | null {
@@ -61,7 +71,26 @@ export default function DashboardGroupLayout({
     }
   }, [isLoading, isAuthenticated, router])
 
-  const target = currentHouse ? redirectFor(pathname, currentHouse) : null
+  // Estado da cobrança da casa (callable isenta do bloqueio). Qualquer
+  // callable que responder house_blocked dispara 'sg:house-blocked' (lib/callable)
+  // e este refetch troca a tela na hora.
+  const billing = useHouseBilling()
+  const refetchBilling = billing.refetch
+  useEffect(() => {
+    const onBlocked = () => { void refetchBilling() }
+    window.addEventListener('sg:house-blocked', onBlocked)
+    return () => window.removeEventListener('sg:house-blocked', onBlocked)
+  }, [refetchBilling])
+  const blocked = billing.data?.access === 'blocked'
+  const isLeader = !!billing.data?.canManage
+
+  const target = currentHouse
+    ? blocked && isLeader && !allowedWhenBlocked(pathname, BLOCKED_LEADER_PATHS)
+      ? ROUTES.ADMIN_BILLING
+      : blocked
+        ? null
+        : redirectFor(pathname, currentHouse)
+    : null
 
   // Redirect users to their correct area based on role — só depois do perfil
   // atualizado, para não decidir com permissões antigas.
@@ -85,8 +114,17 @@ export default function DashboardGroupLayout({
     return <LoadingState message="Carregando..." />
   }
 
+  // Sem saber se a casa está bloqueada, não monta a página (as callables dela seriam recusadas).
+  if (currentHouse && billing.isLoading) {
+    return <LoadingState message="Carregando..." />
+  }
+
   if (target) {
     return <LoadingState message="Redirecionando..." />
+  }
+
+  if (blocked && !isLeader && !allowedWhenBlocked(pathname, BLOCKED_MEMBER_PATHS)) {
+    return <HouseSuspended />
   }
 
   return <DashboardLayout>{children}</DashboardLayout>

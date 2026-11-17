@@ -5,26 +5,24 @@
 // back: lá estão os preços, o limite de pessoas ativas e os recursos pagos que
 // o backend bloqueia (cantina/loja, rifas, campanhas, listas, pedidos e
 // reservas pelo site, push e permissões por função). Mudou lá, mude aqui.
-// O botão de cada plano leva ao cadastro; a casa nasce no Semente e assina
-// em Gestão > Plano e cobrança.
+// Não há plano grátis (decisão do Caio, 17/11/2026): toda casa nova tem 14 dias
+// de teste sem cartão, com tudo liberado; depois assina Casa ou Casa Grande
+// (PIX, boleto ou cartão) em Gestão > Plano e cobrança. O site da casa é
+// incluso em todos os planos e no teste.
 //
 // Referência de mercado (lida em 17/11/2026): app de gestão de terreiro em
 // plano único de R$ 67/mês (≈ R$ 804/ano), sem plano gratuito nem anual na
-// página. Todos os valores abaixo ficam abaixo disso, inclusive o maior.
-//
-// Site da casa: decisão do Caio (17/11/2026) de incluí-lo no plano gratuito.
-// É o argumento de entrada ("seu terreiro na internet, de graça"), então ele
-// aparece no Semente e, por herança ("Tudo do Semente"), nos pagos.
+// página. Os dois planos ficam abaixo disso.
 // ========================================
 
 export interface Plan {
-  id: 'semente' | 'casa' | 'casa-grande'
+  id: 'casa' | 'casa-grande'
   name: string
   /** Frase curta: para quem é o plano. */
   tagline: string
-  /** Preço mensal em centavos (0 = gratuito). */
+  /** Preço mensal em centavos. */
   monthlyCents: number
-  /** Preço do ano à vista em centavos (0 = gratuito). */
+  /** Preço do ano à vista em centavos. */
   yearlyCents: number
   /** Limite de pessoas cadastradas na casa (null = sem limite). */
   memberLimit: number | null
@@ -35,23 +33,6 @@ export interface Plan {
 
 export const PLANS: Plan[] = [
   {
-    id: 'semente',
-    name: 'Semente',
-    tagline: 'Para começar a organizar uma casa pequena.',
-    monthlyCents: 0,
-    yearlyCents: 0,
-    memberLimit: 15,
-    features: [
-      'Mensalidades com baixa e extrato',
-      'Agenda de eventos com confirmação de presença',
-      'Avisos no mural',
-      'Convite por link',
-      'Chave PIX da casa para copiar',
-      'Site da casa com endereço próprio, grátis',
-    ],
-    cta: 'Começar grátis',
-  },
-  {
     id: 'casa',
     name: 'Casa',
     tagline: 'Tudo o que a casa precisa no dia a dia.',
@@ -59,16 +40,17 @@ export const PLANS: Plan[] = [
     yearlyCents: 34900,
     memberLimit: 100,
     features: [
-      'Tudo do Semente',
+      'Mensalidades com baixa, extrato e o "O que eu devo" de cada filho',
+      'Agenda com confirmação de presença, avisos e check-in',
       'Cantina e loja com estoque, balcão e fiado',
-      'Rifas com sorteio auditável',
-      'Listas e campanhas com cotas',
+      'Rifas com sorteio auditável, listas e campanhas com cotas',
+      'Site da casa com endereço próprio, incluso',
       'Pedidos da cantina e rifas também pelo site da casa',
       'Notificações no celular',
       'Permissões por função (tesouraria, cantina, agenda)',
     ],
     highlighted: true,
-    cta: 'Criar a conta da casa',
+    cta: 'Testar 14 dias grátis',
   },
   {
     id: 'casa-grande',
@@ -79,9 +61,10 @@ export const PLANS: Plan[] = [
     memberLimit: null,
     features: [
       'Tudo do Casa',
+      'Pessoas sem limite',
       'Ajuda para cadastrar a lista de membros',
     ],
-    cta: 'Criar a conta da casa',
+    cta: 'Testar 14 dias grátis',
   },
 ]
 

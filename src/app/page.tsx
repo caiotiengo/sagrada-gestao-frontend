@@ -16,7 +16,7 @@ const fraunces = Fraunces({
 
 const TITLE = 'Sagrada Gestão: gestão para terreiros e casas de axé'
 const DESCRIPTION =
-  'Mensalidades, extrato, cantina com fiado e estoque, agenda com presença, rifas, campanhas e o site da casa num lugar só. Menos tempo com planilha, mais tempo com o sagrado. Comece grátis.'
+  'Mensalidades, extrato, cantina com fiado e estoque, agenda com presença, rifas, campanhas e o site da casa num lugar só. Menos tempo com planilha, mais tempo com o sagrado. Teste 14 dias grátis.'
 
 // A landing é do domínio raiz: canônico e OG apontam para lá, mesmo em outro host
 export const metadata: Metadata = {

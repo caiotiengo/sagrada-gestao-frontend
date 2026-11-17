@@ -41,6 +41,11 @@ export async function callFunction<TRequest, TResponse>(
     return result.data.data
   } catch (error: unknown) {
     const message = (error as { message?: string })?.message || 'Unknown error'
+    // Casa bloqueada por pagamento pendente: o layout da Gestão escuta e troca a tela.
+    const reason = (error as { details?: { reason?: string } })?.details?.reason
+    if (reason === 'house_blocked' && typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('sg:house-blocked'))
+    }
     trackError(message, `callable:${name}`)
     throw error
   }

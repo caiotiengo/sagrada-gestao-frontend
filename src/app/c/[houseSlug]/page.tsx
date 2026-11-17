@@ -8,17 +8,26 @@ import { PublicLayout } from '@/components/layout/public-layout'
 import { PublicHouseHeader } from '@/components/layout/public-house-header'
 import { LoadingState } from '@/components/feedback/loading-state'
 import { ErrorState } from '@/components/feedback/error-state'
+import { isHouseUnavailable } from '@/lib/errors'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 
 export default function PublicHousePage() {
   const params = useParams<{ houseSlug: string }>()
-  const { data: house, isLoading, isError, refetch } = usePublicHouse(params.houseSlug)
+  const { data: house, isLoading, isError, error, refetch } = usePublicHouse(params.houseSlug)
 
   if (isLoading) {
     return (
       <PublicLayout>
         <LoadingState message="Carregando informações da casa..." />
+      </PublicLayout>
+    )
+  }
+
+  if (isHouseUnavailable(error)) {
+    return (
+      <PublicLayout>
+        <ErrorState title="Página indisponível" message="Esta página está indisponível no momento." />
       </PublicLayout>
     )
   }

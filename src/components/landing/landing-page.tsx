@@ -300,11 +300,15 @@ const FAQ: { q: string; a: string }[] = [
   },
   {
     q: 'O site da casa é pago?',
-    a: 'Não. O site da casa está em todos os planos, inclusive no gratuito. É opcional: liga e desliga quando a casa quiser. Nos planos pagos ele também recebe pedidos da cantina e mostra as rifas e listas abertas.',
+    a: 'Não à parte: o site da casa está incluso em todos os planos e no teste grátis. É opcional: liga e desliga quando a casa quiser. Ele também recebe pedidos da cantina e mostra as rifas e listas abertas.',
   },
   {
     q: 'Minha casa é pequena. Vale a pena?',
-    a: 'Vale. O plano Semente é gratuito para casas pequenas, já vem com o site da casa, e você pode mudar de plano quando a casa crescer.',
+    a: 'Vale. Teste 14 dias grátis, sem cartão e com tudo liberado. Depois, o plano Casa sai por R$ 34,90/mês (ou R$ 349 no ano) para até 100 pessoas, com o site da casa incluso.',
+  },
+  {
+    q: 'Como a casa paga a assinatura?',
+    a: 'Com PIX, boleto ou cartão, pela página Plano e cobrança. No cartão a cobrança é automática; no PIX e no boleto a casa paga cada período. Se um pagamento atrasar, a casa tem 15 dias para regularizar sem perder nada.',
   },
   {
     q: 'Posso cancelar quando quiser?',
@@ -392,7 +396,7 @@ export function LandingPage({ fontClassName }: { fontClassName?: string }) {
               </p>
               <div className="l-rise mt-9 flex flex-col justify-center gap-3 sm:flex-row" style={{ '--d': '240ms' } as React.CSSProperties}>
                 <Link href={SIGNUP} className={btnGold}>
-                  Criar conta da casa grátis <ArrowRight className="size-4" aria-hidden="true" />
+                  Testar 14 dias grátis <ArrowRight className="size-4" aria-hidden="true" />
                 </Link>
                 <Link href={LOGIN} className={btnGhostDark}>
                   Já tenho conta: entrar
@@ -405,7 +409,7 @@ export function LandingPage({ fontClassName }: { fontClassName?: string }) {
                 className="l-rise mt-8 flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-white/70"
                 style={{ '--d': '380ms' } as React.CSSProperties}
               >
-                {['Plano gratuito para começar', 'Site da casa grátis', 'Sem cartão no cadastro', 'Para todas as tradições'].map((t) => (
+                {['14 dias grátis, sem cartão', 'A partir de R$ 34,90/mês', 'Pague com PIX, boleto ou cartão', 'Site da casa incluso'].map((t) => (
                   <li key={t} className="flex items-center gap-1.5">
                     <Check className="size-4 text-[#8db86a]" aria-hidden="true" /> {t}
                   </li>
@@ -540,7 +544,7 @@ export function LandingPage({ fontClassName }: { fontClassName?: string }) {
                 <div className="landing-glow pointer-events-none absolute inset-0 opacity-80" aria-hidden="true" />
                 <div className="relative">
                   <span className="inline-flex items-center gap-1.5 rounded-full bg-sg-gold px-2.5 py-1 text-xs font-bold text-[#1b1c45]">
-                    <Gift className="size-3.5" aria-hidden="true" /> Grátis
+                    <Gift className="size-3.5" aria-hidden="true" /> Incluso
                   </span>
                   <h3 className="mt-4 text-lg font-semibold">Site da casa</h3>
                   <p className="mt-2 text-sm text-white/75">Endereço próprio, três modelos e a agenda sempre em dia. Em todos os planos.</p>
@@ -553,15 +557,15 @@ export function LandingPage({ fontClassName }: { fontClassName?: string }) {
           </div>
         </section>
 
-        {/* ------------------------------------------------ site da casa grátis */}
+        {/* ------------------------------------------------ site da casa (incluso) */}
         <section id="site-da-casa" aria-labelledby="site-title" className="relative scroll-mt-16 overflow-hidden px-4 py-24 sm:px-6 sm:py-32">
           <div className="mx-auto grid max-w-6xl items-center gap-14 lg:grid-cols-[0.85fr_1.15fr]">
             <div className="l-reveal">
               <p className="inline-flex items-center gap-2 rounded-full border border-sg-line bg-sg-card px-3 py-1 text-xs font-semibold">
-                <Gift className="size-3.5 text-sg-gold-text" aria-hidden="true" /> Incluído no plano gratuito
+                <Gift className="size-3.5 text-sg-gold-text" aria-hidden="true" /> Incluso em todos os planos
               </p>
               <h2 id="site-title" className="font-display mt-5 text-4xl leading-[1.08] font-medium text-balance sm:text-5xl">
-                Seu terreiro na internet, <span className="landing-ink-text">de graça.</span>
+                Seu terreiro na internet, <span className="landing-ink-text">sem custo à parte.</span>
               </h2>
               <p className="mt-5 text-base text-pretty text-sg-muted sm:text-lg">
                 Ligue o site e divulgue a casa sem depender de ninguém e sem pagar nada por isso. Ele usa os dados que vocês já
@@ -661,7 +665,7 @@ export function LandingPage({ fontClassName }: { fontClassName?: string }) {
             ))}
           </ol>
           <p className="mx-auto mt-10 max-w-2xl text-center text-sm text-[#f4ebda]">
-            Depois, ligue o site da casa (grátis) e divulgue a agenda.
+            Depois, ligue o site da casa (incluso no plano) e divulgue a agenda.
           </p>
           <div className="mt-8 flex justify-center">
             <Link
@@ -733,9 +737,9 @@ export function LandingPage({ fontClassName }: { fontClassName?: string }) {
             id="planos-title"
             eyebrow="Planos"
             title="Um preço que cabe no caixa da casa"
-            intro="Comece grátis, já com o site da casa. Quando a casa precisar de mais, mude de plano. No anual, dois meses saem de presente."
+            intro="Teste 14 dias grátis, sem cartão e com tudo liberado. Depois, a partir de R$ 34,90/mês, com o site da casa incluso. Pague com PIX, boleto ou cartão. No anual, dois meses saem de presente."
           />
-          <div className="mx-auto mt-14 grid max-w-6xl items-stretch gap-4 lg:grid-cols-3">
+          <div className="mx-auto mt-14 grid max-w-4xl items-stretch gap-4 md:grid-cols-2">
             {PLANS.map((plan, i) => {
               const free = plan.monthlyCents === 0
               const monthsFree = yearlyMonthsFree(plan)
@@ -800,8 +804,8 @@ export function LandingPage({ fontClassName }: { fontClassName?: string }) {
             <p className="mt-2 text-sm text-sg-muted">{MARKET_REFERENCE_TEXT} Aqui o caminho é outro:</p>
             <ul className="mt-4 grid gap-2 text-sm sm:grid-cols-2">
               {[
-                'Plano gratuito de verdade para casas pequenas',
-                'Site da casa grátis, em todos os planos',
+                '14 dias grátis para testar, sem cartão',
+                'Site da casa incluso, em todos os planos',
                 'Plano principal bem abaixo dessa faixa',
                 'Anual com dois meses de presente',
                 'Sem taxa sobre o que a casa recebe',
@@ -844,11 +848,11 @@ export function LandingPage({ fontClassName }: { fontClassName?: string }) {
               Deixe a planilha com a gente. <span className="landing-gold-text italic">O sagrado fica com a casa.</span>
             </h2>
             <p className="mx-auto mt-5 max-w-xl text-lg text-white/75">
-              Crie a conta da casa agora, ligue o site de graça e convide quem é da casa ainda hoje.
+              Crie a conta da casa agora: 14 dias grátis, sem cartão. Ligue o site e convide quem é da casa ainda hoje.
             </p>
             <div className="mt-9 flex flex-col justify-center gap-3 sm:flex-row">
               <Link href={SIGNUP} className={btnGold}>
-                Criar conta da casa grátis <ArrowRight className="size-4" aria-hidden="true" />
+                Testar 14 dias grátis <ArrowRight className="size-4" aria-hidden="true" />
               </Link>
               <Link href={LOGIN} className={btnGhostDark}>
                 Entrar

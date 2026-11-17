@@ -7,6 +7,7 @@ import { usePublicEvents } from '@/hooks/use-public'
 import type { PublicHouse, PublicEventItem } from '@/types'
 import { LoadingState } from '@/components/feedback/loading-state'
 import { ErrorState } from '@/components/feedback/error-state'
+import { isHouseUnavailable } from '@/lib/errors'
 
 interface SiteContextValue {
   house: PublicHouse
@@ -25,7 +26,7 @@ export function useSiteContext() {
 export function SiteProvider({ children }: { children: ReactNode }) {
   const params = useParams()
   const subdomain = params.subdomain as string
-  const { data: house, isLoading, isError } = useHouseBySubdomain(subdomain)
+  const { data: house, isLoading, isError, error } = useHouseBySubdomain(subdomain)
   const { data: events } = usePublicEvents(house?.slug ?? '')
 
   // Set dynamic title and favicon for public site
@@ -47,6 +48,8 @@ export function SiteProvider({ children }: { children: ReactNode }) {
   }, [house])
 
   if (isLoading) return <LoadingState message="Carregando site..." />
+  if (isHouseUnavailable(error))
+    return <ErrorState title="Site indisponível" message="Este site está indisponível no momento." />
   if (isError || !house)
     return (
       <ErrorState

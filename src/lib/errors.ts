@@ -77,3 +77,8 @@ export function getErrorFields(error: unknown): Record<string, string> {
 export function getErrorCode(error: unknown): string {
   return ((error ?? {}) as MaybeFirebaseError).code ?? ''
 }
+
+/** Site público de casa bloqueada (pagamento pendente): o back responde house_unavailable. */
+export function isHouseUnavailable(error: unknown): boolean {
+  return (error as { details?: { reason?: string } } | null)?.details?.reason === 'house_unavailable'
+}
