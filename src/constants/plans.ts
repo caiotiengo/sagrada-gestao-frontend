@@ -8,6 +8,10 @@
 // Referência de mercado (lida em 17/11/2026): app de gestão de terreiro em
 // plano único de R$ 67/mês (≈ R$ 804/ano), sem plano gratuito nem anual na
 // página. Todos os valores abaixo ficam abaixo disso, inclusive o maior.
+//
+// Site da casa: decisão do Caio (17/11/2026) de incluí-lo no plano gratuito.
+// É o argumento de entrada ("seu terreiro na internet, de graça"), então ele
+// aparece no Semente e, por herança ("Tudo do Semente"), nos pagos.
 // ========================================
 
 export interface Plan {
@@ -40,6 +44,7 @@ export const PLANS: Plan[] = [
       'Avisos no mural',
       'Convite por link',
       'Chave PIX da casa para copiar',
+      'Site da casa com endereço próprio, grátis',
     ],
     cta: 'Começar grátis',
   },
@@ -55,7 +60,7 @@ export const PLANS: Plan[] = [
       'Cantina e loja com estoque, balcão e fiado',
       'Rifas com sorteio auditável',
       'Listas e campanhas com cotas',
-      'Site da casa com agenda, pedidos e rifas',
+      'Pedidos da cantina e rifas também pelo site da casa',
       'Notificações no celular',
       'Permissões por função (tesouraria, cantina, agenda)',
     ],
