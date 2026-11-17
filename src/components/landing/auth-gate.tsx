@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { onAuthStateChanged } from 'firebase/auth'
 import { auth } from '@/lib/firebase'
 import { getStoredHomeRoute } from '@/stores/auth'
-import { ROUTES } from '@/constants'
+import { APP_URL, ROUTES, appUrl } from '@/constants'
 
 import { AUTHED_ATTR } from './pre-paint'
 
@@ -17,7 +17,10 @@ export function LandingAuthGate() {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       const home = user ? getStoredHomeRoute() : null
       if (home) {
-        router.replace(home === 'admin' ? ROUTES.ADMIN_HOME : ROUTES.MEMBER_HOME)
+        const target = home === 'admin' ? ROUTES.ADMIN_HOME : ROUTES.MEMBER_HOME
+        // No domínio raiz (produção) o sistema mora em outro host: navegação completa
+        if (new URL(APP_URL).origin !== window.location.origin) window.location.replace(appUrl(target))
+        else router.replace(target)
         return
       }
       document.documentElement.removeAttribute(AUTHED_ATTR)

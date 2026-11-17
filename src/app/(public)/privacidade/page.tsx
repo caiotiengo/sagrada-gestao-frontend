@@ -8,13 +8,13 @@
  */
 import type { Metadata } from 'next'
 
-import { APP_NAME, ROUTES } from '@/constants'
+import { APP_NAME, ROUTES, siteUrl } from '@/constants'
 import { A, H2, H3, LegalPage, ToConfirm, UL } from '@/components/legal/legal-page'
 
 export const metadata: Metadata = {
   title: 'Política de privacidade',
   description: `Como o ${APP_NAME} trata dados pessoais, conforme a LGPD.`,
-  alternates: { canonical: ROUTES.PRIVACY },
+  alternates: { canonical: siteUrl(ROUTES.PRIVACY) },
 }
 
 export default function PrivacyPage() {

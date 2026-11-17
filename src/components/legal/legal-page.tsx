@@ -1,6 +1,6 @@
 import Link from 'next/link'
 
-import { APP_NAME, ROUTES } from '@/constants'
+import { APP_NAME, ROUTES, appUrl, siteUrl } from '@/constants'
 import { cn } from '@/lib/utils'
 import { BrandMark } from '@/components/landing/brand'
 
@@ -42,11 +42,11 @@ export function LegalPage({
       </a>
       <header className="border-b border-sg-line">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
-          <Link href={ROUTES.HOME} className="flex items-center gap-2.5 rounded-lg">
+          <Link href={siteUrl(ROUTES.HOME)} className="flex items-center gap-2.5 rounded-lg">
             <BrandMark className="size-8" />
             <span className="text-sm font-semibold">{APP_NAME}</span>
           </Link>
-          <Link href={ROUTES.LOGIN} className="text-sm font-medium text-sg-muted hover:text-sg-fg">
+          <Link href={appUrl(ROUTES.LOGIN)} className="text-sm font-medium text-sg-muted hover:text-sg-fg">
             Entrar
           </Link>
         </div>
