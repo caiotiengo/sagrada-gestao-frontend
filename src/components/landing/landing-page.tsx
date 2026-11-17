@@ -30,7 +30,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 
-import { APP_NAME, ROUTES } from '@/constants'
+import { APP_NAME, ROUTES, appUrl } from '@/constants'
 import {
   MARKET_REFERENCE_TEXT,
   PLANS,
@@ -46,8 +46,9 @@ import { BrowserFrame, PhoneFrame, ThemedShot } from './frames'
 import { RevealOnScroll } from './reveal'
 import { StoreBadges } from './store-badges'
 
-const LOGIN = ROUTES.LOGIN
-const SIGNUP = ROUTES.REGISTER_ADMIN
+// A landing roda no domínio raiz; entrar e criar conta acontecem no app (app.<domínio>)
+const LOGIN = appUrl(ROUTES.LOGIN)
+const SIGNUP = appUrl(ROUTES.REGISTER_ADMIN)
 
 /** Endereço mostrado na moldura do site público (cada casa escolhe o seu). */
 const SITE_HOST_EXAMPLE = 'casadeaxeexemplo.sagradagestao.com.br'

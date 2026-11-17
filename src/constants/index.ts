@@ -6,6 +6,19 @@ export const APP_NAME = 'Sagrada Gestão'
 export const APP_TITLE = 'Sagrada Gestão - Organizando o seu Templo'
 export const APP_DESCRIPTION = 'Sistema de gestão para casas de santo'
 export const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+export const BASE_DOMAIN = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'localhost:3000'
+/**
+ * Domínio raiz (landing). Em produção "https://sagradagestao.com.br"; em
+ * localhost é o próprio APP_URL. NEXT_PUBLIC_SITE_URL sobrescreve se precisar.
+ */
+export const SITE_URL = (
+  process.env.NEXT_PUBLIC_SITE_URL || `${APP_URL.startsWith('https:') ? 'https:' : 'http:'}//${BASE_DOMAIN}`
+).replace(/\/$/, '')
+
+/** URL absoluta no sistema (app.<domínio>). Usada pela landing, que roda no domínio raiz. */
+export const appUrl = (path: string) => `${APP_URL.replace(/\/$/, '')}${path}`
+/** URL absoluta no domínio raiz (canônico, OG, sitemap). */
+export const siteUrl = (path: string) => `${SITE_URL}${path === '/' ? '' : path}`
 
 export const ROUTES = {
   // Public

@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "node --test 'src/**/*.test.ts'",
+    "test:domains": "node scripts/check-domains.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.2.0",
