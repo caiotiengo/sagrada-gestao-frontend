@@ -1,11 +1,60 @@
-'use client'
+import type { Metadata } from 'next'
+import { Fraunces } from 'next/font/google'
 
-import { useRedirectIfAuthenticated } from '@/hooks/use-auth'
-import { ROUTES } from '@/constants'
-import { LoadingState } from '@/components/feedback/loading-state'
+import { LandingPage } from '@/components/landing/landing-page'
+import { LandingAuthGate } from '@/components/landing/auth-gate'
+import { LANDING_PRE_PAINT_SCRIPT } from '@/components/landing/pre-paint'
+
+const fraunces = Fraunces({
+  subsets: ['latin'],
+  variable: '--font-display',
+  axes: ['SOFT', 'opsz'],
+  display: 'swap',
+})
+
+const TITLE = 'Sagrada Gestão: gestão para terreiros e casas de axé'
+const DESCRIPTION =
+  'Mensalidades, extrato, cantina com fiado e estoque, agenda com presença, rifas, campanhas e o site da casa num lugar só. Menos tempo com planilha, mais tempo com o sagrado. Comece grátis.'
+
+export const metadata: Metadata = {
+  title: { absolute: TITLE },
+  description: DESCRIPTION,
+  keywords: [
+    'gestão de terreiro',
+    'sistema para terreiro',
+    'mensalidade terreiro',
+    'casa de axé',
+    'umbanda',
+    'candomblé',
+    'tesouraria',
+    'cantina',
+    'site para terreiro',
+  ],
+  alternates: { canonical: '/' },
+  openGraph: {
+    type: 'website',
+    locale: 'pt_BR',
+    url: '/',
+    siteName: 'Sagrada Gestão',
+    title: TITLE,
+    description: DESCRIPTION,
+    images: [{ url: '/og-landing.png', width: 1200, height: 630, alt: 'Sagrada Gestão: menos tempo com planilha, mais tempo com o sagrado.' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: TITLE,
+    description: DESCRIPTION,
+    images: ['/og-landing.png'],
+  },
+}
 
 export default function HomePage() {
-  // Logado -> home da área (admin/membro); sem sessão -> /login
-  useRedirectIfAuthenticated(ROUTES.LOGIN)
-  return <LoadingState message="Carregando..." />
+  return (
+    <>
+      {/* Antes da pintura: quem tem sessão salva não vê a landing piscar */}
+      <script dangerouslySetInnerHTML={{ __html: LANDING_PRE_PAINT_SCRIPT }} />
+      <LandingAuthGate />
+      <LandingPage fontClassName={fraunces.variable} />
+    </>
+  )
 }

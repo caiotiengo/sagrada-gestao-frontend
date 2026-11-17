@@ -42,6 +42,18 @@
   --color-success-foreground: var(--success-foreground);
   --color-warning: var(--warning);
   --color-warning-foreground: var(--warning-foreground);
+  --color-sg-bg: var(--l-bg);
+  --color-sg-alt: var(--l-alt);
+  --color-sg-card: var(--l-card);
+  --color-sg-fg: var(--l-fg);
+  --color-sg-muted: var(--l-muted);
+  --color-sg-line: var(--l-border);
+  --color-sg-primary: var(--l-primary);
+  --color-sg-primary-fg: var(--l-primary-fg);
+  --color-sg-gold: var(--l-gold);
+  --color-sg-gold-text: var(--l-gold-text);
+  --color-sg-leaf: var(--l-leaf);
+  --font-display: var(--font-display);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -180,4 +192,88 @@
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/*
+  Landing page (/) — paleta do brand kit v2: noite, dourado, terra, algodão.
+  Segue o tema do sistema (prefers-color-scheme), já que o app não tem seletor.
+*/
+.landing {
+  --l-bg: #fbf7ef;
+  --l-alt: #f4ebda;
+  --l-card: #ffffff;
+  --l-fg: #1b1c45;
+  --l-muted: #525476;
+  --l-border: #e3d7c1;
+  --l-primary: #3e42b6;
+  --l-primary-fg: #ffffff;
+  --l-gold: #e1b75c;
+  --l-gold-text: #8a5a12;
+  --l-leaf: #2e5a37;
+  background: var(--l-bg);
+  color: var(--l-fg);
+}
+@media (prefers-color-scheme: dark) {
+  .landing {
+    --l-bg: #0e0f2a;
+    --l-alt: #121335;
+    --l-card: #17183f;
+    --l-fg: #f7f1e4;
+    --l-muted: #bdbad3;
+    --l-border: rgb(255 255 255 / 0.1);
+    --l-primary: #9599f2;
+    --l-primary-fg: #0e0f2a;
+    --l-gold-text: #e8c27a;
+    --l-leaf: #8db86a;
+  }
+}
+.landing main {
+  animation: none;
+}
+.landing-sky {
+  background-color: #121335;
+  background-image:
+    radial-gradient(1px 1px at 12% 18%, rgb(255 255 255 / 0.9), transparent),
+    radial-gradient(1px 1px at 28% 62%, rgb(255 255 255 / 0.7), transparent),
+    radial-gradient(1.5px 1.5px at 44% 26%, rgb(244 235 218 / 0.9), transparent),
+    radial-gradient(1px 1px at 63% 12%, rgb(255 255 255 / 0.8), transparent),
+    radial-gradient(1px 1px at 71% 48%, rgb(255 255 255 / 0.6), transparent),
+    radial-gradient(1.5px 1.5px at 86% 22%, rgb(232 194 122 / 0.9), transparent),
+    radial-gradient(1px 1px at 92% 70%, rgb(255 255 255 / 0.7), transparent),
+    radial-gradient(1px 1px at 6% 84%, rgb(255 255 255 / 0.6), transparent),
+    radial-gradient(1px 1px at 52% 88%, rgb(255 255 255 / 0.5), transparent),
+    radial-gradient(1px 1px at 36% 8%, rgb(255 255 255 / 0.7), transparent),
+    linear-gradient(180deg, #16174a 0%, #0e0f2a 100%);
+}
+.landing-terra {
+  background-color: #94452a;
+  background-image:
+    repeating-linear-gradient(45deg, rgb(0 0 0 / 0.05) 0 2px, transparent 2px 6px),
+    repeating-linear-gradient(-45deg, rgb(255 255 255 / 0.04) 0 2px, transparent 2px 6px),
+    linear-gradient(180deg, #a4522f 0%, #7c3820 100%);
+}
+/* Faixa de tecido listrado (pano), só decorativa */
+.landing-pano {
+  background: linear-gradient(
+    180deg,
+    #6e3320 0 12%,
+    #c9913c 12% 22%,
+    #f4ebda 22% 26%,
+    #3e42b6 26% 52%,
+    #f4ebda 52% 56%,
+    #a4522f 56% 78%,
+    #f4ebda 78% 82%,
+    #2e5a37 82% 92%,
+    #c9913c 92% 100%
+  );
+}
+/* Logado: esconde a landing até o redirecionamento (sem piscar) */
+.landing-gate {
+  display: none;
+}
+html[data-sg-authed] .landing {
+  display: none;
+}
+html[data-sg-authed] .landing-gate {
+  display: flex;
 }
