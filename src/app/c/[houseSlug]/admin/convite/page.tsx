@@ -20,6 +20,7 @@ import { PasswordInput } from '@/components/forms/password-input'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
+import { LegalConsentNote } from '@/components/legal/legal-consent'
 
 export default function AdminInviteRegistrationPage() {
   const params = useParams<{ houseSlug: string }>()
@@ -177,6 +178,7 @@ export default function AdminInviteRegistrationPage() {
                 {isPending ? 'Cadastrando...' : 'Cadastrar'}
               </Button>
             </form>
+            <LegalConsentNote />
 
             <p className="mt-6 text-center text-sm text-muted-foreground">
               Já possui conta?{' '}

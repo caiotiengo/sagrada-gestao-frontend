@@ -27,6 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { LegalConsentNote } from '@/components/legal/legal-consent'
 
 const DAY_SHORT_LABELS: Record<string, string> = {
   'Segunda-feira': 'Seg',
@@ -508,6 +509,7 @@ export default function AdminRegistrationPage() {
           </>
         )}
       </form>
+      <LegalConsentNote />
 
       <p className="mt-6 text-center text-sm text-muted-foreground">
         Já possui conta?{' '}

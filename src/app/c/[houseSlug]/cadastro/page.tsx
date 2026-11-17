@@ -28,6 +28,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { LegalConsentNote } from '@/components/legal/legal-consent'
 
 export default function MemberRegistrationPage() {
   const params = useParams<{ houseSlug: string }>()
@@ -271,6 +272,7 @@ export default function MemberRegistrationPage() {
                 {isPending ? 'Cadastrando...' : 'Cadastrar'}
               </Button>
             </form>
+            <LegalConsentNote />
 
             <p className="mt-6 text-center text-sm text-muted-foreground">
               Já possui conta?{' '}

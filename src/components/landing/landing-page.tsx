@@ -625,6 +625,15 @@ export function LandingPage({ fontClassName }: { fontClassName?: string }) {
             <Link href={SIGNUP} className="hover:text-sg-fg">
               Criar conta da casa
             </Link>
+            <Link href={ROUTES.PRIVACY} className="hover:text-sg-fg">
+              Privacidade
+            </Link>
+            <Link href={ROUTES.TERMS} className="hover:text-sg-fg">
+              Termos
+            </Link>
+            <Link href={ROUTES.DELETE_ACCOUNT_INFO} className="hover:text-sg-fg">
+              Excluir conta
+            </Link>
           </nav>
         </div>
         <p className="mx-auto mt-8 max-w-6xl text-xs text-sg-muted">
