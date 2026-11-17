@@ -32,6 +32,7 @@ import {
 import { LoadingState } from '@/components/feedback/loading-state'
 import { EmptyState } from '@/components/feedback/empty-state'
 import { ErrorState } from '@/components/feedback/error-state'
+import { ReceiptOriginBadge } from '@/components/receipts/receipt-origin-badge'
 
 const SELECT_CLASS =
   'flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring'
@@ -254,6 +255,7 @@ export default function LedgerAuditPage() {
                         <Badge variant="outline" className="text-[0.65rem]">
                           {channelLabel(entry.channel)}
                         </Badge>
+                        <ReceiptOriginBadge origin={entry.origin} />
                       </div>
                       <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
                         <span>{formatDate(entry.occurredAt || entry.createdAt)}</span>

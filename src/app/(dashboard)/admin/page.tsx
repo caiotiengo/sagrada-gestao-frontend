@@ -27,6 +27,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { formatCurrency, formatDate } from '@/utils'
 import { NoticesWidget } from '@/components/notices/notices-widget'
+import { ReceiptOriginBadge } from '@/components/receipts/receipt-origin-badge'
 
 const quickActions = [
   { label: 'Membros', href: ROUTES.MEMBERS_LIST, icon: Users, color: 'bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400' },
@@ -269,6 +270,7 @@ export default function AdminHomePage() {
                 : SOURCE_LABELS[entry.source] ?? entry.source,
               date: entry.occurredAt || entry.createdAt,
               amount: Math.abs(entry.amount),
+              origin: entry.origin ?? null,
             }
           })
 
@@ -289,7 +291,10 @@ export default function AdminHomePage() {
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium">{entry.description}</p>
+                      <p className="flex min-w-0 items-center gap-1.5 text-sm font-medium">
+                        <span className="truncate">{entry.description}</span>
+                        <ReceiptOriginBadge origin={entry.origin} />
+                      </p>
                       <p className="text-xs text-muted-foreground">
                         {entry.sourceLabel}
                         {entry.date ? ` · ${formatDate(entry.date)}` : ''}
