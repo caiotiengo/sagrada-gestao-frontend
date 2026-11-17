@@ -28,6 +28,7 @@ import {
   UserCog,
   CreditCard,
   Receipt,
+  Wallet,
 } from 'lucide-react'
 import { NotificationBell } from '@/components/notifications/notification-bell'
 import { BillingAlerts } from '@/components/billing/billing-alerts'
@@ -73,6 +74,7 @@ const adminNavItems: NavEntry[] = [
   { label: 'Convites', href: ROUTES.INVITES, icon: Mail },
   { label: 'Financeiro', href: ROUTES.ADMIN_FINANCE, icon: DollarSign },
   { label: 'Comprovantes', href: ROUTES.ADMIN_RECEIPTS, icon: Receipt },
+  { label: 'Meu financeiro', href: ROUTES.MEMBER_FINANCE, icon: Wallet },
   { label: 'Calendário', href: ROUTES.ADMIN_CALENDAR, icon: CalendarDays },
   { label: 'Check-ins', href: ROUTES.ADMIN_CHECKINS, icon: UserCheck },
   { label: 'Listas', href: ROUTES.ADMIN_CAMPAIGNS, icon: List },

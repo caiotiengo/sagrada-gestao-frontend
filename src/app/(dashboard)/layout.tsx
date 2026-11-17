@@ -40,7 +40,8 @@ function redirectFor(pathname: string, house: HouseMembership): string | null {
     const hasAccess = allowedRoutes.some((route) => pathname.startsWith(route))
     return hasAccess ? null : ROUTES.MEMBER_HOME
   }
-  if (house.role === 'admin' && isMemberRoute) {
+  // A Liderança também deve (mensalidade, fiado, rifa): o financeiro pessoal fica aberto para ela.
+  if (house.role === 'admin' && isMemberRoute && !pathname.startsWith(ROUTES.MEMBER_FINANCE)) {
     return ROUTES.ADMIN_HOME
   }
   return null
