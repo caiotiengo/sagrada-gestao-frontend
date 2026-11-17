@@ -16,7 +16,9 @@ export function useHouseBilling(opts: { refetchInterval?: number | false } = {})
     queryFn: () => billingService.get(houseId!),
     enabled: !!houseId,
     staleTime: 60 * 1000,
-    refetchInterval: opts.refetchInterval,
+    // O bloqueio/desbloqueio vem do webhook: confere de tempos em tempos e ao voltar para a aba.
+    refetchInterval: opts.refetchInterval ?? 5 * 60 * 1000,
+    refetchOnWindowFocus: true,
   })
 }
 
@@ -33,7 +35,7 @@ function go(url: string) {
 export function useStartCheckout() {
   const houseId = useAuthStore((s) => s.currentHouseId())
   return useMutation({
-    mutationFn: (v: { plan: PaidPlanId; interval: BillingInterval }) => billingService.checkout({ houseId: houseId!, ...v }),
+    mutationFn: (v: { plan: PaidPlanId; interval: BillingInterval; method?: 'card' | 'boleto' }) => billingService.checkout({ houseId: houseId!, ...v }),
     onSuccess: (r) => go(r.url),
     onError: (e) => toast.error(getErrorMessage(e, 'Não foi possível abrir a página de pagamento')),
   })
@@ -45,5 +47,15 @@ export function useOpenBillingPortal() {
     mutationFn: () => billingService.portal(houseId!),
     onSuccess: (r) => go(r.url),
     onError: (e) => toast.error(getErrorMessage(e, 'Não foi possível abrir o portal da assinatura')),
+  })
+}
+
+/** PIX de um período: leva à página do Stripe com o QR e o copia-e-cola. */
+export function useStartPixCheckout() {
+  const houseId = useAuthStore((s) => s.currentHouseId())
+  return useMutation({
+    mutationFn: (v: { plan: PaidPlanId; interval: BillingInterval }) => billingService.pixCheckout({ houseId: houseId!, ...v }),
+    onSuccess: (r) => go(r.url),
+    onError: (e) => toast.error(getErrorMessage(e, 'Não foi possível gerar o PIX')),
   })
 }

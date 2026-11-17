@@ -3,16 +3,20 @@ import { callFunction } from '@/lib/callable'
 // Tipos do retorno de getHouseBilling. O catálogo de planos vem do back
 // (functions/src/constants/plans.ts, fonte única): esta tela não tem cópia.
 
-export type PlanId = 'semente' | 'casa' | 'casa-grande'
-export type PaidPlanId = Exclude<PlanId, 'semente'>
+export type PlanId = 'casa' | 'casa-grande'
+export type PaidPlanId = PlanId
 export type BillingInterval = 'month' | 'year'
 export type PlanFeature = 'store' | 'raffles' | 'campaigns' | 'shoppingLists' | 'publicOrders' | 'push' | 'permissions'
 export type SubscriptionStatus =
   | 'none' | 'trialing' | 'active' | 'past_due' | 'unpaid' | 'canceled' | 'incomplete' | 'incomplete_expired' | 'paused'
-export type PlanSource = 'subscription' | 'trial' | 'grace' | 'legacy_courtesy' | 'free'
+export type PlanSource = 'subscription' | 'pix' | 'trial' | 'legacy_courtesy' | 'grace' | 'blocked'
+/** ok | pending (pagamento pendente, dias 1..15, tudo funciona) | blocked (acesso suspenso, só regularizar). */
+export type BillingAccess = 'ok' | 'pending' | 'blocked'
+export type BillingMode = 'none' | 'stripe' | 'pix'
+export type PaymentMethod = 'card' | 'boleto' | 'pix'
 
 export interface BillingWarning {
-  code: 'legacy_courtesy' | 'past_due_grace' | 'past_due_expired' | 'cancel_scheduled' | 'trial_ending' | 'over_member_limit' | 'near_member_limit'
+  code: 'legacy_courtesy' | 'payment_pending' | 'payment_blocked' | 'pix_renewal_due' | 'cancel_scheduled' | 'trial_ending' | 'over_member_limit' | 'near_member_limit'
   severity: 'info' | 'warning' | 'danger'
   message: string
 }
@@ -44,6 +48,12 @@ export interface HouseBilling {
   cancelAtPeriodEnd: boolean
   trialEnd: string | null
   graceEndsAt: string | null
+  access: BillingAccess
+  pendingDay: number | null
+  pendingSince: string | null
+  blocksAt: string | null
+  billingMode: BillingMode
+  coveredUntil: string | null
   courtesyUntil: string | null
   hasStripeCustomer: boolean
   hasActiveSubscription: boolean
@@ -51,15 +61,20 @@ export interface HouseBilling {
   activeMembers: number
   canManage: boolean
   trialDays: number
-  trialAvailable: boolean
-  lastInvoice: { status: string; amountCents: number; at: string | null } | null
+  paymentMethods: PaymentMethod[]
+  pixEnabled: boolean
+  pendingPix: { plan: PaidPlanId; interval: BillingInterval; createdAt: string | null; expiresAt: string | null } | null
+  lastInvoice: { status: string; amountCents: number; at: string | null; method: string | null; hostedInvoiceUrl: string | null } | null
   plans: PlanCatalogItem[]
 }
 
 export const billingService = {
   get: (houseId: string) => callFunction<{ houseId: string }, HouseBilling>('getHouseBilling', { houseId }),
-  checkout: (data: { houseId: string; plan: PaidPlanId; interval: BillingInterval }) =>
+  checkout: (data: { houseId: string; plan: PaidPlanId; interval: BillingInterval; method?: 'card' | 'boleto' }) =>
     callFunction<typeof data, { url: string; sessionId: string }>('createCheckoutSession', data),
+  pixCheckout: (data: { houseId: string; plan: PaidPlanId; interval: BillingInterval }) =>
+    callFunction<typeof data, { url: string; sessionId: string; amountCents: number }>('createPixCheckout', data),
+
   portal: (houseId: string) => callFunction<{ houseId: string }, { url: string }>('createBillingPortalSession', { houseId }),
 }
 
