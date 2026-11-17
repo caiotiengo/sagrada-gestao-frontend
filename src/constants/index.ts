@@ -35,6 +35,10 @@ export const ROUTES = {
   ADMIN_NOTICES: '/admin/avisos',
   ADMIN_NOTIFICATIONS: '/admin/notificacoes',
   ADMIN_MEMBER_CHARGES: '/admin/cobrancas',
+  ADMIN_PIX: '/admin/pix',
+
+  // Conta (admin e membro)
+  NOTIFICATION_SETTINGS: '/perfil/notificacoes',
 
   // Member Dashboard
   MEMBER_HOME: '/membro',

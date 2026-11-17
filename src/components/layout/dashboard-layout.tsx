@@ -24,6 +24,7 @@ import {
   Megaphone,
   Send,
   HandCoins,
+  QrCode,
 } from 'lucide-react'
 import { NotificationBell } from '@/components/notifications/notification-bell'
 import { useAuthStore } from '@/stores/auth'
@@ -81,6 +82,7 @@ const adminNavItems: NavEntry[] = [
   { label: 'Avisos', href: ROUTES.ADMIN_NOTICES, icon: Megaphone },
   { label: 'Notificações', href: ROUTES.ADMIN_NOTIFICATIONS, icon: Send },
   { label: 'Cobranças', href: ROUTES.ADMIN_MEMBER_CHARGES, icon: HandCoins },
+  { label: 'Chave PIX', href: ROUTES.ADMIN_PIX, icon: QrCode },
   { label: 'Site', href: ROUTES.ADMIN_SITE, icon: Globe },
 ]
 
