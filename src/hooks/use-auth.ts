@@ -7,6 +7,7 @@ import { onAuthStateChanged } from 'firebase/auth'
 import { auth } from '@/lib/firebase'
 import { getStoredHomeRoute, useAuthStore } from '@/stores/auth'
 import { authService } from '@/services/auth'
+import { disableWebPush } from '@/lib/web-push'
 import type { RegisterHouseRequest } from '@/types'
 import { ROUTES } from '@/constants'
 import { toast } from 'sonner'
@@ -107,7 +108,11 @@ export function useLogout() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: () => authService.logout(),
+    mutationFn: async () => {
+      // Ainda logado: tira o token de push deste navegador antes de sair.
+      await disableWebPush().catch(() => undefined)
+      return authService.logout()
+    },
     onSettled: async () => {
       // signOut já invalida a sessão do Firebase (onIdTokenChanged emite null).
       // Limpamos estado local e todo o cache de queries para não vazar dados
