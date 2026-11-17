@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { useAuthStore } from '@/stores/auth'
 import { receiptsService } from '@/services/receipts'
+import { useHouseBilling } from '@/hooks/use-billing'
 import { invalidateFinance } from '@/lib/invalidate'
 import { getErrorMessage } from '@/lib/errors'
 import type { ApproveReceiptRequest, ReceiptListFilter, ReceiptView } from '@/types/receipts'
@@ -36,10 +37,12 @@ export function useHouseReceipts(filter: ReceiptListFilter, enabled = true) {
 export function usePendingReceiptsCount() {
   const houseId = useAuthStore((s) => s.currentHouseId())
   const canReview = useCanReviewReceipts()
+  // Casa bloqueada recusa a chamada (house_blocked): não consulta nem fica repetindo a cada minuto.
+  const blocked = useHouseBilling().data?.access === 'blocked'
   return useQuery({
     queryKey: ['receipts', 'house', houseId, 'count'],
     queryFn: () => receiptsService.listHouse({ houseId: houseId!, filter: 'review', limit: 1 }),
-    enabled: !!houseId && canReview,
+    enabled: !!houseId && canReview && !blocked,
     select: (d) => d.pendingReviewCount,
     staleTime: 30_000,
     refetchInterval: 60_000,
