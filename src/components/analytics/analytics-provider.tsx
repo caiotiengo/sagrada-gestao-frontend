@@ -1,12 +1,14 @@
 'use client'
 
-import { useEffect } from 'react'
+import { Suspense, useEffect } from 'react'
 import { usePathname, useSearchParams } from 'next/navigation'
 import { logEvent } from 'firebase/analytics'
 import { getAnalyticsInstance } from '@/lib/firebase'
 import '@/lib/analytics' // initializes global error listeners
 
-export function AnalyticsProvider({ children }: { children: React.ReactNode }) {
+// useSearchParams fica isolado num irmão com Suspense próprio: assim ele não
+// tira as páginas estáticas (ex.: a landing em /) da renderização no servidor.
+function PageViewTracker() {
   const pathname = usePathname()
   const searchParams = useSearchParams()
 
@@ -19,5 +21,16 @@ export function AnalyticsProvider({ children }: { children: React.ReactNode }) {
     })
   }, [pathname, searchParams])
 
-  return <>{children}</>
+  return null
+}
+
+export function AnalyticsProvider({ children }: { children: React.ReactNode }) {
+  return (
+    <>
+      <Suspense fallback={null}>
+        <PageViewTracker />
+      </Suspense>
+      {children}
+    </>
+  )
 }

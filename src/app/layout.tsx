@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { Inter, JetBrains_Mono } from 'next/font/google'
 import './globals.css'
 
-import { APP_NAME, APP_TITLE, APP_DESCRIPTION } from '@/constants'
+import { APP_NAME, APP_TITLE, APP_DESCRIPTION, APP_URL } from '@/constants'
 import { Providers } from './providers'
 import { Toaster } from '@/components/ui/sonner'
 
@@ -19,6 +19,7 @@ const jetbrainsMono = JetBrains_Mono({
 })
 
 export const metadata: Metadata = {
+  metadataBase: new URL(APP_URL),
   title: {
     default: APP_TITLE,
     template: `%s | ${APP_NAME}`,
@@ -32,7 +33,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="pt-BR">
+    <html lang="pt-BR" suppressHydrationWarning>
       <body
         className={`${inter.variable} ${jetbrainsMono.variable} font-sans antialiased`}
       >
