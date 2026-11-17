@@ -1,5 +1,6 @@
 'use client'
 
+import { raffleCountsLabel } from '@/lib/raffle-counts'
 import { useState, useMemo } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
@@ -158,7 +159,7 @@ export default function AdminRaffleDetailPage() {
             <div>
               <span className="text-muted-foreground">Números: </span>
               <span className="font-medium">
-                {raffle.soldNumbers}/{raffle.totalNumbers}
+                {raffleCountsLabel(raffle)}
               </span>
             </div>
             <div>

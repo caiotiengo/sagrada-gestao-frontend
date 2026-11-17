@@ -1,5 +1,6 @@
 'use client'
 
+import { raffleCountsLabel } from '@/lib/raffle-counts'
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -452,7 +453,7 @@ function RaffleCard({
         {/* Progress bar */}
         <div className="space-y-1">
           <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <span>{raffle.soldNumbers}/{raffle.totalNumbers} números</span>
+            <span>{raffleCountsLabel(raffle)}</span>
             <span className="font-medium">{progress}%</span>
           </div>
           <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">

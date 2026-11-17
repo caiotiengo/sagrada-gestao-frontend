@@ -1,5 +1,6 @@
 'use client'
 
+import { raffleCountsLabel } from '@/lib/raffle-counts'
 import { useCallback, useMemo, useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
@@ -129,7 +130,7 @@ export default function MemberRaffleDetailPage() {
         <CardContent className="space-y-4 p-4">
           <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
             <div><span className="text-muted-foreground">Preço por número: </span><span className="font-medium">{formatCurrency(raffle.numberPrice)}</span></div>
-            <div><span className="text-muted-foreground">Números: </span><span className="font-medium">{raffle.soldNumbers}/{raffle.totalNumbers}</span></div>
+            <div><span className="text-muted-foreground">Números: </span><span className="font-medium">{raffleCountsLabel(raffle)}</span></div>
             <div><span className="text-muted-foreground">Progresso: </span><span className="font-medium">{progress}%</span></div>
             {raffle.drawDate && (
               <div className="flex items-center gap-1.5">
