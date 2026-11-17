@@ -32,6 +32,7 @@ import {
 } from 'lucide-react'
 import { NotificationBell } from '@/components/notifications/notification-bell'
 import { BillingAlerts } from '@/components/billing/billing-alerts'
+import { HouseSwitcher } from '@/components/layout/house-switcher'
 import { useAuthStore } from '@/stores/auth'
 import { useLogout } from '@/hooks/use-auth'
 import { usePendingReceiptsCount } from '@/hooks/use-receipts'
@@ -307,6 +308,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
         <Separator />
 
+        <HouseSwitcher className="pt-2.5" />
+
         {/* Navigation */}
         <nav className="flex flex-1 flex-col gap-0.5 p-2.5">
           {navItems.map((entry) => renderNavEntry(entry))}
@@ -396,6 +399,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                   <span className="text-sm font-semibold tracking-tight">{APP_NAME}</span>
                 </SheetTitle>
               </SheetHeader>
+
+              <HouseSwitcher className="pt-2.5" />
 
               {/* Mobile Nav Items */}
               <nav className="flex flex-col gap-0.5 p-2.5">
