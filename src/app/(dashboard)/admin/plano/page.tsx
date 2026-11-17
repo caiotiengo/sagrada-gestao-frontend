@@ -1,8 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { AlertTriangle, Barcode, Check, CreditCard, ExternalLink, Info, Lock, QrCode, Users } from 'lucide-react'
-import { useHouseBilling, useOpenBillingPortal, useStartCheckout, useStartPixCheckout } from '@/hooks/use-billing'
+import { AlertTriangle, ArrowRightLeft, Barcode, CalendarClock, Check, CreditCard, ExternalLink, Info, Lock, QrCode, Users } from 'lucide-react'
+import { useChangePlan, useHouseBilling, useOpenBillingPortal, useStartCheckout, useStartPixCheckout } from '@/hooks/use-billing'
+import { planChangeExplanation, planChangeKind } from '@/lib/plan-change'
 import { getErrorMessage } from '@/lib/errors'
 import { cn } from '@/lib/utils'
 import {
@@ -18,6 +19,16 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ErrorState } from '@/components/feedback/error-state'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 
 const WARNING_STYLE: Record<BillingWarning['severity'], string> = {
   info: 'border-sky-200 bg-sky-50 text-sky-900 dark:border-sky-900/50 dark:bg-sky-950/30 dark:text-sky-200',
@@ -88,16 +99,25 @@ function BillingContent({ b, interval, setBillingInterval }: { b: HouseBilling; 
   const checkout = useStartCheckout()
   const pix = useStartPixCheckout()
   const portal = useOpenBillingPortal()
+  const change = useChangePlan()
+  const [changeTarget, setChangeTarget] = useState<{ plan: PlanCatalogItem['id']; interval: BillingInterval } | null>(null)
   const methods = b.paymentMethods.length ? b.paymentMethods : (['card'] as PaymentMethod[])
   const [method, setMethod] = useState<PaymentMethod>(methods.includes('pix') && b.billingMode === 'pix' ? 'pix' : methods[0])
   const status = statusLabel(b)
   const limit = b.memberLimit
   const usagePct = limit ? Math.min(100, Math.round((b.activeMembers / limit) * 100)) : 0
-  const busy = checkout.isPending || portal.isPending || pix.isPending
+  const busy = checkout.isPending || portal.isPending || pix.isPending || change.isPending
   // Cartão/boleto já valendo no Stripe (em dia ou atrasado): trocar plano/cartão e pagar fatura é pelo Portal.
   const stripeLive = b.hasActiveSubscription
   const canPay = (m: PaymentMethod) => !(stripeLive && m !== 'pix') && !(stripeLive && b.access === 'ok')
   const warnings = b.warnings.filter((w) => w.code !== 'payment_blocked')
+  // Troca de plano pela nossa página (o Portal do Sagrada não troca plano): assinatura em dia ou PIX em dia.
+  const canChangePlan = b.canManage && b.access === 'ok' && (
+    (b.hasActiveSubscription && (b.status === 'active' || b.status === 'trialing') && !b.cancelAtPeriodEnd)
+    || (b.billingMode === 'pix' && b.source === 'pix')
+  )
+  const pendingChange = b.pendingPlanChange
+  const planName = (id: string) => b.plans.find((p) => p.id === id)?.name ?? id
 
   const pay = (planId: PlanCatalogItem['id']) => {
     if (method === 'pix') pix.mutate({ plan: planId, interval })
@@ -163,7 +183,7 @@ function BillingContent({ b, interval, setBillingInterval }: { b: HouseBilling; 
             </Button>
           )}
           {b.canManage && b.hasStripeCustomer && b.billingMode === 'stripe' && (
-            <p className="max-w-56 text-xs text-muted-foreground md:text-right">Trocar plano ou cartão, pagar fatura, cancelar e ver as faturas.</p>
+            <p className="max-w-56 text-xs text-muted-foreground md:text-right">Trocar cartão, pagar fatura, cancelar e ver as faturas. Para trocar de plano, use os planos abaixo.</p>
           )}
           {b.lastInvoice && (
             <p className="text-xs text-muted-foreground md:text-right" data-testid="billing-last-invoice">
@@ -172,6 +192,22 @@ function BillingContent({ b, interval, setBillingInterval }: { b: HouseBilling; 
           )}
         </div>
       </section>
+
+      {pendingChange && (
+        <div className="flex flex-wrap items-start gap-3 rounded-xl border border-sky-200 bg-sky-50 p-3 text-sm text-sky-900 dark:border-sky-900/50 dark:bg-sky-950/30 dark:text-sky-200" data-testid="billing-pending-change">
+          <CalendarClock className="mt-0.5 size-4 shrink-0" />
+          <p className="flex-1">
+            {pendingChange.via === 'pix'
+              ? `No próximo pagamento por PIX, a casa passa para o ${planName(pendingChange.plan)} (${pendingChange.interval === 'year' ? 'anual' : 'mensal'}).`
+              : `Troca agendada: a casa passa para o ${planName(pendingChange.plan)} (${pendingChange.interval === 'year' ? 'anual' : 'mensal'}) em ${formatDateBR(pendingChange.effectiveAt)}. Até lá segue no ${b.planName}.`}
+          </p>
+          {b.canManage && b.interval && (
+            <Button size="sm" variant="outline" disabled={busy} onClick={() => change.mutate({ plan: b.subscribedPlan, interval: b.interval! })} data-testid="billing-pending-change-undo">
+              Desfazer
+            </Button>
+          )}
+        </div>
+      )}
 
       {b.pendingPix && b.canManage && (
         <div className="flex items-start gap-3 rounded-xl border p-3 text-sm" data-testid="billing-pending-pix">
@@ -235,7 +271,18 @@ function BillingContent({ b, interval, setBillingInterval }: { b: HouseBilling; 
 
         <div className="grid gap-4 md:grid-cols-2">
           {b.plans.map((p) => (
-            <PlanCard key={p.id} plan={p} b={b} interval={interval} method={method} busy={busy} canPay={canPay(method)} onPay={() => pay(p.id)} onPortal={() => portal.mutate()} />
+            <PlanCard
+              key={p.id}
+              plan={p}
+              b={b}
+              interval={interval}
+              method={method}
+              busy={busy}
+              canPay={canPay(method)}
+              canChangePlan={canChangePlan}
+              onPay={() => pay(p.id)}
+              onChangePlan={() => setChangeTarget({ plan: p.id, interval })}
+            />
           ))}
         </div>
 
@@ -249,7 +296,77 @@ function BillingContent({ b, interval, setBillingInterval }: { b: HouseBilling; 
           <p className="text-sm text-muted-foreground" data-testid="billing-readonly">Só a liderança da casa pode assinar ou mudar o plano.</p>
         )}
       </section>
+
+      <PlanChangeDialog
+        b={b}
+        target={changeTarget}
+        pending={change.isPending}
+        onClose={() => setChangeTarget(null)}
+        onConfirm={() => {
+          if (!changeTarget) return
+          change.mutate(changeTarget, { onSettled: () => setChangeTarget(null) })
+        }}
+      />
     </>
+  )
+}
+
+function PlanChangeDialog({
+  b,
+  target,
+  pending,
+  onClose,
+  onConfirm,
+}: {
+  b: HouseBilling
+  target: { plan: PlanCatalogItem['id']; interval: BillingInterval } | null
+  pending: boolean
+  onClose: () => void
+  onConfirm: () => void
+}) {
+  const plan = target ? b.plans.find((p) => p.id === target.plan) : undefined
+  const current = b.plans.find((p) => p.id === b.subscribedPlan)
+  const kind = target
+    ? planChangeKind({
+      currentPlan: b.subscribedPlan,
+      currentInterval: b.interval,
+      targetPlan: target.plan,
+      targetInterval: target.interval,
+      planOrder: b.plans.map((p) => p.id),
+      status: b.status,
+      billingMode: b.billingMode,
+    })
+    : 'none'
+  const lines = plan && target
+    ? planChangeExplanation(kind, {
+      targetName: plan.name,
+      currentName: current?.name ?? b.planName,
+      targetPrice: `${formatBRL(target.interval === 'year' ? plan.yearlyCents : plan.monthlyCents)}/${target.interval === 'year' ? 'ano' : 'mês'}`,
+      trialEnd: formatDateBR(b.trialEnd) || undefined,
+      periodEnd: formatDateBR(b.currentPeriodEnd) || undefined,
+      targetLimit: plan.memberLimit,
+      activeMembers: b.activeMembers,
+    })
+    : []
+  return (
+    <AlertDialog open={!!target} onOpenChange={(o) => { if (!o) onClose() }}>
+      <AlertDialogContent data-testid="billing-change-dialog">
+        <AlertDialogHeader>
+          <AlertDialogTitle>
+            Trocar para {plan?.name} {target?.interval === 'year' ? 'anual' : 'mensal'}?
+          </AlertDialogTitle>
+          <AlertDialogDescription render={<div className="space-y-2" />}>
+            {lines.map((l) => <p key={l}>{l}</p>)}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel onClick={onClose}>Cancelar</AlertDialogCancel>
+          <AlertDialogAction onClick={onConfirm} disabled={pending} data-testid="billing-change-confirm">
+            {pending ? 'Trocando...' : 'Confirmar troca'}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   )
 }
 
@@ -264,8 +381,9 @@ function PlanCard({
   method,
   busy,
   canPay,
+  canChangePlan,
   onPay,
-  onPortal,
+  onChangePlan,
 }: {
   plan: PlanCatalogItem
   b: HouseBilling
@@ -273,28 +391,43 @@ function PlanCard({
   method: PaymentMethod
   busy: boolean
   canPay: boolean
+  canChangePlan: boolean
   onPay: () => void
-  onPortal: () => void
+  onChangePlan: () => void
 }) {
   const paying = b.source === 'subscription' || b.source === 'pix'
   const isCurrent = plan.id === b.plan && paying
+  // Mesmo plano E mesmo período (com o seletor mensal/anual, o mesmo plano em outro período também é troca).
+  const isExact = isCurrent && interval === b.interval
+  const pendingHere = b.pendingPlanChange?.plan === plan.id && b.pendingPlanChange.interval === interval
+  const changeButton = canChangePlan && !isExact && !pendingHere ? (
+    <Button variant="outline" className="w-full" onClick={onChangePlan} disabled={busy} data-testid={`billing-change-${plan.id}`}>
+      <ArrowRightLeft className="size-4" /> Trocar para {plan.name} {interval === 'year' ? 'anual' : 'mensal'}
+    </Button>
+  ) : null
   const price = interval === 'year' ? plan.yearlyCents : plan.monthlyCents
   const monthsFree = interval === 'year' ? Math.round((plan.monthlyCents * 12 - plan.yearlyCents) / plan.monthlyCents) : 0
 
   let action: React.ReactNode = null
   if (b.canManage) {
     if (b.hasActiveSubscription && b.access === 'ok' && method !== 'pix') {
-      action = isCurrent
+      action = isExact
         ? <Button variant="outline" className="w-full" disabled>Seu plano</Button>
-        : <Button variant="outline" className="w-full" onClick={onPortal} disabled={busy} data-testid={`billing-change-${plan.id}`}>Mudar para {plan.name}</Button>
+        : pendingHere
+          ? <Button variant="outline" className="w-full" disabled>Troca agendada</Button>
+          : changeButton
     } else if (canPay) {
       const label = method === 'pix'
         ? `${b.billingMode === 'pix' && isCurrent ? 'Pagar o próximo período' : 'Pagar'} com PIX (${formatBRL(price)})`
         : b.access !== 'ok' ? `Regularizar com ${plan.name}` : `Assinar ${plan.name}`
       action = (
-        <Button className="w-full" onClick={onPay} disabled={busy} data-testid={`billing-subscribe-${plan.id}`}>
-          {method === 'pix' && <QrCode className="size-4" />} {label}
-        </Button>
+        <div className="space-y-2">
+          <Button className="w-full" onClick={onPay} disabled={busy} data-testid={`billing-subscribe-${plan.id}`}>
+            {method === 'pix' && <QrCode className="size-4" />} {label}
+          </Button>
+          {/* Casa no PIX em dia: pode só deixar combinada a troca para o próximo período. */}
+          {b.billingMode === 'pix' && changeButton}
+        </div>
       )
     }
   }

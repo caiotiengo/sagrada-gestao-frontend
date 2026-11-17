@@ -1,8 +1,8 @@
 'use client'
 
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { billingService, type BillingInterval, type PaidPlanId, type PlanFeature } from '@/services/billing'
+import { billingService, formatDateBR, type BillingInterval, type PaidPlanId, type PlanChangeResult, type PlanFeature } from '@/services/billing'
 import { useAuthStore } from '@/stores/auth'
 import { getErrorMessage } from '@/lib/errors'
 
@@ -57,5 +57,36 @@ export function useStartPixCheckout() {
     mutationFn: (v: { plan: PaidPlanId; interval: BillingInterval }) => billingService.pixCheckout({ houseId: houseId!, ...v }),
     onSuccess: (r) => go(r.url),
     onError: (e) => toast.error(getErrorMessage(e, 'Não foi possível gerar o PIX')),
+  })
+}
+
+function planChangeToast(r: PlanChangeResult): string {
+  switch (r.effect) {
+    case 'trial_swap':
+      return `Plano trocado. Seus dias grátis continuam até ${formatDateBR(r.trialEnd)}.`
+    case 'upgraded_now':
+      return 'Plano trocado. Já está valendo.'
+    case 'downgrade_scheduled':
+      return `Troca agendada para ${formatDateBR(r.effectiveAt)}.`
+    case 'pix_next_period':
+      return 'Combinado: o plano novo vale no próximo pagamento por PIX.'
+    case 'pending_canceled':
+      return 'Troca de plano desfeita.'
+  }
+}
+
+/** Troca de plano (Casa ↔ Casa Grande, mensal ↔ anual). O estado novo chega pelo webhook: recarrega em seguida. */
+export function useChangePlan() {
+  const houseId = useAuthStore((s) => s.currentHouseId())
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (v: { plan: PaidPlanId; interval: BillingInterval }) => billingService.changePlan({ houseId: houseId!, ...v }),
+    onSuccess: (r) => {
+      toast.success(planChangeToast(r))
+      qc.invalidateQueries({ queryKey: billingKey(houseId) })
+      // O webhook do Stripe pode chegar alguns segundos depois.
+      setTimeout(() => qc.invalidateQueries({ queryKey: billingKey(houseId) }), 4000)
+    },
+    onError: (e) => toast.error(getErrorMessage(e, 'Não foi possível trocar o plano')),
   })
 }

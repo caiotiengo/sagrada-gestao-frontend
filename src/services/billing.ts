@@ -34,6 +34,24 @@ export interface PlanCatalogItem {
   highlighted?: boolean
 }
 
+export interface PendingPlanChange {
+  plan: PaidPlanId
+  interval: BillingInterval
+  /** schedule = agendado no Stripe para o fim do período; pix = vale no próximo PIX. */
+  via: 'schedule' | 'pix'
+  effectiveAt: string | null
+}
+
+export type PlanChangeEffect = 'trial_swap' | 'upgraded_now' | 'downgrade_scheduled' | 'pix_next_period' | 'pending_canceled'
+
+export interface PlanChangeResult {
+  effect: PlanChangeEffect
+  plan: PaidPlanId
+  interval: BillingInterval
+  effectiveAt: string | null
+  trialEnd: string | null
+}
+
 export interface HouseBilling {
   houseId: string
   plan: PlanId
@@ -64,6 +82,8 @@ export interface HouseBilling {
   paymentMethods: PaymentMethod[]
   pixEnabled: boolean
   pendingPix: { plan: PaidPlanId; interval: BillingInterval; createdAt: string | null; expiresAt: string | null } | null
+  /** Troca de plano pedida e ainda não valendo (rebaixamento agendado ou próximo PIX). */
+  pendingPlanChange: PendingPlanChange | null
   lastInvoice: { status: string; amountCents: number; at: string | null; method: string | null; hostedInvoiceUrl: string | null } | null
   plans: PlanCatalogItem[]
 }
@@ -74,6 +94,10 @@ export const billingService = {
     callFunction<typeof data, { url: string; sessionId: string }>('createCheckoutSession', data),
   pixCheckout: (data: { houseId: string; plan: PaidPlanId; interval: BillingInterval }) =>
     callFunction<typeof data, { url: string; sessionId: string; amountCents: number }>('createPixCheckout', data),
+
+  /** Troca de plano pela nossa página (o Portal do Sagrada não troca plano). */
+  changePlan: (data: { houseId: string; plan: PaidPlanId; interval: BillingInterval }) =>
+    callFunction<typeof data, PlanChangeResult>('changeSubscriptionPlan', data),
 
   portal: (houseId: string) => callFunction<{ houseId: string }, { url: string }>('createBillingPortalSession', { houseId }),
 }
