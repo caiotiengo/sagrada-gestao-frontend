@@ -5,13 +5,13 @@
  */
 import type { Metadata } from 'next'
 
-import { APP_NAME, ROUTES } from '@/constants'
+import { APP_NAME, ROUTES, siteUrl } from '@/constants'
 import { A, H2, LegalPage, ToConfirm, UL } from '@/components/legal/legal-page'
 
 export const metadata: Metadata = {
   title: 'Termos de uso',
   description: `Condições de uso do ${APP_NAME}.`,
-  alternates: { canonical: ROUTES.TERMS },
+  alternates: { canonical: siteUrl(ROUTES.TERMS) },
 }
 
 export default function TermsPage() {

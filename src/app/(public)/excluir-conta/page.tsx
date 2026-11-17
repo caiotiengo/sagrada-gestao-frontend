@@ -6,14 +6,14 @@
  */
 import type { Metadata } from 'next'
 
-import { APP_NAME, ROUTES } from '@/constants'
+import { APP_NAME, ROUTES, APP_URL, appUrl, siteUrl } from '@/constants'
 import { A, H2, LegalPage, ToConfirm, UL } from '@/components/legal/legal-page'
 import { DeleteAccountExplanation } from '@/components/account/delete-account-section'
 
 export const metadata: Metadata = {
   title: 'Excluir conta',
   description: `Como excluir sua conta do ${APP_NAME} e o que acontece com seus dados.`,
-  alternates: { canonical: ROUTES.DELETE_ACCOUNT_INFO },
+  alternates: { canonical: siteUrl(ROUTES.DELETE_ACCOUNT_INFO) },
 }
 
 export default function DeleteAccountInfoPage() {
@@ -35,7 +35,7 @@ export default function DeleteAccountInfoPage() {
       <H2 id="pelo-site">Pelo site</H2>
       <ol className="list-decimal space-y-1.5 pl-5">
         <li>
-          Entre em <A href={ROUTES.LOGIN}>{ROUTES.LOGIN}</A>.
+          Entre em <A href={appUrl(ROUTES.LOGIN)}>{APP_URL.replace(/^https?:\/\//, '')}{ROUTES.LOGIN}</A>.
         </li>
         <li>Abra <strong>Minha conta</strong> (no menu, ao lado do seu nome).</li>
         <li>
@@ -52,7 +52,7 @@ export default function DeleteAccountInfoPage() {
 
       <H2 id="sem-acesso">Não consegue entrar?</H2>
       <p>
-        Primeiro tente <A href={ROUTES.FORGOT_PASSWORD}>recuperar a senha</A>. Se não tiver mais acesso ao e-mail da
+        Primeiro tente <A href={appUrl(ROUTES.FORGOT_PASSWORD)}>recuperar a senha</A>. Se não tiver mais acesso ao e-mail da
         conta, peça a exclusão por e-mail para <ToConfirm>e-mail para pedidos de exclusão</ToConfirm>, informando:
       </p>
       <UL>
