@@ -20,6 +20,8 @@ const FINANCE_ROOT_KEYS = new Set<string>([
   'ledger',
   'validate-ledger',
   'member-charges',
+  // Comprovantes: baixa/estorno mudam o status do comprovante e o que o filho deve.
+  'receipts',
 ])
 
 export function invalidateFinance(queryClient: QueryClient) {

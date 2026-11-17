@@ -41,6 +41,9 @@ export interface LedgerEntryView {
   confirmedAt: string | null
   reversedBy: string | null
   reverses: string | null
+  /** "receipt" quando a baixa veio de um comprovante PIX (back novo; ausente no antigo). */
+  origin?: 'receipt' | null
+  receiptId?: string | null
 }
 
 export interface PendingTotalsByType {
