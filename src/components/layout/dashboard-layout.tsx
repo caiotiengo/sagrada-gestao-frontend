@@ -25,6 +25,7 @@ import {
   Send,
   HandCoins,
   QrCode,
+  UserCog,
 } from 'lucide-react'
 import { NotificationBell } from '@/components/notifications/notification-bell'
 import { useAuthStore } from '@/stores/auth'
@@ -319,6 +320,14 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                 {roleLabel}
               </p>
             </div>
+            <Link
+              href={ROUTES.PROFILE}
+              aria-label="Minha conta"
+              title="Minha conta"
+              className="inline-flex size-7 items-center justify-center rounded-md text-sidebar-foreground/40 hover:bg-sidebar-accent hover:text-sidebar-foreground focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/20"
+            >
+              <UserCog className="size-4" aria-hidden />
+            </Link>
             <Button
               variant="ghost"
               size="icon-sm"
@@ -402,6 +411,14 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                     </p>
                   </div>
                 </div>
+                <Link
+                  href={ROUTES.PROFILE}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="mt-1 flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-sm hover:bg-muted"
+                >
+                  <UserCog className="size-4" aria-hidden />
+                  Minha conta
+                </Link>
                 <Button
                   variant="ghost"
                   size="sm"

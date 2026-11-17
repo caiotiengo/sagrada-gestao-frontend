@@ -13,6 +13,9 @@ export const ROUTES = {
   LOGIN: '/login',
   FORGOT_PASSWORD: '/esqueci-senha',
   REGISTER_ADMIN: '/cadastro',
+  PRIVACY: '/privacidade',
+  TERMS: '/termos',
+  DELETE_ACCOUNT_INFO: '/excluir-conta',
 
   // Admin Dashboard
   ADMIN_HOME: '/admin',
@@ -38,6 +41,7 @@ export const ROUTES = {
   ADMIN_PIX: '/admin/pix',
 
   // Conta (admin e membro)
+  PROFILE: '/perfil',
   NOTIFICATION_SETTINGS: '/perfil/notificacoes',
 
   // Member Dashboard

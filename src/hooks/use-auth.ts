@@ -7,6 +7,7 @@ import { onAuthStateChanged } from 'firebase/auth'
 import { auth } from '@/lib/firebase'
 import { getStoredHomeRoute, useAuthStore } from '@/stores/auth'
 import { authService } from '@/services/auth'
+import { accountService } from '@/services/account'
 import { disableWebPush } from '@/lib/web-push'
 import type { RegisterHouseRequest } from '@/types'
 import { ROUTES } from '@/constants'
@@ -120,6 +121,29 @@ export function useLogout() {
       clearAuth()
       await queryClient.cancelQueries()
       queryClient.clear()
+      router.replace(ROUTES.LOGIN)
+    },
+  })
+}
+
+/**
+ * Exclui a conta (senha + EXCLUIR já conferidos na tela). Depois encerra a
+ * sessão, limpa o cache e volta ao login. O token de push do navegador já foi
+ * apagado no back junto com a conta.
+ */
+export function useDeleteMyAccount() {
+  const { clearAuth } = useAuthStore()
+  const router = useRouter()
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (password: string) => accountService.deleteMyAccount(password),
+    onSuccess: async () => {
+      await authService.logout().catch(() => undefined)
+      clearAuth()
+      await queryClient.cancelQueries()
+      queryClient.clear()
+      toast.success('Sua conta foi excluída.')
       router.replace(ROUTES.LOGIN)
     },
   })
