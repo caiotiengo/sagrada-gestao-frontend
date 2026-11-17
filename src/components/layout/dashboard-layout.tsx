@@ -26,8 +26,10 @@ import {
   HandCoins,
   QrCode,
   UserCog,
+  CreditCard,
 } from 'lucide-react'
 import { NotificationBell } from '@/components/notifications/notification-bell'
+import { BillingAlerts } from '@/components/billing/billing-alerts'
 import { useAuthStore } from '@/stores/auth'
 import { useLogout } from '@/hooks/use-auth'
 import { APP_NAME, ROLE_LABELS, ROUTES } from '@/constants'
@@ -85,6 +87,7 @@ const adminNavItems: NavEntry[] = [
   { label: 'Cobranças', href: ROUTES.ADMIN_MEMBER_CHARGES, icon: HandCoins },
   { label: 'Chave PIX', href: ROUTES.ADMIN_PIX, icon: QrCode },
   { label: 'Site', href: ROUTES.ADMIN_SITE, icon: Globe },
+  { label: 'Plano e cobrança', href: ROUTES.ADMIN_BILLING, icon: CreditCard },
 ]
 
 const memberNavItems: NavEntry[] = [
@@ -448,6 +451,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
         {/* Page Content */}
         <main className="flex-1">
+          {isAdmin && <BillingAlerts />}
           {children}
         </main>
       </div>
