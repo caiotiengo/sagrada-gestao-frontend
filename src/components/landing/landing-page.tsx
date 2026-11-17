@@ -50,14 +50,13 @@ const LOGIN = ROUTES.LOGIN
 const SIGNUP = ROUTES.REGISTER_ADMIN
 
 /** Endereço mostrado na moldura do site público (cada casa escolhe o seu). */
-const SITE_HOST_EXAMPLE = 'suacasa.sagradagestao.com.br'
+const SITE_HOST_EXAMPLE = 'casadeaxeexemplo.sagradagestao.com.br'
 const APP_HOST = 'app.sagradagestao.com.br'
 
 const MEDIA = {
+  // O sistema web só tem tema claro, então as capturas também.
   adminLight: '/media/web-admin-light.webp',
-  adminDark: '/media/web-admin-dark.webp',
   memberLight: '/media/web-member-light.webp',
-  memberDark: '/media/web-member-dark.webp',
   site: '/media/site-casa.webp',
 }
 
@@ -421,8 +420,7 @@ export function LandingPage({ fontClassName }: { fontClassName?: string }) {
                 <BrowserFrame url={`${APP_HOST}/admin`}>
                   <ThemedShot
                     light={MEDIA.adminLight}
-                    dark={MEDIA.adminDark}
-                    alt="Painel da gestão no computador, com dados de uma casa de exemplo: membros, mensalidades do mês, caixa e próximos eventos."
+                    alt="Painel da gestão no computador, com dados de uma casa de exemplo: saldo do caixa, pendências da casa, receita por origem e ações rápidas."
                     sizes="(min-width: 1024px) 880px, 80vw"
                     eager
                   />
@@ -504,8 +502,7 @@ export function LandingPage({ fontClassName }: { fontClassName?: string }) {
                   <ThemedShot
                     className="h-full object-cover object-left-top"
                     light={MEDIA.memberLight}
-                    dark={MEDIA.memberDark}
-                    alt="Tela de quem é da casa no computador: o total em aberto em “O que eu devo” e os itens a pagar."
+                    alt="Tela de quem é da casa no computador: o saldo em aberto, separado em mensalidade e loja, e a próxima mensalidade."
                     sizes="(min-width: 1024px) 560px, 90vw"
                   />
                 </div>
@@ -613,8 +610,7 @@ export function LandingPage({ fontClassName }: { fontClassName?: string }) {
               <BrowserFrame url={`${APP_HOST}/membro`}>
                 <ThemedShot
                   light={MEDIA.memberLight}
-                  dark={MEDIA.memberDark}
-                  alt="Painel de quem é da casa: o que tem em aberto, a chave PIX da casa e os próximos eventos."
+                  alt="Painel de quem é da casa: o saldo em aberto, a próxima mensalidade, o acesso rápido e o mural de avisos."
                   sizes="(min-width: 1024px) 640px, 92vw"
                 />
               </BrowserFrame>

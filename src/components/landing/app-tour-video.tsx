@@ -8,9 +8,9 @@ export const APP_TOUR = {
   mp4: '/media/app-tour.mp4',
   webm: '/media/app-tour.webm',
   poster: '/media/app-tour-poster.webp',
-  /** Tela do iPhone 16 Pro (pixels nativos), para a proporção. */
-  width: 1206,
-  height: 2622,
+  /** Pôster no tamanho do vídeo (tela do iPhone 16 Pro reduzida de 1206x2622). */
+  width: 590,
+  height: 1282,
 }
 
 const ALT =
