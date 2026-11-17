@@ -1,7 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { Bell, CheckCheck } from 'lucide-react'
+import Link from 'next/link'
+import { Bell, CheckCheck, Settings2 } from 'lucide-react'
+import { ROUTES } from '@/constants'
 import {
   useNotifications,
   useUnreadNotificationsCount,
@@ -95,6 +97,14 @@ export function NotificationBell({ className }: { className?: string }) {
             Marcar todas como lidas
           </Button>
         </div>
+        <Link
+          href={ROUTES.NOTIFICATION_SETTINGS}
+          onClick={() => setOpen(false)}
+          className="flex items-center gap-1.5 px-2 pb-1 text-xs text-muted-foreground hover:text-foreground"
+        >
+          <Settings2 className="size-3.5" />
+          Preferências de notificação
+        </Link>
         <div className="max-h-[min(26rem,65dvh)] overflow-y-auto">
           {open && Array.from({ length: pages }, (_, i) => (
             <NotificationPage

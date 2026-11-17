@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '@/stores/auth'
-import { notificationsService } from '@/services/notifications'
+import { notificationsService, type NotificationPreferences } from '@/services/notifications'
 import type {
   SendNotificationRequest,
   MarkNotificationReadRequest,
@@ -86,5 +86,33 @@ export function useMarkAllNotificationsRead() {
     onError: (error) => {
       toast.error(getErrorMessage(error, 'Erro ao marcar notificações como lidas'))
     },
+  })
+}
+
+export function useNotificationPreferences() {
+  return useQuery({
+    queryKey: ['notifications', 'preferences'],
+    queryFn: async () => (await notificationsService.getNotificationPreferences()).preferences,
+  })
+}
+
+export function useUpdateNotificationPreferences() {
+  const queryClient = useQueryClient()
+  const key = ['notifications', 'preferences']
+
+  return useMutation({
+    mutationFn: async (changes: Partial<NotificationPreferences>) =>
+      (await notificationsService.updateNotificationPreferences(changes)).preferences,
+    onMutate: async (changes) => {
+      await queryClient.cancelQueries({ queryKey: key })
+      const prev = queryClient.getQueryData<NotificationPreferences>(key)
+      if (prev) queryClient.setQueryData(key, { ...prev, ...changes })
+      return { prev }
+    },
+    onError: (error, _v, ctx) => {
+      if (ctx?.prev) queryClient.setQueryData(key, ctx.prev)
+      toast.error(getErrorMessage(error, 'Erro ao salvar preferência'))
+    },
+    onSuccess: (prefs) => queryClient.setQueryData(key, prefs),
   })
 }

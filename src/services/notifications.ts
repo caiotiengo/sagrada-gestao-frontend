@@ -24,4 +24,22 @@ export const notificationsService = {
 
   registerFcmToken: (data: RegisterFcmTokenRequest) =>
     callFunction<RegisterFcmTokenRequest, { message: string }>('registerFcmToken', data),
+
+  registerPushToken: (data: { token: string; provider: 'fcm'; platform: 'web'; deviceName?: string }) =>
+    callFunction<typeof data, { registered: boolean }>('registerPushToken', data),
+
+  unregisterPushToken: (data: { token: string }) =>
+    callFunction<typeof data, { unregistered: boolean; removed: boolean }>('unregisterPushToken', data),
+
+  getNotificationPreferences: () =>
+    callFunction<Record<string, never>, { preferences: NotificationPreferences }>('getNotificationPreferences', {}),
+
+  updateNotificationPreferences: (preferences: Partial<NotificationPreferences>) =>
+    callFunction<{ preferences: Partial<NotificationPreferences> }, { preferences: NotificationPreferences }>(
+      'updateNotificationPreferences',
+      { preferences },
+    ),
 }
+
+export type NotificationCategory = 'notices' | 'events' | 'payments' | 'store' | 'charges' | 'general'
+export type NotificationPreferences = Record<NotificationCategory, boolean>
