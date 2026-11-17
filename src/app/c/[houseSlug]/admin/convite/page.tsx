@@ -100,7 +100,7 @@ export default function AdminInviteRegistrationPage() {
           <CardContent className="py-6">
             <div className="mb-6 space-y-1.5 text-center">
               <h2 className="text-lg font-semibold tracking-tight">
-                Cadastro de Administrador
+                Entrar na Liderança da casa
               </h2>
               <p className="text-sm text-muted-foreground">
                 Preencha seus dados para completar o cadastro

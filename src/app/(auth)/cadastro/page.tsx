@@ -221,7 +221,7 @@ export default function AdminRegistrationPage() {
 
       <div className="space-y-1.5 text-center">
         <h2 className="text-lg font-semibold tracking-tight">
-          Cadastro de Administrador
+          Cadastre sua casa
         </h2>
         <p className="text-sm text-muted-foreground">
           {step === 1 ? 'Dados pessoais' : 'Dados da casa'}

@@ -130,7 +130,7 @@ function MemberCampaignsTab() {
           setSelectedCampaign(null)
           setQuotaAmount(0)
           setParticipateDialogOpen(false)
-          toast.success('Cota registrada! Para pagar, contate o administrador.')
+          toast.success('Cota registrada! Para pagar, fale com a Liderança da casa.')
           refetch()
         },
       },
@@ -208,7 +208,7 @@ function MemberCampaignsTab() {
             <DialogTitle>Adicionar Cota</DialogTitle>
             <DialogDescription>
               {selectedCampaign?.title} — Informe o valor da sua cota.
-              Para pagar, contate o administrador depois de registrar.
+              Para pagar, fale com a Liderança da casa depois de registrar.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">

@@ -1068,7 +1068,7 @@ export function StorePageContent({ category }: StorePageContentProps) {
                   }`}
                   onClick={() => { setSaleBuyerType('member'); setSaleBuyerName('') }}
                 >
-                  Filho de Santo
+                  Membro da casa
                 </button>
                 <button
                   type="button"
@@ -1088,7 +1088,7 @@ export function StorePageContent({ category }: StorePageContentProps) {
                   value={saleMemberId}
                   onChange={(e) => setSaleMemberId(e.target.value)}
                 >
-                  <option value="">Selecione um filho de santo</option>
+                  <option value="">Selecione o membro</option>
                   {members.map((m) => (
                     <option key={m.id} value={m.id}>{m.fullName}</option>
                   ))}

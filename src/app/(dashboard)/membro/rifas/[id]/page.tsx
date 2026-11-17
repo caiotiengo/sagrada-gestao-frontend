@@ -228,7 +228,7 @@ export default function MemberRaffleDetailPage() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg"><Ticket className="size-4 text-primary" />Reservar números</CardTitle>
-                <CardDescription>Para pagar, contate o administrador depois de reservar.</CardDescription>
+                <CardDescription>Para pagar, fale com a Liderança da casa depois de reservar.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-3">

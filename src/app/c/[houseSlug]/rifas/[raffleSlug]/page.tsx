@@ -254,7 +254,7 @@ export default function PublicRafflePage({ params }: PageProps) {
                   <div>
                     <p className="text-base font-semibold">Reserva feita!</p>
                     <p className="mt-1 text-sm text-muted-foreground">
-                      O administrador entrará em contato para confirmar o pagamento.
+                      A casa vai entrar em contato para confirmar o pagamento.
                     </p>
                     {reservationExpiresAt && (
                       <p className="mt-1 text-sm text-muted-foreground">
@@ -282,7 +282,7 @@ export default function PublicRafflePage({ params }: PageProps) {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-lg"><Ticket className="size-4 text-primary" />Reservar números</CardTitle>
                   <CardDescription>
-                    Preencha seus dados para reservar. O administrador confirmará o pagamento.
+                    Preencha seus dados para reservar. A casa confirma o pagamento depois.
                     {raffle.reservationTtlHours ? ` Sem pagamento, a reserva expira em ${raffle.reservationTtlHours}h.` : ''}
                   </CardDescription>
                 </CardHeader>

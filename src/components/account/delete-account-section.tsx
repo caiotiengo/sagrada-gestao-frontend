@@ -44,8 +44,8 @@ export function DeleteAccountExplanation({ mutedClassName = 'text-muted-foregrou
         </ul>
       </div>
       <p className={mutedClassName}>
-        Se você é a única pessoa na administração de uma casa que tem outros membros ativos, transfira a administração
-        antes. Se você é a única pessoa da casa, a casa é desativada junto.
+        Se você é a única pessoa da Liderança de uma casa que tem outros membros ativos, passe a liderança antes em
+        Membros › [nome] › Tornar Liderança. Se você é a única pessoa da casa, a casa é desativada junto.
       </p>
     </div>
   )

@@ -92,27 +92,7 @@ export const INVITE_STATUS_LABELS: Record<string, string> = {
   revoked: 'Revogado',
 }
 
-export const INVITE_TYPE_LABELS: Record<string, string> = {
-  member: 'Filho de Santo',
-  admin: 'Administrador',
-}
-
-export const ROLE_LABELS: Record<string, string> = {
-  admin: 'Administrador',
-  filho_de_santo: 'Filho de Santo',
-}
-
-export const PERMISSION_LABELS: Record<string, string> = {
-  canManageCashier: 'Tesoureiro',
-  canRegisterSales: 'Gerenciar Vendas',
-  canRegisterInternalPayments: 'Gerenciar Pagamentos',
-  canManageMembers: 'Gerenciar Membros',
-  canManageCalendar: 'Gerenciar Calendário',
-  canManageCampaigns: 'Gerenciar Listas',
-  canManageRaffles: 'Gerenciar Rifas',
-  canManageJobs: 'Gerenciar Trabalhos',
-  canManageGames: 'Gerenciar Jogos',
-}
+export * from './roles'
 
 export const PAYMENT_METHOD_LABELS: Record<string, string> = {
   pix: 'PIX',

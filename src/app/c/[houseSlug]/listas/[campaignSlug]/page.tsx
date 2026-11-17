@@ -258,7 +258,7 @@ export default function PublicCampaignPage({ params }: PageProps) {
                   <div>
                     <p className="text-base font-semibold">Contribuição registrada!</p>
                     <p className="mt-1 text-sm text-muted-foreground">
-                      Aguardando confirmação do administrador.
+                      Aguardando a casa confirmar.
                     </p>
                   </div>
                   <Button variant="outline" onClick={() => setContributionSuccess(false)}>
@@ -300,7 +300,7 @@ export default function PublicCampaignPage({ params }: PageProps) {
                     Contribuir
                   </CardTitle>
                   <CardDescription>
-                    Registre sua contribuição. O administrador confirmará o pagamento.
+                    Registre sua contribuição. A casa confirma o pagamento depois.
                   </CardDescription>
                 </CardHeader>
                 <CardContent>

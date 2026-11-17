@@ -13,9 +13,10 @@ import {
 } from 'lucide-react'
 import { useInvites, useCreateInvite, useRevokeInvite } from '@/hooks/use-invites'
 import { useAuthStore } from '@/stores/auth'
-import { INVITE_STATUS_LABELS, INVITE_TYPE_LABELS } from '@/constants'
+import { INVITE_STATUS_LABELS, INVITE_TYPE_LABELS, LEADERSHIP_WARNING, ROLE_DESCRIPTIONS } from '@/constants'
+import { PermissionsEditor } from '@/components/members/permissions-editor'
 import { formatDateTime } from '@/utils'
-import type { InviteType, InviteStatus } from '@/types'
+import type { ExtraPermission, InviteType, InviteStatus } from '@/types'
 import { Input } from '@/components/ui/input'
 import {
   Select,
@@ -98,6 +99,7 @@ export default function InvitesPage() {
   const [inviteType, setInviteType] = useState<InviteType>('member')
   const [maxUses, setMaxUses] = useState('1')
   const [expiresInHours, setExpiresInHours] = useState('168')
+  const [permissionsTemplate, setPermissionsTemplate] = useState<ExtraPermission[]>([])
   const [createdLink, setCreatedLink] = useState<string | null>(null)
   const [revokeAlertOpen, setRevokeAlertOpen] = useState(false)
   const [revokeInviteId, setRevokeInviteId] = useState<string | null>(null)
@@ -126,6 +128,7 @@ export default function InvitesPage() {
         inviteType,
         maxUses: Math.min(1000, Math.max(1, Math.trunc(Number(maxUses)) || 1)),
         expiresInHours: Number(expiresInHours) || 168,
+        ...(inviteType === 'member' && permissionsTemplate.length ? { permissionsTemplate } : {}),
       },
       {
         onSuccess: (data) => {
@@ -144,6 +147,7 @@ export default function InvitesPage() {
       setInviteType('member')
       setMaxUses('1')
       setExpiresInHours('168')
+      setPermissionsTemplate([])
     }
   }
 
@@ -184,7 +188,7 @@ export default function InvitesPage() {
             <span className="hidden sm:inline">Novo Convite</span>
           </DialogTrigger>
 
-          <DialogContent>
+          <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-md">
             {createdLink ? (
               <>
                 <DialogHeader>
@@ -251,6 +255,14 @@ export default function InvitesPage() {
                         </SelectItem>
                       </SelectContent>
                     </Select>
+                    <p className="text-xs text-muted-foreground">
+                      {ROLE_DESCRIPTIONS[inviteType === 'admin' ? 'admin' : 'filho_de_santo']}
+                    </p>
+                    {inviteType === 'admin' && (
+                      <p className="rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                        {LEADERSHIP_WARNING} Mande este convite só para quem vai cuidar da casa com você.
+                      </p>
+                    )}
                   </div>
 
                   {inviteType === 'member' && (
@@ -285,6 +297,11 @@ export default function InvitesPage() {
                             <SelectItem value="720">30 dias</SelectItem>
                           </SelectContent>
                         </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Também vai cuidar de… (opcional)</label>
+                        <PermissionsEditor value={permissionsTemplate} onChange={setPermissionsTemplate} idPrefix="invite" />
                       </div>
                     </>
                   )}

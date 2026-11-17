@@ -22,8 +22,8 @@ type Audience = 'all' | 'filho_de_santo' | 'admin' | 'selected'
 
 const AUDIENCE_LABELS: Record<Audience, string> = {
   all: 'Todos os membros ativos',
-  filho_de_santo: 'Só filhos de santo',
-  admin: 'Só administradores',
+  filho_de_santo: 'Só Membros',
+  admin: 'Só a Liderança',
   selected: 'Escolher membros',
 }
 
@@ -86,7 +86,7 @@ export default function AdminNotificationsPage() {
 
   if (!isAdmin) {
     return (
-      <ErrorState title="Sem permissão" message="Só administradores enviam notificações para a casa." />
+      <ErrorState title="Sem permissão" message="Só a Liderança envia notificações para a casa." />
     )
   }
 

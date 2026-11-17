@@ -109,14 +109,14 @@ const memberNavItems: NavEntry[] = [
 
 // Admin pages accessible to members with specific permissions
 const permissionNavItems: NavItem[] = [
-  { label: 'Tesoureiro', href: ROUTES.ADMIN_FINANCE, icon: DollarSign, permission: 'canManageCashier' },
-  { label: 'Gerenciar Membros', href: ROUTES.MEMBERS_LIST, icon: Users, permission: 'canManageMembers' },
-  { label: 'Gerenciar Avisos', href: ROUTES.ADMIN_NOTICES, icon: Megaphone, permission: 'canManageMembers' },
-  { label: 'Gerenciar Calendário', href: ROUTES.ADMIN_CALENDAR, icon: CalendarDays, permission: 'canManageCalendar' },
-  { label: 'Gerenciar Listas', href: ROUTES.ADMIN_CAMPAIGNS, icon: List, permission: 'canManageCampaigns' },
-  { label: 'Gerenciar Rifas', href: ROUTES.ADMIN_RAFFLES, icon: Ticket, permission: 'canManageRaffles' },
-  { label: 'Gerenciar Loja', href: ROUTES.ADMIN_STORE, icon: ShoppingBag, permission: 'canRegisterSales' },
-  { label: 'Gerenciar Cantina', href: ROUTES.ADMIN_CANTEEN, icon: UtensilsCrossed, permission: 'canRegisterSales' },
+  { label: 'Mensalidades e caixa', href: ROUTES.ADMIN_FINANCE, icon: DollarSign, permission: 'canManageCashier' },
+  { label: 'Membros', href: ROUTES.MEMBERS_LIST, icon: Users, permission: 'canManageMembers' },
+  { label: 'Avisos', href: ROUTES.ADMIN_NOTICES, icon: Megaphone, permission: 'canManageMembers' },
+  { label: 'Agenda', href: ROUTES.ADMIN_CALENDAR, icon: CalendarDays, permission: 'canManageCalendar' },
+  { label: 'Campanhas e listas', href: ROUTES.ADMIN_CAMPAIGNS, icon: List, permission: 'canManageCampaigns' },
+  { label: 'Rifas', href: ROUTES.ADMIN_RAFFLES, icon: Ticket, permission: 'canManageRaffles' },
+  { label: 'Loja', href: ROUTES.ADMIN_STORE, icon: ShoppingBag, permission: 'canRegisterSales' },
+  { label: 'Cantina', href: ROUTES.ADMIN_CANTEEN, icon: UtensilsCrossed, permission: 'canRegisterSales' },
 ]
 
 interface DashboardLayoutProps {
