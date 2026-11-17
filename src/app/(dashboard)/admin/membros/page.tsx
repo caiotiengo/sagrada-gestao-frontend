@@ -2,10 +2,11 @@
 
 import { useEffect, useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import { Users, Search, Shield, MoreVertical, UserX, UserCheck } from 'lucide-react'
+import { Users, Search, Shield, MoreVertical, UserX, UserCheck, ShieldCheck } from 'lucide-react'
 import { useMembers, useUpdateMemberPermissions, useSetMemberActive } from '@/hooks/use-members'
 import { useAuthStore } from '@/stores/auth'
-import { ROUTES, PERMISSION_LABELS, ROLE_LABELS } from '@/constants'
+import { ROUTES, ROLE_LABELS } from '@/constants'
+import { PermissionsEditor } from '@/components/members/permissions-editor'
 import type { MemberItem, ExtraPermission, UserRole } from '@/types'
 import { MemberListItem } from '@/components/cards/member-list-item'
 import { ListSkeleton } from '@/components/feedback/list-skeleton'
@@ -30,10 +31,11 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Checkbox } from '@/components/ui/checkbox'
 import { Textarea } from '@/components/ui/textarea'
 import {
   AlertDialog,
@@ -46,16 +48,18 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 
-const ALL_PERMISSIONS = Object.keys(PERMISSION_LABELS) as ExtraPermission[]
-
 function MemberActions({
   member,
   canEditPermissions,
   canChangeStatus,
+  canChangeRole,
+  onOpenDetail,
 }: {
   member: MemberItem
   canEditPermissions: boolean
   canChangeStatus: boolean
+  canChangeRole: boolean
+  onOpenDetail: () => void
 }) {
   const houseId = useAuthStore((s) => s.currentHouseId())
   const updatePermissions = useUpdateMemberPermissions()
@@ -65,18 +69,9 @@ function MemberActions({
   const [reason, setReason] = useState('')
   const [localPerms, setLocalPerms] = useState<ExtraPermission[]>(member.extraPermissions)
 
-  const toggle = (perm: ExtraPermission) => {
-    const next = localPerms.includes(perm)
-      ? localPerms.filter((p) => p !== perm)
-      : [...localPerms, perm]
-    setLocalPerms(next)
-    if (!houseId) return
-    updatePermissions.mutate({
-      houseId,
-      memberId: member.id,
-      extraPermissions: next,
-    })
-  }
+  const dirty =
+    localPerms.length !== member.extraPermissions.length ||
+    localPerms.some((p) => !member.extraPermissions.includes(p))
 
   return (
     <>
@@ -95,12 +90,18 @@ function MemberActions({
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
           {canEditPermissions && (
-            <DropdownMenuItem onClick={() => setPermsOpen(true)}>
+            <DropdownMenuItem onClick={() => { setLocalPerms(member.extraPermissions); setPermsOpen(true) }}>
               <Shield className="size-4" />
               Permissões
             </DropdownMenuItem>
           )}
-          {canEditPermissions && canChangeStatus && <DropdownMenuSeparator />}
+          {canChangeRole && (
+            <DropdownMenuItem onClick={onOpenDetail}>
+              <ShieldCheck className="size-4" />
+              {member.role === 'admin' ? 'Tornar Membro…' : 'Tornar Liderança…'}
+            </DropdownMenuItem>
+          )}
+          {(canEditPermissions || canChangeRole) && canChangeStatus && <DropdownMenuSeparator />}
           {canChangeStatus && (
             member.isActive ? (
               <DropdownMenuItem variant="destructive" onClick={() => setStatusOpen(true)}>
@@ -167,24 +168,27 @@ function MemberActions({
       </AlertDialog>
 
       <Dialog open={permsOpen} onOpenChange={setPermsOpen}>
-        <DialogContent className="sm:max-w-sm" onClick={(e) => e.stopPropagation()}>
+        <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-md" onClick={(e) => e.stopPropagation()}>
           <DialogHeader>
             <DialogTitle>Permissões de {member.fullName}</DialogTitle>
+            <DialogDescription>Além do básico de Membro, o que esta pessoa também cuida na casa.</DialogDescription>
           </DialogHeader>
-          <div className="space-y-1 py-2">
-            {ALL_PERMISSIONS.map((perm) => (
-              <label
-                key={perm}
-                className="flex cursor-pointer items-center gap-2.5 rounded-md px-2 py-2 text-sm hover:bg-muted"
-              >
-                <Checkbox
-                  checked={localPerms.includes(perm)}
-                  onCheckedChange={() => toggle(perm)}
-                />
-                {PERMISSION_LABELS[perm]}
-              </label>
-            ))}
-          </div>
+          <PermissionsEditor value={localPerms} onChange={setLocalPerms} idPrefix={`list-${member.id}`} />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPermsOpen(false)}>Cancelar</Button>
+            <Button
+              disabled={!dirty || updatePermissions.isPending}
+              onClick={() => {
+                if (!houseId) return
+                updatePermissions.mutate(
+                  { houseId, memberId: member.id, extraPermissions: localPerms },
+                  { onSuccess: () => setPermsOpen(false) },
+                )
+              }}
+            >
+              {updatePermissions.isPending ? 'Salvando...' : 'Salvar'}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>
@@ -193,7 +197,6 @@ function MemberActions({
 
 export default function MembersListPage() {
   const router = useRouter()
-  const canManage = useAuthStore((s) => s.hasPermission('canManageMembers'))
   const isAdmin = useAuthStore((s) => s.currentHouse?.role === 'admin')
   const myUid = useAuthStore((s) => s.profile?.uid)
   const [search, setSearch] = useState('')
@@ -261,13 +264,13 @@ export default function MembersListPage() {
         <Select
           value={roleFilter ?? 'all'}
           onValueChange={(v) => { setRoleFilter(v === 'all' ? undefined : v as UserRole); setPage(1) }}
-          items={{ all: 'Todos os cargos', ...ROLE_LABELS }}
+          items={{ all: 'Todos os papéis', ...ROLE_LABELS }}
         >
           <SelectTrigger className="w-[160px]">
-            <SelectValue placeholder="Cargo" />
+            <SelectValue placeholder="Papel" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Todos os cargos</SelectItem>
+            <SelectItem value="all">Todos os papéis</SelectItem>
             {Object.entries(ROLE_LABELS).map(([key, label]) => (
               <SelectItem key={key} value={key}>{label}</SelectItem>
             ))}
@@ -301,11 +304,21 @@ export default function MembersListPage() {
               member={member}
               onClick={handleMemberClick}
               action={(() => {
-                const canEditPermissions = canManage && member.role !== 'admin' && member.isActive
-                // Desativar/reativar: só admin (regra do back), nunca o fundador nem a si mesmo.
+                // Permissões e papel: só a Liderança (regra do back).
+                const canEditPermissions = isAdmin && member.role !== 'admin' && member.isActive
+                const canChangeRole = isAdmin && member.isActive && !member.isOwner
+                // Desativar/reativar: só Liderança, nunca a titular nem a si mesma.
                 const canChangeStatus = isAdmin && !member.isOwner && member.userId !== myUid
-                return canEditPermissions || canChangeStatus
-                  ? <MemberActions member={member} canEditPermissions={canEditPermissions} canChangeStatus={canChangeStatus} />
+                return canEditPermissions || canChangeStatus || canChangeRole
+                  ? (
+                    <MemberActions
+                      member={member}
+                      canEditPermissions={canEditPermissions}
+                      canChangeStatus={canChangeStatus}
+                      canChangeRole={canChangeRole}
+                      onOpenDetail={() => handleMemberClick(member)}
+                    />
+                  )
                   : undefined
               })()}
             />

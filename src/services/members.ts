@@ -8,6 +8,10 @@ import type {
   SetMemberActiveRequest,
   SetMemberActiveResponse,
   PaginatedResponse,
+  ChangeMemberRoleRequest,
+  ChangeMemberRoleResponse,
+  TransferHouseOwnershipRequest,
+  TransferHouseOwnershipResponse,
 } from '@/types'
 
 export const membersService = {
@@ -25,4 +29,10 @@ export const membersService = {
 
   reactivateMember: (data: SetMemberActiveRequest) =>
     callFunction<SetMemberActiveRequest, SetMemberActiveResponse>('reactivateMember', data),
+
+  changeMemberRole: (data: ChangeMemberRoleRequest) =>
+    callFunction<ChangeMemberRoleRequest, ChangeMemberRoleResponse>('changeMemberRole', data),
+
+  transferHouseOwnership: (data: TransferHouseOwnershipRequest) =>
+    callFunction<TransferHouseOwnershipRequest, TransferHouseOwnershipResponse>('transferHouseOwnership', data),
 }

@@ -22,8 +22,8 @@ import {
 } from 'lucide-react'
 import { useMember } from '@/hooks/use-members'
 import { useLegacyMemberFinancialSummary } from '@/hooks/use-finance'
-import { useAuthStore } from '@/stores/auth'
-import { ROUTES, ROLE_LABELS } from '@/constants'
+import { ROUTES, ROLE_LABELS, OWNER_LABEL } from '@/constants'
+import { MemberRoleCard } from '@/components/members/member-role-card'
 import { formatCPF, formatPhone, formatDate, formatCurrency, getInitials } from '@/utils'
 import { LoadingState } from '@/components/feedback/loading-state'
 import { ErrorState } from '@/components/feedback/error-state'
@@ -32,58 +32,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { membersService } from '@/services/members'
-import { toast } from 'sonner'
-import { getErrorMessage } from '@/lib/errors'
 
 export default function MemberDetailPage() {
   const params = useParams()
   const router = useRouter()
-  const queryClient = useQueryClient()
   const memberId = params.id as string
-  const houseId = useAuthStore((s) => s.currentHouseId())
   const { data: member, isLoading, isError, refetch } = useMember(memberId)
   const { data: financialSummary, isLoading: isLoadingFinancial } = useLegacyMemberFinancialSummary(memberId)
-
-  const isCaixa = member?.extraPermissions.includes('canManageCashier') ?? false
-
-  const toggleCaixa = useMutation({
-    mutationFn: () => {
-      if (!houseId) throw new Error('No house selected')
-      const newPermissions = isCaixa
-        ? member!.extraPermissions.filter((p) => p !== 'canManageCashier')
-        : [...(member?.extraPermissions ?? []), 'canManageCashier' as const]
-      return membersService.updateMemberPermissions({
-        houseId,
-        memberId,
-        extraPermissions: newPermissions,
-      })
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['member', memberId] })
-      queryClient.invalidateQueries({ queryKey: ['members'] })
-      toast.success(
-        isCaixa
-          ? 'Permissão de tesoureiro removida'
-          : 'Permissão de tesoureiro concedida',
-      )
-    },
-    onError: (error) => {
-      toast.error(getErrorMessage(error, 'Erro ao alterar permissão de tesoureiro'))
-    },
-  })
 
   if (isLoading) {
     return <LoadingState message="Carregando dados do membro..." />
@@ -132,8 +87,8 @@ export default function MemberDetailPage() {
                 {member.isActive ? 'Ativo' : 'Inativo'}
               </Badge>
               <Badge variant="outline">{roleLabel}</Badge>
-              {isCaixa && (
-                <Badge variant="secondary">Tesoureiro</Badge>
+              {member.isOwner && (
+                <Badge variant="secondary">{OWNER_LABEL}</Badge>
               )}
             </div>
           </div>
@@ -394,7 +349,7 @@ export default function MemberDetailPage() {
           <div className="flex items-center gap-3">
             <ShieldCheck className="size-4 shrink-0 text-muted-foreground" />
             <div className="min-w-0 flex-1">
-              <p className="text-xs text-muted-foreground">Cargo</p>
+              <p className="text-xs text-muted-foreground">Papel</p>
               <p className="text-sm">{roleLabel}</p>
             </div>
           </div>
@@ -411,41 +366,7 @@ export default function MemberDetailPage() {
         </CardContent>
       </Card>
 
-      {/* Actions */}
-      <div className="flex flex-col gap-2 sm:flex-row">
-        <AlertDialog>
-          <AlertDialogTrigger
-            render={
-              <Button variant="outline" className="flex-1" />
-            }
-          >
-            {isCaixa ? 'Remover Tesoureiro' : 'Tornar Tesoureiro'}
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>
-                {isCaixa
-                  ? 'Remover permissão de tesoureiro?'
-                  : 'Conceder permissão de tesoureiro?'}
-              </AlertDialogTitle>
-              <AlertDialogDescription>
-                {isCaixa
-                  ? `Tem certeza que deseja remover a permissão de tesoureiro de ${member.user.fullName}?`
-                  : `Tem certeza que deseja conceder permissão de tesoureiro a ${member.user.fullName}?`}
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={() => toggleCaixa.mutate()}
-                disabled={toggleCaixa.isPending}
-              >
-                {toggleCaixa.isPending ? 'Processando...' : 'Confirmar'}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      </div>
+      <MemberRoleCard member={member} />
     </div>
   )
 }

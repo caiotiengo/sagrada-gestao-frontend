@@ -174,7 +174,7 @@ export interface MemberItem {
   photoUrl: string | null
   joinedAt: string
   createdAt: string
-  /** Fundador da casa (não pode ser desativado). */
+  /** Titular da casa (houses.ownerId): não pode ser desativada nem sair da Liderança. */
   isOwner?: boolean
   deactivatedAt?: string | null
 }
@@ -202,6 +202,8 @@ export interface MemberDetails {
   role: UserRole
   extraPermissions: ExtraPermission[]
   isActive: boolean
+  /** Titular da casa (houses.ownerId). */
+  isOwner?: boolean
   joinedAt: string
   user: {
     fullName: string
@@ -228,6 +230,34 @@ export interface UpdateMemberPermissionsRequest {
   houseId: string
   memberId: string
   extraPermissions: ExtraPermission[]
+}
+
+export interface ChangeMemberRoleRequest {
+  houseId: string
+  memberId: string
+  role: UserRole
+  /** Só ao virar Membro. Sem ela, volta com as permissões de antes da Liderança. */
+  extraPermissions?: ExtraPermission[]
+}
+
+export interface ChangeMemberRoleResponse {
+  memberId: string
+  role: UserRole
+  roleLabel: string
+  extraPermissions: ExtraPermission[]
+  changed: boolean
+}
+
+export interface TransferHouseOwnershipRequest {
+  houseId: string
+  memberId: string
+}
+
+export interface TransferHouseOwnershipResponse {
+  houseId: string
+  memberId: string
+  newOwnerName: string | null
+  changed: boolean
 }
 
 // ---- Dashboard ----

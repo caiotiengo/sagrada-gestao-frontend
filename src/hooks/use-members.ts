@@ -3,7 +3,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '@/stores/auth'
 import { membersService } from '@/services/members'
-import type { SetMemberActiveRequest, UpdateMemberPermissionsRequest, UserRole } from '@/types'
+import type {
+  ChangeMemberRoleRequest,
+  SetMemberActiveRequest,
+  TransferHouseOwnershipRequest,
+  UpdateMemberPermissionsRequest,
+  UserRole,
+} from '@/types'
 import { toast } from 'sonner'
 import { getErrorMessage } from '@/lib/errors'
 
@@ -93,6 +99,53 @@ export function useSetMemberActive() {
     },
     onError: (error) => {
       toast.error(getErrorMessage(error, 'Erro ao alterar o status do membro'))
+    },
+  })
+}
+
+/**
+ * Promove a Liderança ou devolve a Membro. O papel vale na hora no backend;
+ * se a pessoa for você, o perfil é recarregado para trocar menus e acessos.
+ */
+export function useChangeMemberRole() {
+  const queryClient = useQueryClient()
+  const myMemberId = useAuthStore((s) => s.currentMemberId())
+
+  return useMutation({
+    mutationFn: (data: ChangeMemberRoleRequest) => membersService.changeMemberRole(data),
+    onSuccess: (res, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['member', variables.houseId, variables.memberId] })
+      queryClient.invalidateQueries({ queryKey: ['members'] })
+      if (variables.memberId === myMemberId) {
+        queryClient.invalidateQueries({ queryKey: ['profile'] })
+      }
+      toast.success(
+        !res.changed
+          ? `Essa pessoa já é ${res.roleLabel}`
+          : res.role === 'admin'
+            ? 'Pronto: agora faz parte da Liderança'
+            : 'Pronto: agora é Membro',
+      )
+    },
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Não foi possível mudar o papel'))
+    },
+  })
+}
+
+/** Passa a titularidade da casa para outra pessoa da Liderança. */
+export function useTransferHouseOwnership() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (data: TransferHouseOwnershipRequest) => membersService.transferHouseOwnership(data),
+    onSuccess: (res, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['member', variables.houseId] })
+      queryClient.invalidateQueries({ queryKey: ['members'] })
+      toast.success(res.changed ? `${res.newOwnerName ?? 'Essa pessoa'} agora é titular da casa` : 'Essa pessoa já é a titular')
+    },
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Não foi possível passar a titularidade'))
     },
   })
 }

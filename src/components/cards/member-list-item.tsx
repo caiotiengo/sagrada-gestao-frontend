@@ -5,7 +5,7 @@ import { Phone } from 'lucide-react'
 
 import type { MemberItem } from '@/types'
 import { getInitials, formatPhone } from '@/utils'
-import { ROLE_LABELS } from '@/constants'
+import { OWNER_LABEL, ROLE_LABELS } from '@/constants'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -51,7 +51,7 @@ export function MemberListItem({ member, onClick, action }: MemberListItemProps)
             {ROLE_LABELS[member.role] ?? member.role}
           </Badge>
           {member.isOwner && (
-            <Badge variant="secondary" className="hidden shrink-0 sm:inline-flex">Fundador</Badge>
+            <Badge variant="secondary" className="hidden shrink-0 sm:inline-flex">{OWNER_LABEL}</Badge>
           )}
           {!member.isActive && (
             <Badge variant="destructive" className="shrink-0">Inativo</Badge>
