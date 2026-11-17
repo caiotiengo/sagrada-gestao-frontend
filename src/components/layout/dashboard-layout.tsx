@@ -27,11 +27,13 @@ import {
   QrCode,
   UserCog,
   CreditCard,
+  Receipt,
 } from 'lucide-react'
 import { NotificationBell } from '@/components/notifications/notification-bell'
 import { BillingAlerts } from '@/components/billing/billing-alerts'
 import { useAuthStore } from '@/stores/auth'
 import { useLogout } from '@/hooks/use-auth'
+import { usePendingReceiptsCount } from '@/hooks/use-receipts'
 import { APP_NAME, ROLE_LABELS, ROUTES } from '@/constants'
 import { cn } from '@/lib/utils'
 import { getInitials } from '@/utils'
@@ -70,6 +72,7 @@ const adminNavItems: NavEntry[] = [
   { label: 'Membros', href: ROUTES.MEMBERS_LIST, icon: Users },
   { label: 'Convites', href: ROUTES.INVITES, icon: Mail },
   { label: 'Financeiro', href: ROUTES.ADMIN_FINANCE, icon: DollarSign },
+  { label: 'Comprovantes', href: ROUTES.ADMIN_RECEIPTS, icon: Receipt },
   { label: 'Calendário', href: ROUTES.ADMIN_CALENDAR, icon: CalendarDays },
   { label: 'Check-ins', href: ROUTES.ADMIN_CHECKINS, icon: UserCheck },
   { label: 'Listas', href: ROUTES.ADMIN_CAMPAIGNS, icon: List },
@@ -113,6 +116,7 @@ const memberNavItems: NavEntry[] = [
 // Admin pages accessible to members with specific permissions
 const permissionNavItems: NavItem[] = [
   { label: 'Mensalidades e caixa', href: ROUTES.ADMIN_FINANCE, icon: DollarSign, permission: 'canManageCashier' },
+  { label: 'Comprovantes', href: ROUTES.ADMIN_RECEIPTS, icon: Receipt, permission: 'canManageCashier' },
   { label: 'Membros', href: ROUTES.MEMBERS_LIST, icon: Users, permission: 'canManageMembers' },
   { label: 'Avisos', href: ROUTES.ADMIN_NOTICES, icon: Megaphone, permission: 'canManageMembers' },
   { label: 'Agenda', href: ROUTES.ADMIN_CALENDAR, icon: CalendarDays, permission: 'canManageCalendar' },
@@ -131,6 +135,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const { profile, currentHouse } = useAuthStore()
   const logout = useLogout()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  // Contador do menu "Comprovantes" (só busca para quem cuida do caixa).
+  const pendingReceipts = usePendingReceiptsCount().data ?? 0
 
   const [expandedGroups, setExpandedGroups] = useState<string[]>([])
   const isAdmin = currentHouse?.role === 'admin'
@@ -208,6 +214,15 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           <item.icon className={cn('size-[18px] shrink-0', active && 'text-primary')} />
           {item.label}
         </span>
+        {item.href === ROUTES.ADMIN_RECEIPTS && pendingReceipts > 0 && (
+          <span
+            className="ml-auto rounded-full bg-amber-700 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-none text-white tabular-nums"
+            aria-label={`${pendingReceipts} para conferir`}
+            data-testid="nav-receipts-count"
+          >
+            {pendingReceipts}
+          </span>
+        )}
         {mobile && <ChevronRight className="size-4 opacity-30" />}
       </Link>
     )

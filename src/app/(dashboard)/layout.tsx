@@ -13,7 +13,7 @@ import { useHouseBilling } from '@/hooks/use-billing'
 
 // Map permissions to the admin routes they unlock for members
 const permissionRouteMap: Record<string, string[]> = {
-  canManageCashier: ['/admin/financeiro'],
+  canManageCashier: ['/admin/financeiro', '/admin/comprovantes'],
   canManageMembers: ['/admin/membros', '/admin/avisos'],
   canManageCalendar: ['/admin/calendario'],
   canManageCampaigns: ['/admin/listas'],

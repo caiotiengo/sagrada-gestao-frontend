@@ -50,7 +50,8 @@ export default function HousePixPage() {
         <Info className="mt-0.5 size-4 shrink-0" />
         <p>
           O Sagrada Gestão não processa pagamentos; a casa registra o recebimento. O dinheiro vai direto para a conta da
-          chave abaixo, e a baixa da mensalidade ou da dívida é feita pela liderança no Financeiro.
+          chave abaixo. Quando o filho envia o comprovante, a baixa é automática se tudo confere (inclusive esta chave);
+          se não, ele aparece em Comprovantes para a liderança conferir.
         </p>
       </div>
 

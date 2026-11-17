@@ -52,6 +52,7 @@ export const ROUTES = {
   ADMIN_NOTIFICATIONS: '/admin/notificacoes',
   ADMIN_MEMBER_CHARGES: '/admin/cobrancas',
   ADMIN_PIX: '/admin/pix',
+  ADMIN_RECEIPTS: '/admin/comprovantes',
   ADMIN_BILLING: '/admin/plano',
   ADMIN_BILLING_SUCCESS: '/admin/plano/sucesso',
   ADMIN_BILLING_CANCELED: '/admin/plano/cancelado',
