@@ -7,6 +7,7 @@ import { useAuthStore } from '@/stores/auth'
 import { housePaymentService } from '@/services/house-payment'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { ReceiptUpload } from '@/components/receipts/receipt-upload'
 
 const TYPE_LABEL: Record<string, string> = {
   cpf: 'CPF',
@@ -18,9 +19,10 @@ const TYPE_LABEL: Record<string, string> = {
 
 /**
  * Como pagar o que está em aberto: chave PIX da casa (Gestão › Chave PIX).
- * O sistema não processa o pagamento: o filho paga e a liderança dá baixa.
+ * O sistema não processa o pagamento: o filho paga e envia o comprovante;
+ * quando tudo confere a baixa é automática, senão a Liderança confere.
  */
-export function HousePixCard() {
+export function HousePixCard({ className = 'mb-8' }: { className?: string }) {
   const houseId = useAuthStore((s) => s.currentHouseId())
   const info = useQuery({
     queryKey: ['house', houseId, 'paymentInfo'],
@@ -32,7 +34,7 @@ export function HousePixCard() {
   const pix = info.data
 
   return (
-    <Card className="mb-8" data-testid="house-pix-card">
+    <Card className={className} data-testid="house-pix-card">
       <CardContent className="p-4">
         <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Como pagar</p>
         {pix ? (
@@ -62,8 +64,10 @@ export function HousePixCard() {
           </p>
         )}
         <p className="mt-2 text-xs text-muted-foreground">
-          Pague direto para a casa (mensalidades, loja, rifas e o resto) e avise a liderança: depois da baixa, o item sai da lista.
+          Pague direto para a casa (mensalidades, loja, rifas e o resto) e envie o comprovante aqui. Quando tudo confere, a
+          baixa é feita na hora; se não, a Liderança confere.
         </p>
+        <ReceiptUpload className="mt-3 border-t pt-3" />
       </CardContent>
     </Card>
   )

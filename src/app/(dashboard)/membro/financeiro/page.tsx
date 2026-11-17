@@ -32,6 +32,9 @@ import {
 import { LoadingState } from '@/components/feedback/loading-state'
 import { EmptyState } from '@/components/feedback/empty-state'
 import { ErrorState } from '@/components/feedback/error-state'
+import { HousePixCard } from '@/components/member-charges/house-pix-card'
+import { MyReceipts } from '@/components/receipts/my-receipts'
+import { ReceiptOriginBadge } from '@/components/receipts/receipt-origin-badge'
 
 
 function statusBadgeClasses(status: FeeStatus) {
@@ -268,6 +271,10 @@ export default function MemberFinancePage() {
         </Card>
       )}
 
+      {/* Como pagar + enviar comprovante */}
+      <HousePixCard className="rounded-xl" />
+      <MyReceipts />
+
       {/* Tabs */}
       <Tabs defaultValue={initialTab}>
         <TabsList>
@@ -502,6 +509,7 @@ export default function MemberFinancePage() {
                               <Badge variant="secondary" className="text-xs">
                                 {SOURCE_LABELS[entry.source] ?? entry.source}
                               </Badge>
+                              <ReceiptOriginBadge origin={entry.origin} />
                               {entry.channel !== 'internal' && (
                                 <Badge variant="outline" className="text-xs">
                                   {channelLabel(entry.channel)}
