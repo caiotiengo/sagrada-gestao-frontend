@@ -401,7 +401,7 @@ function PlanCard({
   const isExact = isCurrent && interval === b.interval
   const pendingHere = b.pendingPlanChange?.plan === plan.id && b.pendingPlanChange.interval === interval
   const changeButton = canChangePlan && !isExact && !pendingHere ? (
-    <Button variant="outline" className="w-full" onClick={onChangePlan} disabled={busy} data-testid={`billing-change-${plan.id}`}>
+    <Button variant="outline" className="h-auto min-h-9 w-full whitespace-normal py-2" onClick={onChangePlan} disabled={busy} data-testid={`billing-change-${plan.id}`}>
       <ArrowRightLeft className="size-4" /> Trocar para {plan.name} {interval === 'year' ? 'anual' : 'mensal'}
     </Button>
   ) : null
@@ -422,7 +422,7 @@ function PlanCard({
         : b.access !== 'ok' ? `Regularizar com ${plan.name}` : `Assinar ${plan.name}`
       action = (
         <div className="space-y-2">
-          <Button className="w-full" onClick={onPay} disabled={busy} data-testid={`billing-subscribe-${plan.id}`}>
+          <Button className="h-auto min-h-9 w-full whitespace-normal py-2" onClick={onPay} disabled={busy} data-testid={`billing-subscribe-${plan.id}`}>
             {method === 'pix' && <QrCode className="size-4" />} {label}
           </Button>
           {/* Casa no PIX em dia: pode só deixar combinada a troca para o próximo período. */}
@@ -434,7 +434,7 @@ function PlanCard({
 
   return (
     <div
-      className={cn('flex flex-col gap-4 rounded-xl border bg-card p-5', plan.highlighted && 'border-primary shadow-sm shadow-primary/10', isCurrent && 'ring-2 ring-primary/40')}
+      className={cn('flex min-w-0 flex-col gap-4 rounded-xl border bg-card p-5', plan.highlighted && 'border-primary shadow-sm shadow-primary/10', isCurrent && 'ring-2 ring-primary/40')}
       data-testid={`billing-plan-${plan.id}`}
     >
       <div className="space-y-1">
