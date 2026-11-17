@@ -198,7 +198,8 @@
   Landing page (/) — paleta do brand kit v2: noite, dourado, terra, algodão.
   Segue o tema do sistema (prefers-color-scheme), já que o app não tem seletor.
 */
-.landing {
+.landing,
+.legal {
   --l-bg: #fbf7ef;
   --l-alt: #f4ebda;
   --l-card: #ffffff;
@@ -214,7 +215,8 @@
   color: var(--l-fg);
 }
 @media (prefers-color-scheme: dark) {
-  .landing {
+  .landing,
+  .legal {
     --l-bg: #0e0f2a;
     --l-alt: #121335;
     --l-card: #17183f;
@@ -227,7 +229,8 @@
     --l-leaf: #8db86a;
   }
 }
-.landing main {
+.landing main,
+.legal main {
   animation: none;
 }
 .landing-sky {
