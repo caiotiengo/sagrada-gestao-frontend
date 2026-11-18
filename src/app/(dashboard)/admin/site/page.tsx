@@ -243,7 +243,7 @@ export default function AdminSitePage() {
             <Globe className="h-5 w-5 text-primary" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Configurar Site</h1>
+            <h1 className="text-2xl font-bold tracking-tight">Site da casa</h1>
             <p className="text-sm text-muted-foreground">
               Personalize o site público da sua casa
             </p>

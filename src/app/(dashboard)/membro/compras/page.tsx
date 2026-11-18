@@ -72,7 +72,7 @@ export default function MemberShoppingPage() {
     <div className="mx-auto w-full max-w-5xl space-y-6 px-4 py-6 lg:px-8 lg:py-8">
       <PlanFeatureNotice feature="shoppingLists" />
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold tracking-tight">Compras</h1>
+        <h1 className="text-xl font-semibold tracking-tight">Lista de compras</h1>
 
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger render={<Button size="sm" />}>

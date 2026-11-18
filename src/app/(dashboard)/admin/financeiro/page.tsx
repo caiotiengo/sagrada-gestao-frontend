@@ -1987,7 +1987,7 @@ export default function AdminFinancePage() {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
-            Financeiro
+            Mensalidades e caixa
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Gerencie mensalidades, pagamentos e dívidas da casa

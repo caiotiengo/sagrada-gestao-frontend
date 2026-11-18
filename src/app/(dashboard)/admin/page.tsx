@@ -32,10 +32,10 @@ import { ReceiptOriginBadge } from '@/components/receipts/receipt-origin-badge'
 const quickActions = [
   { label: 'Membros', href: ROUTES.MEMBERS_LIST, icon: Users, color: 'bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400' },
   { label: 'Convites', href: ROUTES.INVITES, icon: UserPlus, color: 'bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400' },
-  { label: 'Financeiro', href: ROUTES.ADMIN_FINANCE, icon: DollarSign, color: 'bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400' },
+  { label: 'Mensalidades e caixa', href: ROUTES.ADMIN_FINANCE, icon: DollarSign, color: 'bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400' },
   { label: 'Calendário', href: ROUTES.ADMIN_CALENDAR, icon: CalendarDays, color: 'bg-indigo-100 text-indigo-600 dark:bg-indigo-950 dark:text-indigo-400' },
-  { label: 'Check-ins', href: ROUTES.ADMIN_CHECKINS, icon: UserCheck, color: 'bg-teal-100 text-teal-600 dark:bg-teal-950 dark:text-teal-400' },
-  { label: 'Listas', href: ROUTES.ADMIN_CAMPAIGNS, icon: List, color: 'bg-pink-100 text-pink-600 dark:bg-pink-950 dark:text-pink-400' },
+  { label: 'Presenças', href: ROUTES.ADMIN_CHECKINS, icon: UserCheck, color: 'bg-teal-100 text-teal-600 dark:bg-teal-950 dark:text-teal-400' },
+  { label: 'Listas e campanhas', href: ROUTES.ADMIN_CAMPAIGNS, icon: List, color: 'bg-pink-100 text-pink-600 dark:bg-pink-950 dark:text-pink-400' },
   { label: 'Rifas', href: ROUTES.ADMIN_RAFFLES, icon: Ticket, color: 'bg-purple-100 text-purple-600 dark:bg-purple-950 dark:text-purple-400' },
   { label: 'Loja', href: ROUTES.ADMIN_STORE, icon: ShoppingBag, color: 'bg-orange-100 text-orange-600 dark:bg-orange-950 dark:text-orange-400' },
 ]

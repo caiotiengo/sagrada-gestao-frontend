@@ -29,6 +29,10 @@ import {
   CreditCard,
   Receipt,
   Wallet,
+  ArrowLeftRight,
+  HandHeart,
+  Landmark,
+  NotebookPen,
 } from 'lucide-react'
 import { NotificationBell } from '@/components/notifications/notification-bell'
 import { BillingAlerts } from '@/components/billing/billing-alerts'
@@ -69,65 +73,92 @@ function isNavGroup(entry: NavEntry): entry is NavGroup {
   return 'children' in entry
 }
 
+/**
+ * Nome único de cada página de gestão: o menu da Liderança e o "Gestão da casa"
+ * de quem tem permissão extra usam o mesmo rótulo para a mesma página.
+ */
+const NAV = {
+  members: { label: 'Membros', href: ROUTES.MEMBERS_LIST, icon: Users },
+  invites: { label: 'Convites', href: ROUTES.INVITES, icon: Mail },
+  checkins: { label: 'Presenças', href: ROUTES.ADMIN_CHECKINS, icon: UserCheck },
+  finance: { label: 'Mensalidades e caixa', href: ROUTES.ADMIN_FINANCE, icon: DollarSign },
+  receipts: { label: 'Comprovantes PIX', href: ROUTES.ADMIN_RECEIPTS, icon: Receipt },
+  // Cobrança entre filhos e pedido de reembolso à casa (não é mensalidade).
+  adminCharges: { label: 'Acertos e reembolsos', href: ROUTES.ADMIN_MEMBER_CHARGES, icon: ArrowLeftRight },
+  calendar: { label: 'Calendário', href: ROUTES.ADMIN_CALENDAR, icon: CalendarDays },
+  notices: { label: 'Avisos', href: ROUTES.ADMIN_NOTICES, icon: Megaphone },
+  notify: { label: 'Enviar notificação', href: ROUTES.ADMIN_NOTIFICATIONS, icon: Send },
+  campaigns: { label: 'Listas e campanhas', href: ROUTES.ADMIN_CAMPAIGNS, icon: List },
+  raffles: { label: 'Rifas', href: ROUTES.ADMIN_RAFFLES, icon: Ticket },
+  store: { label: 'Loja', href: ROUTES.ADMIN_STORE, icon: ShoppingBag },
+  canteen: { label: 'Cantina', href: ROUTES.ADMIN_CANTEEN, icon: UtensilsCrossed },
+  site: { label: 'Site da casa', href: ROUTES.ADMIN_SITE, icon: Globe },
+  pix: { label: 'Chave PIX', href: ROUTES.ADMIN_PIX, icon: QrCode },
+  billing: { label: 'Plano e cobrança', href: ROUTES.ADMIN_BILLING, icon: CreditCard },
+} satisfies Record<string, NavItem>
+
+/** O que a própria pessoa deve à casa (mensalidade, fiado, rifa, comprovantes). */
+const MY_DEBTS: NavItem = { label: 'O que eu devo', href: ROUTES.MEMBER_FINANCE, icon: Wallet }
+
 const adminNavItems: NavEntry[] = [
-  { label: 'Home', href: ROUTES.ADMIN_HOME, icon: Home },
-  { label: 'Membros', href: ROUTES.MEMBERS_LIST, icon: Users },
-  { label: 'Convites', href: ROUTES.INVITES, icon: Mail },
-  { label: 'Financeiro', href: ROUTES.ADMIN_FINANCE, icon: DollarSign },
-  { label: 'Comprovantes', href: ROUTES.ADMIN_RECEIPTS, icon: Receipt },
-  { label: 'Meu financeiro', href: ROUTES.MEMBER_FINANCE, icon: Wallet },
-  { label: 'Calendário', href: ROUTES.ADMIN_CALENDAR, icon: CalendarDays },
-  { label: 'Check-ins', href: ROUTES.ADMIN_CHECKINS, icon: UserCheck },
-  { label: 'Listas', href: ROUTES.ADMIN_CAMPAIGNS, icon: List },
-  { label: 'Rifas', href: ROUTES.ADMIN_RAFFLES, icon: Ticket },
-  {
-    label: 'Vendas',
-    icon: ShoppingBag,
-    children: [
-      { label: 'Loja', href: ROUTES.ADMIN_STORE, icon: ShoppingBag },
-      { label: 'Cantina', href: ROUTES.ADMIN_CANTEEN, icon: UtensilsCrossed },
-    ],
-  },
-  { label: 'Avisos', href: ROUTES.ADMIN_NOTICES, icon: Megaphone },
-  { label: 'Notificações', href: ROUTES.ADMIN_NOTIFICATIONS, icon: Send },
-  { label: 'Cobranças', href: ROUTES.ADMIN_MEMBER_CHARGES, icon: HandCoins },
-  { label: 'Chave PIX', href: ROUTES.ADMIN_PIX, icon: QrCode },
-  { label: 'Site', href: ROUTES.ADMIN_SITE, icon: Globe },
-  { label: 'Plano e cobrança', href: ROUTES.ADMIN_BILLING, icon: CreditCard },
+  { label: 'Início', href: ROUTES.ADMIN_HOME, icon: Home },
+  { label: 'Pessoas', icon: Users, children: [NAV.members, NAV.invites, NAV.checkins] },
+  { label: 'Dinheiro', icon: HandCoins, children: [NAV.finance, NAV.receipts, NAV.adminCharges] },
+  { label: 'Agenda e avisos', icon: CalendarDays, children: [NAV.calendar, NAV.notices, NAV.notify] },
+  { label: 'Arrecadação', icon: HandHeart, children: [NAV.campaigns, NAV.raffles, NAV.store, NAV.canteen] },
+  { label: 'A casa', icon: Landmark, children: [NAV.site, NAV.pix, NAV.billing] },
 ]
 
 const memberNavItems: NavEntry[] = [
-  { label: 'Home', href: ROUTES.MEMBER_HOME, icon: Home },
-  { label: 'Mural', href: ROUTES.MEMBER_NOTICES, icon: Megaphone },
-  { label: 'Financeiro', href: ROUTES.MEMBER_FINANCE, icon: DollarSign },
-  { label: 'Cobranças', href: ROUTES.MEMBER_CHARGES, icon: HandCoins },
+  { label: 'Início', href: ROUTES.MEMBER_HOME, icon: Home },
+  { label: 'Mural de avisos', href: ROUTES.MEMBER_NOTICES, icon: Megaphone },
   { label: 'Calendário', href: ROUTES.MEMBER_CALENDAR, icon: CalendarDays },
-  { label: 'Listas', href: ROUTES.MEMBER_CAMPAIGNS, icon: List },
-  { label: 'Rifas', href: ROUTES.MEMBER_RAFFLES, icon: Ticket },
+  MY_DEBTS,
+  { label: 'Acertos e reembolsos', href: ROUTES.MEMBER_CHARGES, icon: ArrowLeftRight },
   {
-    label: 'Vendas',
-    icon: ShoppingBag,
+    label: 'Contribuir',
+    icon: HandHeart,
     children: [
+      { label: 'Listas e campanhas', href: ROUTES.MEMBER_CAMPAIGNS, icon: List },
+      { label: 'Rifas', href: ROUTES.MEMBER_RAFFLES, icon: Ticket },
       { label: 'Loja', href: ROUTES.MEMBER_LOJA, icon: ShoppingBag },
       { label: 'Cantina', href: ROUTES.MEMBER_STORE, icon: UtensilsCrossed },
     ],
   },
-  { label: 'Compras', href: ROUTES.MEMBER_SHOPPING, icon: ShoppingCart },
-  { label: 'Notas', href: ROUTES.MEMBER_NOTES, icon: StickyNote },
+  {
+    label: 'Anotações',
+    icon: NotebookPen,
+    children: [
+      { label: 'Lista de compras', href: ROUTES.MEMBER_SHOPPING, icon: ShoppingCart },
+      { label: 'Notas', href: ROUTES.MEMBER_NOTES, icon: StickyNote },
+    ],
+  },
 ]
 
-// Admin pages accessible to members with specific permissions
+// Admin pages accessible to members with specific permissions (seção "Gestão da casa")
 const permissionNavItems: NavItem[] = [
-  { label: 'Mensalidades e caixa', href: ROUTES.ADMIN_FINANCE, icon: DollarSign, permission: 'canManageCashier' },
-  { label: 'Comprovantes', href: ROUTES.ADMIN_RECEIPTS, icon: Receipt, permission: 'canManageCashier' },
-  { label: 'Membros', href: ROUTES.MEMBERS_LIST, icon: Users, permission: 'canManageMembers' },
-  { label: 'Avisos', href: ROUTES.ADMIN_NOTICES, icon: Megaphone, permission: 'canManageMembers' },
-  { label: 'Agenda', href: ROUTES.ADMIN_CALENDAR, icon: CalendarDays, permission: 'canManageCalendar' },
-  { label: 'Campanhas e listas', href: ROUTES.ADMIN_CAMPAIGNS, icon: List, permission: 'canManageCampaigns' },
-  { label: 'Rifas', href: ROUTES.ADMIN_RAFFLES, icon: Ticket, permission: 'canManageRaffles' },
-  { label: 'Loja', href: ROUTES.ADMIN_STORE, icon: ShoppingBag, permission: 'canRegisterSales' },
-  { label: 'Cantina', href: ROUTES.ADMIN_CANTEEN, icon: UtensilsCrossed, permission: 'canRegisterSales' },
+  { ...NAV.finance, permission: 'canManageCashier' },
+  { ...NAV.receipts, permission: 'canManageCashier' },
+  { ...NAV.members, permission: 'canManageMembers' },
+  { ...NAV.notices, permission: 'canManageMembers' },
+  { ...NAV.calendar, permission: 'canManageCalendar' },
+  { ...NAV.campaigns, permission: 'canManageCampaigns' },
+  { ...NAV.raffles, permission: 'canManageRaffles' },
+  { ...NAV.store, permission: 'canRegisterSales' },
+  { ...NAV.canteen, permission: 'canRegisterSales' },
 ]
+
+function CountBadge({ count }: { count: number }) {
+  return (
+    <span
+      className="ml-auto rounded-full bg-amber-700 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-none text-white tabular-nums"
+      aria-label={`${count} para conferir`}
+      data-testid="nav-receipts-count"
+    >
+      {count}
+    </span>
+  )
+}
 
 interface DashboardLayoutProps {
   children: React.ReactNode
@@ -145,8 +176,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const isAdmin = currentHouse?.role === 'admin'
   const extraPerms = currentHouse?.extraPermissions ?? []
   const canRegisterSales = isAdmin || extraPerms.includes('canRegisterSales' as never)
-  // memberExtraNav holds the "Gestão" links shown under the main nav (e.g. "Gerenciar Caixa").
-  // For canRegisterSales we don't duplicate Loja/Cantina here — the main "Vendas" submenu
+  // memberExtraNav holds the "Gestão da casa" links shown under the main nav.
+  // For canRegisterSales we don't duplicate Loja/Cantina here — the main "Contribuir" submenu
   // already points to the admin/manage view (see filteredMemberNavItems below).
   const memberExtraNav = !isAdmin
     ? permissionNavItems.filter((item) =>
@@ -156,10 +187,10 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         && item.href !== ROUTES.ADMIN_CANTEEN,
       )
     : []
-  // For members with canRegisterSales: Vendas > Cantina/Loja point to /admin/* (manage view).
+  // For members with canRegisterSales: Contribuir > Cantina/Loja point to /admin/* (manage view).
   // For members without: hide Cantina entirely (Loja stays as a buyer page).
   const filteredMemberNavItems: NavEntry[] = memberNavItems.map((entry) => {
-    if (isNavGroup(entry) && entry.label === 'Vendas') {
+    if (isNavGroup(entry) && entry.label === 'Contribuir') {
       const children = entry.children
         .filter((c) => c.href !== ROUTES.MEMBER_STORE || canRegisterSales)
         .map((c) => {
@@ -198,8 +229,12 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     )
   }
 
+  // Contador ao lado do item (hoje só Comprovantes PIX: quantos esperam conferência).
+  const countFor = (href: string) => (href === ROUTES.ADMIN_RECEIPTS ? pendingReceipts : 0)
+
   const NavLink = ({ item, mobile = false }: { item: NavItem; mobile?: boolean }) => {
     const active = isActiveRoute(item.href)
+    const count = countFor(item.href)
     return (
       <Link
         href={item.href}
@@ -213,19 +248,11 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             : 'text-muted-foreground hover:bg-muted hover:text-foreground',
         )}
       >
-        <span className="flex items-center gap-3">
+        <span className="flex items-center gap-3 whitespace-nowrap">
           <item.icon className={cn('size-[18px] shrink-0', active && 'text-primary')} />
           {item.label}
         </span>
-        {item.href === ROUTES.ADMIN_RECEIPTS && pendingReceipts > 0 && (
-          <span
-            className="ml-auto rounded-full bg-amber-700 px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-none text-white tabular-nums"
-            aria-label={`${pendingReceipts} para conferir`}
-            data-testid="nav-receipts-count"
-          >
-            {pendingReceipts}
-          </span>
-        )}
+        {count > 0 && <CountBadge count={count} />}
         {mobile && <ChevronRight className="size-4 opacity-30" />}
       </Link>
     )
@@ -234,24 +261,28 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const NavGroupToggle = ({ group, mobile = false }: { group: NavGroup; mobile?: boolean }) => {
     const isExpanded = isGroupExpanded(group)
     const hasActiveChild = group.children.some((child) => isActiveRoute(child.href))
+    // Grupo fechado ainda mostra o contador dos itens dele (ex.: Dinheiro > Comprovantes PIX).
+    const hiddenCount = isExpanded ? 0 : group.children.reduce((sum, child) => sum + countFor(child.href), 0)
 
     return (
       <div>
         <button
           type="button"
           onClick={() => toggleGroup(group.label)}
+          aria-expanded={isExpanded}
           className={cn(
             'flex w-full items-center gap-3 rounded-lg px-3 text-[0.8125rem] font-medium transition-all duration-150',
-            mobile ? 'justify-between py-2.5' : 'py-2',
+            mobile ? 'py-2.5' : 'py-2',
             hasActiveChild
               ? 'text-primary'
               : 'text-muted-foreground hover:bg-muted hover:text-foreground',
           )}
         >
-          <span className="flex items-center gap-3">
+          <span className="flex flex-1 items-center gap-3 text-left">
             <group.icon className={cn('size-[18px] shrink-0', hasActiveChild && 'text-primary')} />
             {group.label}
           </span>
+          {hiddenCount > 0 && <CountBadge count={hiddenCount} />}
           <ChevronDown
             className={cn(
               'size-4 shrink-0 transition-transform duration-200',
@@ -261,7 +292,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           />
         </button>
         {isExpanded && (
-          <div className="ml-5 mt-0.5 flex flex-col gap-0.5 border-l border-border/50 pl-2">
+          <div className="ml-4 mt-0.5 flex flex-col gap-0.5 border-l border-border/50 pl-1.5">
             {group.children.map((child) => (
               <NavLink key={child.href} item={child} mobile={mobile} />
             ))}
@@ -281,7 +312,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   return (
     <div className="flex min-h-dvh flex-col bg-background lg:flex-row">
       {/* Desktop Sidebar */}
-      <aside className="hidden w-60 shrink-0 border-r border-sidebar-border bg-sidebar lg:flex lg:flex-col">
+      <aside className="hidden w-60 shrink-0 border-r border-sidebar-border bg-sidebar lg:sticky lg:top-0 lg:flex lg:h-dvh lg:flex-col">
         {/* Sidebar Header */}
         <div className="flex h-14 items-center gap-2.5 px-4">
           <div className="flex size-7 items-center justify-center rounded-lg bg-primary text-primary-foreground">
@@ -311,13 +342,13 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         <HouseSwitcher className="pt-2.5" />
 
         {/* Navigation */}
-        <nav className="flex flex-1 flex-col gap-0.5 p-2.5">
+        <nav className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto p-2.5">
           {navItems.map((entry) => renderNavEntry(entry))}
           {memberExtraNav.length > 0 && (
             <>
               <Separator className="my-2" />
               <span className="mb-1 px-3 text-[0.6875rem] font-semibold uppercase tracking-wider text-sidebar-foreground/40">
-                Gestão
+                Gestão da casa
               </span>
               {memberExtraNav.map((item) => (
                 <NavLink key={item.href} item={item} />
@@ -328,6 +359,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
         {/* Sidebar Footer - User info */}
         <div className="border-t border-sidebar-border p-2.5">
+          {/* A Liderança também deve à casa: fica junto da conta, fora do menu de gestão */}
+          {isAdmin && renderNavEntry(MY_DEBTS)}
           <div className="flex items-center gap-2.5 rounded-lg px-2 py-2">
             <Avatar size="default">
               {profile?.photoUrl && <AvatarImage src={profile.photoUrl} alt={profile.fullName} />}
@@ -403,13 +436,13 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               <HouseSwitcher className="pt-2.5" />
 
               {/* Mobile Nav Items */}
-              <nav className="flex flex-col gap-0.5 p-2.5">
+              <nav className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto p-2.5">
                 {navItems.map((entry) => renderNavEntry(entry, true))}
                 {memberExtraNav.length > 0 && (
                   <>
                     <Separator className="my-2" />
                     <span className="mb-1 px-3 text-[0.6875rem] font-semibold uppercase tracking-wider text-muted-foreground/50">
-                      Gestão
+                      Gestão da casa
                     </span>
                     {memberExtraNav.map((item) => (
                       <NavLink key={item.href} item={item} mobile />
@@ -436,6 +469,19 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                     </p>
                   </div>
                 </div>
+                {isAdmin && (
+                  <Link
+                    href={MY_DEBTS.href}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={cn(
+                      'mt-1 flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-sm hover:bg-muted',
+                      isActiveRoute(MY_DEBTS.href) && 'bg-primary/10 text-primary',
+                    )}
+                  >
+                    <Wallet className="size-4" aria-hidden />
+                    {MY_DEBTS.label}
+                  </Link>
+                )}
                 <Link
                   href={ROUTES.PROFILE}
                   onClick={() => setMobileMenuOpen(false)}

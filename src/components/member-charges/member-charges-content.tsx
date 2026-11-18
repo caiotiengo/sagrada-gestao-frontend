@@ -135,7 +135,7 @@ export function MemberChargesContent() {
     <div className="mx-auto w-full max-w-5xl space-y-6 px-4 py-6 lg:px-8 lg:py-8">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">Cobranças</h1>
+          <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">Acertos e reembolsos</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Cobre outro filho da casa ou peça reembolso à casa
           </p>

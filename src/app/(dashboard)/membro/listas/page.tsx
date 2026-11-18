@@ -55,7 +55,7 @@ export default function MemberCampaignsPage() {
   return (
     <div className="mx-auto w-full max-w-5xl space-y-6 px-4 py-6 lg:px-8 lg:py-8">
       <PlanFeatureNotice feature="campaigns" />
-      <h1 className="text-lg font-bold tracking-tight">Listas</h1>
+      <h1 className="text-lg font-bold tracking-tight">Listas e campanhas</h1>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>

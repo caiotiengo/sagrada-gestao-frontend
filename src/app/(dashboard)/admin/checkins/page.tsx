@@ -205,7 +205,7 @@ export default function AdminCheckinsPage() {
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
-            Check-ins
+            Presenças
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Histórico de presenças e registro em lote

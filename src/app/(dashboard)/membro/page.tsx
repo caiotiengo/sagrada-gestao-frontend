@@ -39,15 +39,15 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { getInitials, formatCurrency, formatDate } from '@/utils'
 
 const quickActions = [
-  { label: 'Financeiro', href: ROUTES.MEMBER_FINANCE, icon: DollarSign, color: 'bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400' },
+  { label: 'O que eu devo', href: ROUTES.MEMBER_FINANCE, icon: DollarSign, color: 'bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400' },
   { label: 'Calendário', href: ROUTES.MEMBER_CALENDAR, icon: CalendarDays, color: 'bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400' },
-  { label: 'Listas', href: ROUTES.MEMBER_CAMPAIGNS, icon: List, color: 'bg-pink-100 text-pink-600 dark:bg-pink-950 dark:text-pink-400' },
+  { label: 'Listas e campanhas', href: ROUTES.MEMBER_CAMPAIGNS, icon: List, color: 'bg-pink-100 text-pink-600 dark:bg-pink-950 dark:text-pink-400' },
   { label: 'Rifas', href: ROUTES.MEMBER_RAFFLES, icon: Ticket, color: 'bg-purple-100 text-purple-600 dark:bg-purple-950 dark:text-purple-400' },
   { label: 'Cantina', href: ROUTES.MEMBER_STORE, icon: Store, color: 'bg-orange-100 text-orange-600 dark:bg-orange-950 dark:text-orange-400', permission: 'canRegisterSales' },
-  { label: 'Compras', href: ROUTES.MEMBER_SHOPPING, icon: ShoppingCart, color: 'bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400' },
+  { label: 'Lista de compras', href: ROUTES.MEMBER_SHOPPING, icon: ShoppingCart, color: 'bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400' },
   { label: 'Notas', href: ROUTES.MEMBER_NOTES, icon: StickyNote, color: 'bg-sky-100 text-sky-600 dark:bg-sky-950 dark:text-sky-400' },
-  { label: 'Mural', href: ROUTES.MEMBER_NOTICES, icon: Megaphone, color: 'bg-rose-100 text-rose-600 dark:bg-rose-950 dark:text-rose-400' },
-  { label: 'Cobranças', href: ROUTES.MEMBER_CHARGES, icon: HandCoins, color: 'bg-lime-100 text-lime-700 dark:bg-lime-950 dark:text-lime-400' },
+  { label: 'Mural de avisos', href: ROUTES.MEMBER_NOTICES, icon: Megaphone, color: 'bg-rose-100 text-rose-600 dark:bg-rose-950 dark:text-rose-400' },
+  { label: 'Acertos e reembolsos', href: ROUTES.MEMBER_CHARGES, icon: HandCoins, color: 'bg-lime-100 text-lime-700 dark:bg-lime-950 dark:text-lime-400' },
 ] as const
 
 /** "vence hoje", "vence em 3 dias", "atrasada há 2 dias" (dias civis BRT, calculados no back). */

@@ -64,7 +64,7 @@ export default function CampaignsPage() {
       <PlanFeatureNotice feature="campaigns" />
       <div>
         <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
-          Listas
+          Listas e campanhas
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Gerencie listas, trabalhos e jogos

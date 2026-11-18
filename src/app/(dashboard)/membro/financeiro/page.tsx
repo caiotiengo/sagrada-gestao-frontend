@@ -192,7 +192,7 @@ export default function MemberFinancePage() {
       {/* Header */}
       <div>
         <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
-          Financeiro
+          O que eu devo
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Acompanhe suas mensalidades e débitos
