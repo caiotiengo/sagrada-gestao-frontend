@@ -4,7 +4,7 @@
     "target": {
       "namespace": "android_app",
       "package_name": "com.sagradagestao.app",
-      "sha256_cert_fingerprints": ["A_CONFIRMAR_SHA256_DA_CHAVE_DE_ASSINATURA"]
+      "sha256_cert_fingerprints": ["36:02:0B:B5:7A:EC:5C:6B:D0:FB:04:C9:50:D2:8B:1B:14:13:B6:43:E2:C5:26:4A:CD:57:06:9F:C8:3C:D5:09"]
     }
   }
 ]
