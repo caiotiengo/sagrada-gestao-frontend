@@ -2,7 +2,7 @@
   "applinks": {
     "details": [
       {
-        "appIDs": ["A_CONFIRMAR_TEAM_ID.com.sagradagestao.app"],
+        "appIDs": ["FJXDBK5PSW.com.sagradagestao.app"],
         "components": [
           { "/": "/c/*/cadastro", "comment": "convite de membro" },
           { "/": "/c/*/admin/convite", "comment": "convite de liderança" },
