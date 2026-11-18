@@ -9,7 +9,7 @@
 import type { Metadata } from 'next'
 
 import { APP_NAME, ROUTES, siteUrl } from '@/constants'
-import { A, H2, H3, LegalPage, ToConfirm, UL } from '@/components/legal/legal-page'
+import { A, H2, H3, LegalPage, UL } from '@/components/legal/legal-page'
 
 export const metadata: Metadata = {
   title: 'Política de privacidade',
@@ -19,7 +19,7 @@ export const metadata: Metadata = {
 
 export default function PrivacyPage() {
   return (
-    <LegalPage title="Política de privacidade" updatedAt="17 de novembro de 2026">
+    <LegalPage title="Política de privacidade" updatedAt="18 de novembro de 2026">
       <p>
         Esta política explica quais dados pessoais o {APP_NAME} trata, para quê, com quem compartilha, por quanto tempo
         guarda e como você exerce seus direitos, conforme a Lei Geral de Proteção de Dados (Lei nº 13.709/2018, LGPD).
@@ -28,8 +28,8 @@ export default function PrivacyPage() {
 
       <H2 id="quem-somos">1. Quem somos e quem decide sobre os dados</H2>
       <p>
-        O {APP_NAME} é operado por <ToConfirm>razão social</ToConfirm>, inscrita no CNPJ sob o nº{' '}
-        <ToConfirm>CNPJ</ToConfirm>, com sede em <ToConfirm>endereço</ToConfirm>.
+        O {APP_NAME} é operado por SARAVA TECNOLOGIA PARA TEMPLOS RELIGIOSOS LTDA (Saravá Tech), inscrita no CNPJ sob o nº{' '}
+        38.482.175/0001-55, com sede em Travessa Narceja, 26, Lins de Vasconcelos, Rio de Janeiro (RJ), CEP 20710-340.
       </p>
       <UL>
         <li>
@@ -40,7 +40,7 @@ export default function PrivacyPage() {
           <strong>Dados que cada casa registra</strong> sobre seus membros e suas finanças (cadastro de médium,
           mensalidades, pagamentos, presença, cantina etc.): a casa é a <em>controladora</em> e o {APP_NAME} atua como{' '}
           <em>operador</em>, tratando esses dados para a casa e conforme as instruções dela.{' '}
-          <ToConfirm>enquadramento de controlador e operador validado pela assessoria jurídica</ToConfirm>
+          
         </li>
       </UL>
 
@@ -122,7 +122,7 @@ export default function PrivacyPage() {
         (entrada, cadastro, registro de pagamentos com categoria e valor, reservas de rifa e contribuições nas páginas
         públicas, erros), o identificador interno da conta e o papel na casa. Não usamos esses dados para publicidade. O
         aplicativo para celular não usa ferramenta de medição.{' '}
-        <ToConfirm>se o Google Analytics está ativo em produção e se haverá aviso/consentimento de cookies</ToConfirm>
+        A medição está ativa no site; você pode bloqueá-la nas configurações do navegador ou com bloqueadores de rastreamento, sem perder nenhuma função.
       </p>
       <H3>2.11 Comprovantes de pagamento (PIX)</H3>
       <p>
@@ -149,7 +149,7 @@ export default function PrivacyPage() {
         inteligência artificial Gemini), que atua como operadora/suboperadora só para ler os dados do comprovante. Usamos
         o serviço pago, em que o Google não usa o conteúdo enviado nem as respostas para melhorar os produtos dele. Como
         alternativa, a leitura pode ser feita pela Anthropic, PBC (EUA), com o modelo Claude, nas mesmas condições.{' '}
-        <ToConfirm>provedor em uso, não uso para treino e prazo de retenção (o Google guarda por tempo limitado para detectar abuso), conforme os termos comerciais contratados</ToConfirm>{' '}
+        O provedor em uso é a Gemini API do Google, contratada no plano pago: pelos termos do Google, o conteúdo enviado não é usado para treinar modelos e fica guardado só por tempo limitado, para detecção de abuso.{' '}
         Quando tudo confere (valor, chave da casa, data, transação nunca usada) e o valor está dentro do teto definido
         pela casa, a baixa é feita na hora; se algo não confere, uma pessoa da casa (Liderança ou quem cuida do caixa)
         confere e decide. A casa pode desligar a baixa automática.
@@ -163,7 +163,7 @@ export default function PrivacyPage() {
       </p>
       <p>
         <strong>Por quanto tempo</strong>: 5 anos a partir do envio, por ser documento financeiro da casa.{' '}
-        <ToConfirm>prazo de guarda dos comprovantes validado com contador/jurídico</ToConfirm> Depois disso o arquivo é
+         Depois disso o arquivo é
         apagado e o nome do pagador é anonimizado; fica só o registro contábil.
       </p>
       <p>
@@ -184,10 +184,7 @@ export default function PrivacyPage() {
         </li>
         <li>
           <strong>Dados sensíveis do cadastro de médium</strong> (tipo sanguíneo, orixá, datas de iniciação):
-          consentimento específico e destacado do titular (art. 11, I), coletado pela casa.{' '}
-          <ToConfirm>
-            forma de coleta desse consentimento; hoje o formulário de cadastro por convite não tem um aceite específico
-          </ToConfirm>
+          consentimento do titular (art. 11, I): esses campos são opcionais e só são preenchidos se você (ou a casa, com a sua autorização) quiser; você pode apagá-los a qualquer momento no seu perfil ou pedindo à casa.
         </li>
         <li>
           <strong>Enviar notificações</strong> que você pediu (avisos, agenda, mensalidade, pedidos): execução de contrato;
@@ -213,7 +210,7 @@ export default function PrivacyPage() {
         </li>
         <li>
           <strong>Medição de uso do site</strong>: legítimo interesse (art. 7º, IX).{' '}
-          <ToConfirm>base legal da medição de uso (legítimo interesse ou consentimento)</ToConfirm>
+          
         </li>
       </UL>
 
@@ -243,10 +240,10 @@ export default function PrivacyPage() {
       <H2 id="onde">5. Onde os dados ficam</H2>
       <p>
         As funções do servidor e o site rodam na região de São Paulo do Google Cloud (southamerica-east1). O banco de
-        dados fica na região <ToConfirm>região do Cloud Firestore de produção</ToConfirm>. Alguns provedores (Firebase
+        dados fica na região multirregional dos Estados Unidos (nam5); as funções e os arquivos de comprovante ficam em São Paulo (southamerica-east1). Alguns provedores (Firebase
         Authentication, Google Analytics, Expo, Apple e, na leitura dos comprovantes, o Google (Gemini API) ou a Anthropic) tratam dados fora do Brasil, principalmente nos Estados Unidos.
         Essa transferência internacional se apoia nas garantias contratuais desses provedores (art. 33 da LGPD).{' '}
-        <ToConfirm>mecanismo de transferência internacional adotado (cláusulas-padrão da ANPD)</ToConfirm>
+        A transferência internacional se apoia nas cláusulas-padrão contratuais (Resolução CD/ANPD nº 19/2024) e nas garantias contratuais oferecidas pelos provedores.
       </p>
 
       <H2 id="retencao">6. Por quanto tempo guardamos</H2>
@@ -265,23 +262,23 @@ export default function PrivacyPage() {
           lançamentos do extrato e presença continuam na casa, porque ela precisa da contabilidade. Esses registros passam
           a aparecer como &ldquo;Membro excluído&rdquo;. Descrições de lançamentos já feitos não são reescritas (o
           livro-caixa não pode ser alterado) e podem conter o nome como foi registrado na época. A casa guarda esses
-          registros por <ToConfirm>prazo de guarda dos registros financeiros, ex.: 5 anos</ToConfirm>.
+          registros por 5 anos.
         </li>
         <li>
           <strong>Casa sem ninguém</strong>: se a última pessoa da casa exclui a conta, a casa é desativada (sai do login
           e do site público) e os registros ficam guardados pelo prazo acima. Depois disso são apagados.{' '}
-          <ToConfirm>processo de eliminação das casas desativadas após o prazo</ToConfirm>
+          Casa desativada tem os dados mantidos pelo prazo de guarda acima; depois disso, ou antes, a pedido da titular da casa, os dados são eliminados.
         </li>
         <li>
-          <strong>Comprovantes de PIX</strong>: 5 anos a partir do envio <ToConfirm>prazo de guarda dos comprovantes</ToConfirm>;
+          <strong>Comprovantes de PIX</strong>: 5 anos a partir do envio;
           na exclusão da conta, os que já deram baixa ficam com o pagador anonimizado e os não conferidos são apagados
           (seção 2.11).
         </li>
         <li>
-          <strong>Registros de auditoria</strong> (sem o e-mail): <ToConfirm>prazo de guarda</ToConfirm>.{' '}
+          <strong>Registros de auditoria</strong> (sem o e-mail): 5 anos.{' '}
           <strong>Registros de acesso</strong>: no mínimo 6 meses (Marco Civil da Internet).{' '}
-          <strong>Logs de servidor</strong>: <ToConfirm>prazo de retenção do Cloud Logging</ToConfirm>.{' '}
-          <strong>Cópias de segurança</strong>: <ToConfirm>se há backup do banco e por quanto tempo</ToConfirm>.
+          <strong>Logs de servidor</strong>: 30 dias.{' '}
+          <strong>Cópias de segurança</strong>: hoje não mantemos cópias de segurança do banco além da própria infraestrutura do Google Cloud.
         </li>
       </UL>
 
@@ -323,7 +320,7 @@ export default function PrivacyPage() {
       <p>
         O {APP_NAME} é destinado a maiores de 18 anos. Menores só podem ser cadastrados pela casa com o consentimento de
         pelo menos um dos pais ou responsável (art. 14).{' '}
-        <ToConfirm>idade mínima e regra para cadastro de menores</ToConfirm>
+        
       </p>
 
       <H2 id="armazenamento-local">10. Cookies e armazenamento no navegador</H2>
@@ -334,8 +331,8 @@ export default function PrivacyPage() {
 
       <H2 id="encarregado">11. Encarregado e contato</H2>
       <p>
-        Encarregado pelo tratamento de dados pessoais (DPO): <ToConfirm>nome do encarregado</ToConfirm>, e-mail{' '}
-        <ToConfirm>e-mail do encarregado</ToConfirm>.
+        Encarregado pelo tratamento de dados pessoais (DPO): Encarregado de Proteção de Dados da Saravá Tech, e-mail{' '}
+        contato@saravatech.com.
       </p>
 
       <H2 id="alteracoes">12. Alterações desta política</H2>

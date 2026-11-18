@@ -7,7 +7,7 @@
 import type { Metadata } from 'next'
 
 import { APP_NAME, ROUTES, APP_URL, appUrl, siteUrl } from '@/constants'
-import { A, H2, LegalPage, ToConfirm, UL } from '@/components/legal/legal-page'
+import { A, H2, LegalPage, UL } from '@/components/legal/legal-page'
 import { DeleteAccountExplanation } from '@/components/account/delete-account-section'
 
 export const metadata: Metadata = {
@@ -18,7 +18,7 @@ export const metadata: Metadata = {
 
 export default function DeleteAccountInfoPage() {
   return (
-    <LegalPage title={`Excluir sua conta do ${APP_NAME}`} updatedAt="17 de novembro de 2026">
+    <LegalPage title={`Excluir sua conta do ${APP_NAME}`} updatedAt="18 de novembro de 2026">
       <p>
         Você pode excluir sua conta a qualquer momento, sem precisar falar com ninguém. A exclusão é definitiva.
       </p>
@@ -53,7 +53,7 @@ export default function DeleteAccountInfoPage() {
       <H2 id="sem-acesso">Não consegue entrar?</H2>
       <p>
         Primeiro tente <A href={appUrl(ROUTES.FORGOT_PASSWORD)}>recuperar a senha</A>. Se não tiver mais acesso ao e-mail da
-        conta, peça a exclusão por e-mail para <ToConfirm>e-mail para pedidos de exclusão</ToConfirm>, informando:
+        conta, peça a exclusão por e-mail para contato@saravatech.com, informando:
       </p>
       <UL>
         <li>o e-mail da conta;</li>
