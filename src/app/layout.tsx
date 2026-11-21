@@ -12,10 +12,12 @@ const inter = Inter({
   display: 'swap',
 })
 
+// Mono aparece em poucas telas: sem preload, baixa só onde for usada.
 const jetbrainsMono = JetBrains_Mono({
   variable: '--font-mono',
   subsets: ['latin'],
   display: 'swap',
+  preload: false,
 })
 
 export const metadata: Metadata = {

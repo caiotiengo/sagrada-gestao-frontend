@@ -1,5 +1,13 @@
 import { initializeApp, getApps, getApp } from 'firebase/app'
-import { getAuth, connectAuthEmulator } from 'firebase/auth'
+import {
+  getAuth,
+  initializeAuth,
+  connectAuthEmulator,
+  indexedDBLocalPersistence,
+  browserLocalPersistence,
+  browserSessionPersistence,
+  type Auth,
+} from 'firebase/auth'
 import { getFunctions, connectFunctionsEmulator } from 'firebase/functions'
 import { getAnalytics, isSupported } from 'firebase/analytics'
 import type { Analytics } from 'firebase/analytics'
@@ -22,7 +30,25 @@ const FUNCTIONS_EMULATOR_PORT = Number(process.env.NEXT_PUBLIC_FUNCTIONS_EMULATO
 
 const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig)
 
-export const auth = getAuth(app)
+/**
+ * No navegador, initializeAuth com as mesmas persistências do getAuth (a sessão
+ * salva continua valendo), mas sem o popupRedirectResolver: o sistema só usa
+ * e-mail e senha, e o resolver baixa o iframe do authDomain + gapi (~130 KB e
+ * duas conexões a mais) em toda página. No servidor (prerender), getAuth.
+ */
+function makeAuth(): Auth {
+  if (typeof window === 'undefined') return getAuth(app)
+  try {
+    return initializeAuth(app, {
+      persistence: [indexedDBLocalPersistence, browserLocalPersistence, browserSessionPersistence],
+    })
+  } catch {
+    // já inicializado (recarga a quente no dev)
+    return getAuth(app)
+  }
+}
+
+export const auth = makeAuth()
 export const functions = getFunctions(app, 'southamerica-east1')
 
 // Analytics — only in browser (not SSR) and never against emulators

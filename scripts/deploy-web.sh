@@ -61,7 +61,13 @@ echo "Revisão no ar agora (anote para o rollback):"
 gcloud run services describe "$SERVICE" --region "$REGION" --project "$PROJECT" \
   --format='value(status.traffic[0].revisionName,status.url)' || true
 
+# Desempenho (21/11/2026): com min 0 cada instância nova levava 2-4 s para
+# responder (cold start) em tudo que o CDN não tem: /login logo após deploy,
+# /_next/image, RSC, /site/*, /c/*. Uma instância sempre pronta + CPU extra na
+# partida. Custo estimado da instância ociosa (1 vCPU, 512 MiB, Tier 2):
+# ~US$ 14/mês. Fica aqui para o próximo deploy não desfazer.
 CMD_RUN=(gcloud run deploy "$SERVICE" --source . --region "$REGION" --project "$PROJECT" --allow-unauthenticated
+  --min-instances 1 --cpu-boost
   --update-labels "git-sha=$SHA")
 CMD_HOSTING=(npx firebase deploy --only hosting --project "$PROJECT" -m "web $BRANCH $SHA")
 

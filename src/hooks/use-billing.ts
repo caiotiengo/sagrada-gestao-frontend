@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { billingService, formatDateBR, type BillingInterval, type PaidPlanId, type PlanChangeResult, type PlanFeature } from '@/services/billing'
-import { useAuthStore } from '@/stores/auth'
+import { useAuthStore, writeCachedBilling } from '@/stores/auth'
 import { getErrorMessage } from '@/lib/errors'
 
 export const billingKey = (houseId: string | null) => ['house', houseId, 'billing'] as const
@@ -13,7 +13,11 @@ export function useHouseBilling(opts: { refetchInterval?: number | false } = {})
   const houseId = useAuthStore((s) => s.currentHouseId())
   return useQuery({
     queryKey: billingKey(houseId),
-    queryFn: () => billingService.get(houseId!),
+    queryFn: async () => {
+      const data = await billingService.get(houseId!)
+      writeCachedBilling(houseId!, data)
+      return data
+    },
     enabled: !!houseId,
     staleTime: 60 * 1000,
     // O bloqueio/desbloqueio vem do webhook: confere de tempos em tempos e ao voltar para a aba.

@@ -8,7 +8,9 @@ import { callFunction } from '@/lib/callable'
 import { getErrorCode } from '@/lib/errors'
 import { RegistrationError, withRegistrationAccount } from '@/lib/auth-account'
 import { identifyUser, trackLogin, trackSignUp, trackLogout } from '@/lib/analytics'
+import { getFreshStoredProfile } from '@/stores/auth'
 import type {
+  HouseMembership,
   LoginResponse,
   RegisterHouseRequest,
   RegisterHouseResponse,
@@ -86,10 +88,18 @@ export const authService = {
 
   /**
    * Get profile data for the logged-in user.
-   * The login callable uses the auth token — no payload needed.
+   * Com perfil salvo e recente neste navegador, atualiza só as casas (papel,
+   * permissões, bloqueio) via `listMyHouses`, como o app: mais rápido e sem
+   * gravar auditoria de LOGIN a cada abertura. Sem perfil salvo, usa `login`.
    */
   getProfile: async (): Promise<LoginResponse> => {
-    if (!auth.currentUser) throw new Error('Not authenticated')
+    const user = auth.currentUser
+    if (!user) throw new Error('Not authenticated')
+    const stored = getFreshStoredProfile(user.uid)
+    if (stored) {
+      const { houses } = await callFunction<Record<string, never>, { houses: HouseMembership[] }>('listMyHouses', {})
+      return { ...stored, houses }
+    }
     return callFunction<Record<string, never>, LoginResponse>('login', {})
   },
 

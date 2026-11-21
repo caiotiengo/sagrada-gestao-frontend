@@ -95,6 +95,54 @@ function loadStoredHouse(): HouseMembership | null {
 }
 
 /**
+ * Perfil salvo neste navegador para este usuário, se houver e não estiver vencido
+ * (PROFILE_MAX_AGE_MS). Serve para atualizar só a lista de casas (listMyHouses)
+ * em vez de chamar `login` (que grava auditoria) a cada abertura do sistema.
+ */
+export function getFreshStoredProfile(uid: string): UserProfile | null {
+  const stored = loadStoredProfile()
+  if (!stored || stored.isStale || stored.profile.uid !== uid) return null
+  return stored.profile
+}
+
+const BILLING_CACHE_PREFIX = 'sagrada_billing_'
+
+/**
+ * Último estado de cobrança conhecido da casa, só para o layout da Gestão não
+ * esperar o getHouseBilling antes de montar a página. O valor do servidor
+ * sempre substitui este assim que chega.
+ */
+export function readCachedBilling<T>(houseId: string | null): T | null {
+  if (typeof window === 'undefined' || !houseId) return null
+  try {
+    const raw = localStorage.getItem(BILLING_CACHE_PREFIX + houseId)
+    return raw ? (JSON.parse(raw) as T) : null
+  } catch {
+    return null
+  }
+}
+
+export function writeCachedBilling(houseId: string, data: unknown) {
+  if (typeof window === 'undefined') return
+  try {
+    localStorage.setItem(BILLING_CACHE_PREFIX + houseId, JSON.stringify(data))
+  } catch {
+    // armazenamento cheio/bloqueado: segue sem cache
+  }
+}
+
+function clearCachedBilling() {
+  if (typeof window === 'undefined') return
+  try {
+    Object.keys(localStorage)
+      .filter((k) => k.startsWith(BILLING_CACHE_PREFIX))
+      .forEach((k) => localStorage.removeItem(k))
+  } catch {
+    // ignore
+  }
+}
+
+/**
  * Sessão salva no navegador (perfil + casa atual), para decidir a rota inicial
  * de quem já está logado sem esperar o callable de login.
  */
@@ -173,6 +221,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       localStorage.removeItem(PROFILE_STORAGE_KEY)
       localStorage.removeItem(HOUSE_STORAGE_KEY)
     }
+    clearCachedBilling()
     set({
       firebaseUser: null,
       profile: null,
@@ -228,6 +277,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           localStorage.removeItem(PROFILE_STORAGE_KEY)
           localStorage.removeItem(HOUSE_STORAGE_KEY)
         }
+        clearCachedBilling()
         set({
           firebaseUser: null,
           profile: null,
