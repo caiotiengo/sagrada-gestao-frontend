@@ -49,7 +49,14 @@ function makeAuth(): Auth {
 }
 
 export const auth = makeAuth()
-export const functions = getFunctions(app, 'southamerica-east1')
+/**
+ * Região das callables. Padrão us-central1, ao lado do Firestore (nam5): em
+ * southamerica-east1 cada leitura do banco cruzava o continente (~180 ms).
+ * O back publica as callables nas duas regiões (o app das lojas ainda usa
+ * southamerica-east1). NEXT_PUBLIC_FUNCTIONS_REGION sobrescreve.
+ */
+export const FUNCTIONS_REGION = process.env.NEXT_PUBLIC_FUNCTIONS_REGION || 'us-central1'
+export const functions = getFunctions(app, FUNCTIONS_REGION)
 
 // Analytics — only in browser (not SSR) and never against emulators
 // (com emuladores os eventos iriam para o measurementId real).

@@ -239,8 +239,9 @@ export default function PrivacyPage() {
 
       <H2 id="onde">5. Onde os dados ficam</H2>
       <p>
-        As funções do servidor e o site rodam na região de São Paulo do Google Cloud (southamerica-east1). O banco de
-        dados fica na região multirregional dos Estados Unidos (nam5); as funções e os arquivos de comprovante ficam em São Paulo (southamerica-east1). Alguns provedores (Firebase
+        O site roda na região de São Paulo do Google Cloud (southamerica-east1). O banco de dados fica na região
+        multirregional dos Estados Unidos (nam5); as funções do servidor rodam nos Estados Unidos (us-central1, ao lado
+        do banco) e em São Paulo (southamerica-east1), e os arquivos de comprovante ficam em São Paulo. Alguns provedores (Firebase
         Authentication, Google Analytics, Expo, Apple e, na leitura dos comprovantes, o Google (Gemini API) ou a Anthropic) tratam dados fora do Brasil, principalmente nos Estados Unidos.
         Essa transferência internacional se apoia nas garantias contratuais desses provedores (art. 33 da LGPD).{' '}
         A transferência internacional se apoia nas cláusulas-padrão contratuais (Resolução CD/ANPD nº 19/2024) e nas garantias contratuais oferecidas pelos provedores.

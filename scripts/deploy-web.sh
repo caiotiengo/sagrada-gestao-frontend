@@ -42,6 +42,7 @@ grep -q '^ENV NEXT_PUBLIC_FIREBASE_PROJECT_ID=sagrada-gestao$' Dockerfile || fai
 grep -q '^ENV NEXT_PUBLIC_USE_EMULATORS=false$' Dockerfile || fail "Dockerfile com emulador ligado"
 grep -q '^ENV NEXT_PUBLIC_APP_URL=https://app.sagradagestao.com.br$' Dockerfile || fail "NEXT_PUBLIC_APP_URL errado no Dockerfile"
 grep -q '^ENV NEXT_PUBLIC_BASE_DOMAIN=sagradagestao.com.br$' Dockerfile || fail "NEXT_PUBLIC_BASE_DOMAIN errado no Dockerfile"
+grep -q '^ENV NEXT_PUBLIC_FUNCTIONS_REGION=us-central1$' Dockerfile || fail "NEXT_PUBLIC_FUNCTIONS_REGION deve ser us-central1 (callables ao lado do Firestore)"
 grep -q '^\.env\.local$' .dockerignore || fail ".dockerignore não exclui .env.local"
 grep -q '"serviceId": "sagrada-gestao-frontend"' firebase.json || fail "firebase.json não reescreve para o Cloud Run"
 
