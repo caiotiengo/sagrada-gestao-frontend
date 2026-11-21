@@ -8,7 +8,9 @@ import { cn } from '@/lib/utils'
   original). Apple: 119,66 x 40. Google Play (já sem a margem transparente):
   646 x 192. Altura mínima na tela da Apple: 40px; aqui usamos 44px.
 */
-const BADGES = [
+type Badge = { id: string; href: string; src: string; alt: string; width: number; height: number }
+
+const BADGES: readonly Badge[] = [
   {
     id: 'app-store',
     href: APP_STORE_URL,
@@ -25,9 +27,18 @@ const BADGES = [
     width: 148,
     height: 44,
   },
-] as const
+]
 
-export function StoreBadges({ className, align = 'start' }: { className?: string; align?: 'start' | 'center' }) {
+export function StoreBadges({
+  className,
+  align = 'start',
+  size = 'md',
+}: {
+  className?: string
+  align?: 'start' | 'center'
+  /** md = 44px (landing); sm = 40px, o mínimo da Apple (rodapé, páginas internas) */
+  size?: 'sm' | 'md'
+}) {
   return (
     <ul className={cn('flex flex-wrap gap-x-4 gap-y-3', align === 'center' ? 'justify-center' : 'justify-center sm:justify-start', className)}>
       {BADGES.map((b) => {
@@ -38,7 +49,7 @@ export function StoreBadges({ className, align = 'start' }: { className?: string
             width={b.width}
             height={b.height}
             unoptimized={b.src.endsWith('.svg')}
-            className="block h-11 w-auto"
+            className={cn('block w-auto', size === 'sm' ? 'h-10' : 'h-11')}
           />
         )
         return (

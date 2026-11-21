@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ErrorState } from '@/components/feedback/error-state'
+import { StoreBadges } from '@/components/landing/store-badges'
 
 const CATEGORIES: { key: NotificationCategory; label: string; hint: string }[] = [
   { key: 'notices', label: 'Avisos da liderança', hint: 'Aviso novo, fixado ou não' },
@@ -63,7 +64,8 @@ export default function NotificationSettingsPage() {
             <Info className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
             <div>
               <p className="font-medium">Notificações no navegador desativadas</p>
-              <p className="text-muted-foreground" data-testid="web-push-reason">{status.reason} No celular, ative pelo app.</p>
+              <p className="text-muted-foreground" data-testid="web-push-reason">{status.reason} No celular, ative pelo app:</p>
+              <StoreBadges size="sm" className="mt-3" />
             </div>
           </div>
         ) : enabledHere ? (

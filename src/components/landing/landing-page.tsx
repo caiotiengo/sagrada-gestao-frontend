@@ -235,7 +235,7 @@ const TILES: Tile[] = [
   {
     title: 'No celular e no computador',
     icon: Smartphone,
-    text: 'Funciona no navegador desde já. O app para iPhone e Android está a caminho das lojas, com check-in por QR, balcão e o seu QR de presença.',
+    text: 'Funciona no navegador e no app para iPhone e Android, já na App Store e no Google Play, com check-in por QR, balcão e o seu QR de presença.',
     className: 'lg:col-span-2',
   },
 ]
@@ -288,7 +288,7 @@ const FAQ: { q: string; a: string }[] = [
   },
   {
     q: 'Preciso instalar alguma coisa?',
-    a: 'Não. Funciona no navegador do celular e do computador. O app para Android e iPhone está a caminho das lojas.',
+    a: 'Não precisa. Funciona no navegador do celular e do computador. Se preferir, o app para iPhone e Android já está na App Store e no Google Play.',
   },
   {
     q: 'O sistema recebe o dinheiro da casa?',
@@ -895,6 +895,10 @@ export function LandingPage({ fontClassName }: { fontClassName?: string }) {
               Excluir conta
             </Link>
           </nav>
+        </div>
+        <div className="mx-auto mt-8 flex max-w-6xl flex-col items-center gap-3 sm:flex-row sm:gap-5">
+          <p className="text-sm text-sg-muted">Baixe o app para iPhone e Android:</p>
+          <StoreBadges size="sm" />
         </div>
         <p className="mx-auto mt-8 max-w-6xl text-xs text-sg-muted">
           © {new Date().getFullYear()} {APP_NAME}. Uma ferramenta de administração: cada casa conduz o sagrado do seu jeito.
