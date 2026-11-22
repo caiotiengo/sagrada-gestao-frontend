@@ -12,6 +12,8 @@ import {
 import { useForgotPassword } from '@/hooks/use-auth'
 import { ROUTES } from '@/constants'
 import { AuthLayout } from '@/components/layout/auth-layout'
+import { authBtnGold } from '@/components/landing/auth-brand'
+import { cn } from '@/lib/utils'
 import { FormField } from '@/components/forms/form-field'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -37,10 +39,10 @@ export default function ForgotPasswordPage() {
   return (
     <AuthLayout>
       <div className="space-y-1.5 text-center">
-        <h2 className="text-lg font-semibold tracking-tight">
+        <h2 className="font-display text-2xl font-semibold">
           Recuperar senha
         </h2>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm text-sg-muted">
           {isSuccess
             ? 'Se houver uma conta com este e-mail, enviamos um link para redefinir a senha. Verifique sua caixa de entrada.'
             : 'Informe seu email e enviaremos um link de recuperação.'}
@@ -63,7 +65,7 @@ export default function ForgotPasswordPage() {
             type="submit"
             size="lg"
             disabled={isPending}
-            className="w-full"
+            className={cn('w-full', authBtnGold)}
           >
             {isPending && <Loader2 className="size-4 animate-spin" />}
             {isPending ? 'Enviando...' : 'Enviar link de recuperação'}
@@ -74,7 +76,7 @@ export default function ForgotPasswordPage() {
       <div className="mt-6 text-center">
         <Link
           href={ROUTES.LOGIN}
-          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          className="inline-flex items-center gap-1.5 text-sm text-sg-muted transition-colors hover:text-sg-fg"
         >
           <ArrowLeft className="size-3.5" />
           Voltar ao login

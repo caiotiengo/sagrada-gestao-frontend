@@ -233,6 +233,46 @@
 .legal main {
   animation: none;
 }
+/*
+  Telas de entrada (login, cadastro, esqueci a senha): mesmo céu da landing,
+  sempre escuro, com os tokens noturnos dela. O cartão do formulário fica claro
+  (tokens diurnos da landing) para os campos manterem contraste alto.
+*/
+.auth-brand {
+  --l-bg: #0e0f2a;
+  --l-alt: #121335;
+  --l-card: #17183f;
+  --l-fg: #f7f1e4;
+  --l-muted: #bdbad3;
+  --l-border: rgb(255 255 255 / 0.1);
+  --l-primary: #9599f2;
+  --l-primary-fg: #0e0f2a;
+  --l-gold: #e1b75c;
+  --l-gold-text: #e8c27a;
+  --l-leaf: #8db86a;
+}
+.auth-brand .auth-card {
+  --l-bg: #fbf7ef;
+  --l-alt: #f4ebda;
+  --l-card: #ffffff;
+  --l-fg: #1b1c45;
+  --l-muted: #525476;
+  --l-border: #e3d7c1;
+  --l-primary: #3e42b6;
+  --l-primary-fg: #ffffff;
+  --l-gold-text: #8a5a12;
+  --l-leaf: #2e5a37;
+  background: var(--l-card);
+  color: var(--l-fg);
+  border: 1px solid rgb(255 255 255 / 0.14);
+  box-shadow:
+    0 0 0 1px rgb(225 183 92 / 0.18),
+    0 30px 60px -28px rgb(0 0 0 / 0.65);
+}
+.auth-brand .font-display {
+  font-variation-settings: 'SOFT' 50, 'opsz' 40;
+  letter-spacing: -0.015em;
+}
 .landing-sky {
   background-color: #121335;
   background-image:
