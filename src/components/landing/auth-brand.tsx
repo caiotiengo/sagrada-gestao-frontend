@@ -12,6 +12,9 @@ export const authBtnGold =
   'h-11 rounded-full bg-sg-gold font-semibold text-[#1b1c45] shadow-[0_8px_30px_-8px_rgb(225_183_92/0.7)] hover:bg-[#ecc677] focus-visible:ring-[#e1b75c]/50 [a]:hover:bg-[#ecc677]'
 /** Botão secundário (contorno) dentro do cartão claro. */
 export const authBtnOutline = 'h-11 rounded-full border-sg-line bg-transparent font-semibold text-sg-fg hover:bg-sg-alt'
+/** Checkbox marcado em dourado (sobrescreve o primary do app só nas telas de entrada). */
+export const authCheckboxGold =
+  'focus-visible:border-sg-gold focus-visible:ring-[#e1b75c]/50 data-checked:border-sg-gold data-checked:bg-sg-gold data-checked:text-[#1b1c45] dark:data-checked:bg-sg-gold aria-invalid:aria-checked:border-sg-gold'
 /** Link de destaque dentro do cartão claro. */
 export const authLink = 'font-semibold text-sg-gold-text underline-offset-4 hover:underline'
 

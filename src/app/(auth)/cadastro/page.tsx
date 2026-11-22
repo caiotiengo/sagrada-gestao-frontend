@@ -13,7 +13,7 @@ import {
 import { useRegisterAdmin } from '@/hooks/use-auth'
 import { ROUTES, DAYS_OF_WEEK, DOCUMENT_TYPES } from '@/constants'
 import { cn } from '@/lib/utils'
-import { AuthCard, AuthHeadline, AuthPromoPanel, authBtnGold, authBtnOutline, authLink } from '@/components/landing/auth-brand'
+import { AuthCard, AuthHeadline, AuthPromoPanel, authBtnGold, authBtnOutline, authCheckboxGold, authLink } from '@/components/landing/auth-brand'
 import { FormField } from '@/components/forms/form-field'
 import { MaskedInput } from '@/components/forms/masked-input'
 import { PasswordInput } from '@/components/forms/password-input'
@@ -359,10 +359,16 @@ export default function AdminRegistrationPage() {
                         return (
                           <label
                             key={day}
-                            className="flex cursor-pointer items-center gap-2 rounded-lg border border-border/60 px-2 py-2 text-sm transition-colors hover:bg-muted has-[:checked]:border-primary/40 has-[:checked]:bg-primary/5"
+                            className={cn(
+                              'flex cursor-pointer items-center gap-2 rounded-lg border px-2 py-2 text-sm transition-colors',
+                              isChecked
+                                ? 'border-sg-gold bg-sg-gold/15'
+                                : 'border-border/60 hover:bg-sg-alt'
+                            )}
                           >
                             <Checkbox
                               checked={isChecked}
+                              className={authCheckboxGold}
                               onCheckedChange={(checked) => {
                                 if (checked) {
                                   field.onChange([...field.value, day])

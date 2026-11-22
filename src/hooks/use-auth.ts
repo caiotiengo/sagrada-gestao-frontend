@@ -47,9 +47,7 @@ export function useLogin() {
 export function useForgotPassword() {
   return useMutation({
     mutationFn: (data: { email: string }) => authService.requestPasswordReset(data),
-    onSuccess: () => {
-      toast.success('Se o email existir, um link de recuperação será enviado.')
-    },
+    // Sucesso sem toast: a tela de esqueci a senha já mostra a confirmação no cartão.
     onError: (error) => {
       toast.error(getErrorMessage(error, 'Erro ao enviar email de recuperação'))
     },
