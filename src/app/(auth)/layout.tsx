@@ -1,5 +1,4 @@
 import { Fraunces } from 'next/font/google'
-import { ArrowLeft } from 'lucide-react'
 
 import { BrandMark } from '@/components/landing/brand'
 import { APP_NAME, siteUrl } from '@/constants'
@@ -32,13 +31,6 @@ export default function AuthGroupLayout({
         >
           <BrandMark className="size-9" tone="gold" />
           <span className="text-base font-semibold tracking-tight">{APP_NAME}</span>
-        </a>
-        <a
-          href={home}
-          className="inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium text-white/80 transition hover:bg-white/10 hover:text-white"
-        >
-          <ArrowLeft className="size-4" aria-hidden="true" />
-          Voltar
         </a>
       </header>
       <div className="flex flex-1 flex-col">{children}</div>
