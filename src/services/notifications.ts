@@ -41,5 +41,5 @@ export const notificationsService = {
     ),
 }
 
-export type NotificationCategory = 'notices' | 'events' | 'payments' | 'store' | 'charges' | 'general'
+export type NotificationCategory = 'notices' | 'events' | 'payments' | 'store' | 'charges' | 'general' | 'email'
 export type NotificationPreferences = Record<NotificationCategory, boolean>

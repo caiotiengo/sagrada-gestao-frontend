@@ -121,6 +121,32 @@ export default function NotificationSettingsPage() {
           </p>
         </section>
       )}
+
+      {!prefs.isError && (
+        <section className="rounded-xl border bg-card" data-testid="email-prefs">
+          <h2 className="border-b px-4 py-3 text-sm font-semibold sm:px-5">Por e-mail</h2>
+          <div className="flex items-center gap-4 px-4 py-3 sm:px-5">
+            <label htmlFor="pref-email" className="min-w-0 flex-1 cursor-pointer">
+              <span className="block text-sm font-medium">Lembretes de mensalidade</span>
+              <span className="block text-xs text-muted-foreground">Vencendo amanhã, 1 e 7 dias em atraso</span>
+            </label>
+            {prefs.isLoading ? (
+              <Skeleton className="h-5 w-8" />
+            ) : (
+              <Switch
+                id="pref-email"
+                data-testid="pref-email"
+                checked={prefs.data?.email ?? true}
+                onCheckedChange={(v) => update.mutate({ email: v })}
+                aria-label="Lembretes de mensalidade por e-mail"
+              />
+            )}
+          </div>
+          <p className="border-t px-4 py-3 text-xs text-muted-foreground sm:px-5">
+            E-mails de segurança (como a redefinição de senha) sempre são enviados.
+          </p>
+        </section>
+      )}
     </div>
   )
 }

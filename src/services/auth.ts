@@ -73,11 +73,21 @@ export const authService = {
   },
 
   /**
-   * Request password reset email.
+   * "Esqueci a senha". Primeiro o back (e-mail da marca pelo Resend); se ele
+   * responder delivery "client" (e-mail desligado/falhou) ou a chamada falhar,
+   * envia pelo Firebase como antes. A resposta não revela se o e-mail tem conta.
    */
   requestPasswordReset: async (data: RequestPasswordResetRequest): Promise<void> => {
     try {
-      await sendPasswordResetEmail(auth, data.email)
+      const r = await callFunction<{ email: string }, { delivery?: 'server' | 'client' }>('requestPasswordReset', {
+        email: data.email.trim(),
+      })
+      if (r?.delivery === 'server') return
+    } catch {
+      // segue para o envio pelo Firebase
+    }
+    try {
+      await sendPasswordResetEmail(auth, data.email.trim())
     } catch (error) {
       // Não revela se o e-mail tem conta: "não encontrado" responde igual ao sucesso.
       const code = getErrorCode(error)
